@@ -1,0 +1,54 @@
+{
+  "short_name": "4H Cat Voting",
+  "name": "4H Cat Voting System",
+  "description": "QR code-based voting system for 4H cat decorations with real-time results",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1976d2",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities"],
+  "lang": "en-US",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Vote",
+      "short_name": "Vote",
+      "description": "Vote for cats",
+      "url": "/vote",
+      "icons": [{ "src": "favicon.ico", "sizes": "192x192" }]
+    },
+    {
+      "name": "TV Mode",
+      "short_name": "TV Mode",
+      "description": "View results on TV",
+      "url": "/tv-mode",
+      "icons": [{ "src": "favicon.ico", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Admin dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "favicon.ico", "sizes": "192x192" }]
+    }
+  ]
+}

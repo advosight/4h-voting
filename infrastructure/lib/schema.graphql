@@ -1,0 +1,516 @@
+type Cat {
+  id: ID! @aws_api_key @aws_cognito_user_pools
+  name: String! @aws_api_key @aws_cognito_user_pools
+  owner: String! @aws_api_key @aws_cognito_user_pools
+  votes: Int! @aws_api_key @aws_cognito_user_pools
+  cageNumber: Int @aws_api_key @aws_cognito_user_pools
+  ownerAgeGroup: String @aws_api_key @aws_cognito_user_pools
+  catAgeGroup: String @aws_api_key @aws_cognito_user_pools
+  peoplesChoiceGroup: Int @aws_api_key @aws_cognito_user_pools
+}
+
+type CatConnection {
+  items: [Cat!]!
+}
+
+input CreateCatInput {
+  name: String!
+  owner: String!
+  votes: Int!
+  cageNumber: Int
+  ownerAgeGroup: String
+  catAgeGroup: String
+  peoplesChoiceGroup: Int
+}
+
+input UpdateCatInput {
+  name: String
+  owner: String
+  cageNumber: Int
+  votes: Int
+  ownerAgeGroup: String
+  catAgeGroup: String
+  peoplesChoiceGroup: Int
+}
+
+scalar AWSJSON
+
+type Email {
+  id: ID! @aws_cognito_user_pools
+  email: String! @aws_cognito_user_pools
+  timestamp: String! @aws_cognito_user_pools
+}
+
+type EmailConnection {
+  items: [Email!]!
+}
+
+type Query {
+  getCat(id: ID!): Cat
+  getCatByCage(cageNumber: Int!): Cat @aws_cognito_user_pools
+  listCats: CatConnection!
+  listEmails: EmailConnection! @aws_cognito_user_pools
+  getVotingStatus: VotingStatus! @aws_api_key @aws_cognito_user_pools
+  getScore(id: ID!): Score @aws_cognito_user_pools
+  getScoresByCat(catId: ID!): ScoreConnection! @aws_cognito_user_pools
+  getScoresByCage(cageNumber: Int!): ScoreConnection! @aws_cognito_user_pools
+  listAllScores(limit: Int, nextToken: String): ScoreConnection! @aws_cognito_user_pools
+  getScoresByJudge(judgeId: ID!, limit: Int, nextToken: String): ScoreConnection! @aws_cognito_user_pools
+  getScoreAuditHistory(scoreId: ID!): ScoreAuditConnection! @aws_cognito_user_pools
+  listJudgeAccounts: JudgeAccountConnection! @aws_cognito_user_pools
+  getJudgeAccount(userId: ID!): JudgeAccount @aws_cognito_user_pools
+  getClassScore(id: ID!): ClassScore @aws_cognito_user_pools
+  getClassScoresByCat(catId: ID!): ClassScoreConnection! @aws_cognito_user_pools
+  getClassScoresByCage(cageNumber: Int!): ClassScoreConnection! @aws_cognito_user_pools
+  listAllClassScores(limit: Int, nextToken: String): ClassScoreConnection! @aws_cognito_user_pools
+  getClassScoresByJudge(judgeId: ID!, limit: Int, nextToken: String): ClassScoreConnection! @aws_cognito_user_pools
+  getClassScoreAuditHistory(classScoreId: ID!): ClassScoreAuditConnection! @aws_cognito_user_pools
+  getFitShowScore(id: ID!): FitShowScore @aws_cognito_user_pools
+  getFitShowScoresByCat(catId: ID!): FitShowScoreConnection! @aws_cognito_user_pools
+  getFitShowScoresByCage(cageNumber: Int!): FitShowScoreConnection! @aws_cognito_user_pools
+  listAllFitShowScores(limit: Int, nextToken: String): FitShowScoreConnection! @aws_cognito_user_pools
+  listFitShowScores(limit: Int, nextToken: String): FitShowScoreConnection! @aws_cognito_user_pools
+  getFitShowScoresByJudge(judgeId: ID!, limit: Int, nextToken: String): FitShowScoreConnection! @aws_cognito_user_pools
+  getFitShowScoreAuditHistory(fitShowScoreId: ID!): FitShowScoreAuditConnection! @aws_cognito_user_pools
+}
+
+type VotingStatus {
+  isActive: Boolean! @aws_api_key @aws_cognito_user_pools
+}
+
+type Mutation {
+  createCat(input: CreateCatInput!): Cat!
+  updateCat(id: ID!, input: UpdateCatInput!): Cat!
+  deleteCat(id: ID!): Cat!
+  updateVotes(id: ID!, votes: Int!): Cat! @aws_api_key
+  addEmail(email: String!, context: AWSJSON): Email! @aws_api_key
+  setVotingStatus(isActive: Boolean!): VotingStatus!
+  createScore(input: CreateScoreInput!): Score! @aws_cognito_user_pools
+  updateScore(id: ID!, input: UpdateScoreInput!): Score! @aws_cognito_user_pools
+  finalizeScore(id: ID!): Score! @aws_cognito_user_pools
+  createJudgeAccount(input: CreateJudgeInput!): JudgeAccount! @aws_cognito_user_pools
+  updateUserRole(userId: ID!, role: String!): UserRoleUpdate! @aws_cognito_user_pools
+  createClassScore(input: CreateClassScoreInput!): ClassScore! @aws_cognito_user_pools
+  updateClassScore(id: ID!, input: UpdateClassScoreInput!): ClassScore! @aws_cognito_user_pools
+  finalizeClassScore(id: ID!): ClassScore! @aws_cognito_user_pools
+  createFitShowScore(input: CreateFitShowScoreInput!): FitShowScore! @aws_cognito_user_pools
+  updateFitShowScore(id: ID!, input: UpdateFitShowScoreInput!): FitShowScore! @aws_cognito_user_pools
+  finalizeFitShowScore(id: ID!): FitShowScore! @aws_cognito_user_pools
+}
+
+type Score {
+  id: ID! @aws_cognito_user_pools
+  catId: ID! @aws_cognito_user_pools
+  judgeId: ID! @aws_cognito_user_pools
+  judgeName: String! @aws_cognito_user_pools
+  firstImpressionScore: Int! @aws_cognito_user_pools
+  firstImpressionComments: String @aws_cognito_user_pools
+  originalityScore: Int! @aws_cognito_user_pools
+  originalityComments: String @aws_cognito_user_pools
+  informationCardScore: Int! @aws_cognito_user_pools
+  informationCardComments: String @aws_cognito_user_pools
+  workDoneByMemberScore: Int! @aws_cognito_user_pools
+  workDoneByMemberComments: String @aws_cognito_user_pools
+  basicComfortScore: Int! @aws_cognito_user_pools
+  basicComfortComments: String @aws_cognito_user_pools
+  safetyScore: Int! @aws_cognito_user_pools
+  safetyComments: String @aws_cognito_user_pools
+  easyViewOfCatScore: Int! @aws_cognito_user_pools
+  easyViewOfCatComments: String @aws_cognito_user_pools
+  totalScore: Int! @aws_cognito_user_pools
+  timestamp: String! @aws_cognito_user_pools
+  createdAt: String! @aws_cognito_user_pools
+  updatedAt: String! @aws_cognito_user_pools
+  isFinalized: Boolean! @aws_cognito_user_pools
+  modificationCount: Int! @aws_cognito_user_pools
+  lastModifiedBy: String @aws_cognito_user_pools
+  lastModifiedAt: String @aws_cognito_user_pools
+}
+
+type ScoreAuditEntry {
+  id: ID! @aws_cognito_user_pools
+  scoreId: ID! @aws_cognito_user_pools
+  action: String! @aws_cognito_user_pools
+  modifiedBy: String! @aws_cognito_user_pools
+  modifiedAt: String! @aws_cognito_user_pools
+  previousValues: AWSJSON @aws_cognito_user_pools
+  newValues: AWSJSON @aws_cognito_user_pools
+  reason: String @aws_cognito_user_pools
+}
+
+type ScoreAuditConnection {
+  items: [ScoreAuditEntry!]! @aws_cognito_user_pools
+}
+
+type ScoreConnection {
+  items: [Score!]! @aws_cognito_user_pools
+  nextToken: String @aws_cognito_user_pools
+}
+
+input CreateScoreInput {
+  catId: ID!
+  firstImpressionScore: Int!
+  firstImpressionComments: String
+  originalityScore: Int!
+  originalityComments: String
+  informationCardScore: Int!
+  informationCardComments: String
+  workDoneByMemberScore: Int!
+  workDoneByMemberComments: String
+  basicComfortScore: Int!
+  basicComfortComments: String
+  safetyScore: Int!
+  safetyComments: String
+  easyViewOfCatScore: Int!
+  easyViewOfCatComments: String
+  isFinalized: Boolean
+}
+
+input UpdateScoreInput {
+  firstImpressionScore: Int
+  firstImpressionComments: String
+  originalityScore: Int
+  originalityComments: String
+  informationCardScore: Int
+  informationCardComments: String
+  workDoneByMemberScore: Int
+  workDoneByMemberComments: String
+  basicComfortScore: Int
+  basicComfortComments: String
+  safetyScore: Int
+  safetyComments: String
+  easyViewOfCatScore: Int
+  easyViewOfCatComments: String
+  isFinalized: Boolean
+  modificationReason: String
+}
+
+type Subscription {
+  onVoteUpdate: Cat
+    @aws_subscribe(mutations: ["updateVotes"]) @aws_api_key @aws_cognito_user_pools
+  onEmailAdded: Email
+    @aws_subscribe(mutations: ["addEmail"]) @aws_api_key @aws_cognito_user_pools
+  onVotingStatusChange: VotingStatus
+    @aws_subscribe(mutations: ["setVotingStatus"]) @aws_api_key @aws_cognito_user_pools
+  onScoreUpdate: Score
+    @aws_subscribe(mutations: ["createScore", "updateScore", "finalizeScore"]) @aws_cognito_user_pools
+  onClassScoreUpdate: ClassScore
+    @aws_subscribe(mutations: ["createClassScore", "updateClassScore", "finalizeClassScore"]) @aws_cognito_user_pools
+  onFitShowScoreCreated: FitShowScore
+    @aws_subscribe(mutations: ["createFitShowScore"]) @aws_cognito_user_pools
+  onFitShowScoreUpdated: FitShowScore
+    @aws_subscribe(mutations: ["createFitShowScore", "updateFitShowScore", "finalizeFitShowScore"]) @aws_cognito_user_pools
+}
+
+# Judge Account Management Types
+type JudgeAccount {
+  userId: ID! @aws_cognito_user_pools
+  email: String! @aws_cognito_user_pools
+  name: String! @aws_cognito_user_pools
+  judgeId: String! @aws_cognito_user_pools
+  role: String! @aws_cognito_user_pools
+  createdAt: String! @aws_cognito_user_pools
+  isActive: Boolean! @aws_cognito_user_pools
+}
+
+type UserRoleUpdate {
+  userId: ID! @aws_cognito_user_pools
+  email: String! @aws_cognito_user_pools
+  role: String! @aws_cognito_user_pools
+  updatedAt: String! @aws_cognito_user_pools
+}
+
+input CreateJudgeInput {
+  email: String!
+  name: String!
+  temporaryPassword: String!
+  judgeId: String
+}
+
+
+
+type JudgeAccountConnection {
+  items: [JudgeAccount!]! @aws_cognito_user_pools
+}
+
+# Class Scoring Types
+type ClassScore {
+  id: ID! @aws_cognito_user_pools
+  catId: ID! @aws_cognito_user_pools
+  judgeId: ID! @aws_cognito_user_pools
+  judgeName: String! @aws_cognito_user_pools
+  beautyScore: Int! @aws_cognito_user_pools
+  beautyComments: String @aws_cognito_user_pools
+  personalityScore: Int! @aws_cognito_user_pools
+  personalityComments: String @aws_cognito_user_pools
+  balanceProportionScore: Int! @aws_cognito_user_pools
+  balanceProportionComments: String @aws_cognito_user_pools
+  coatCleanGroomed: Boolean! @aws_cognito_user_pools
+  teethGumsHealthy: Boolean! @aws_cognito_user_pools
+  eyesNoseClear: Boolean! @aws_cognito_user_pools
+  earsCleanMiteFree: Boolean! @aws_cognito_user_pools
+  toenailsClipped: Boolean! @aws_cognito_user_pools
+  fleaIssues: Boolean! @aws_cognito_user_pools
+  healthGroomingComments: String @aws_cognito_user_pools
+  totalScore: Int! @aws_cognito_user_pools
+  ribbonEligibility: String! @aws_cognito_user_pools
+  timestamp: String! @aws_cognito_user_pools
+  createdAt: String! @aws_cognito_user_pools
+  updatedAt: String! @aws_cognito_user_pools
+  isFinalized: Boolean! @aws_cognito_user_pools
+  modificationCount: Int! @aws_cognito_user_pools
+  lastModifiedBy: String @aws_cognito_user_pools
+  lastModifiedAt: String @aws_cognito_user_pools
+}
+
+type ClassScoreAuditEntry {
+  id: ID! @aws_cognito_user_pools
+  classScoreId: ID! @aws_cognito_user_pools
+  action: String! @aws_cognito_user_pools
+  modifiedBy: String! @aws_cognito_user_pools
+  modifiedAt: String! @aws_cognito_user_pools
+  previousValues: AWSJSON @aws_cognito_user_pools
+  newValues: AWSJSON @aws_cognito_user_pools
+  reason: String @aws_cognito_user_pools
+}
+
+type ClassScoreAuditConnection {
+  items: [ClassScoreAuditEntry!]! @aws_cognito_user_pools
+}
+
+type ClassScoreConnection {
+  items: [ClassScore!]! @aws_cognito_user_pools
+  nextToken: String @aws_cognito_user_pools
+}
+
+input CreateClassScoreInput {
+  catId: ID!
+  beautyScore: Int!
+  beautyComments: String
+  personalityScore: Int!
+  personalityComments: String
+  balanceProportionScore: Int!
+  balanceProportionComments: String
+  coatCleanGroomed: Boolean!
+  teethGumsHealthy: Boolean!
+  eyesNoseClear: Boolean!
+  earsCleanMiteFree: Boolean!
+  toenailsClipped: Boolean!
+  fleaIssues: Boolean!
+  healthGroomingComments: String
+  isFinalized: Boolean
+}
+
+input UpdateClassScoreInput {
+  beautyScore: Int
+  beautyComments: String
+  personalityScore: Int
+  personalityComments: String
+  balanceProportionScore: Int
+  balanceProportionComments: String
+  coatCleanGroomed: Boolean
+  teethGumsHealthy: Boolean
+  eyesNoseClear: Boolean
+  earsCleanMiteFree: Boolean
+  toenailsClipped: Boolean
+  fleaIssues: Boolean
+  healthGroomingComments: String
+  isFinalized: Boolean
+  modificationReason: String
+}
+
+# Fit and Show Scoring Types
+type FitShowScore {
+  id: ID! @aws_cognito_user_pools
+  catId: ID! @aws_cognito_user_pools
+  participantName: String! @aws_cognito_user_pools
+  judgeId: ID! @aws_cognito_user_pools
+  judgeName: String! @aws_cognito_user_pools
+  
+  # Appearance & Demeanor (20 points)
+  attire: Int! @aws_cognito_user_pools
+  attentive: Int! @aws_cognito_user_pools
+  courteous: Int! @aws_cognito_user_pools
+  
+  # Handling & Control (14 points)
+  controlEquipment: Int! @aws_cognito_user_pools
+  pickupCarrying: Int! @aws_cognito_user_pools
+  
+  # Demonstration Skills (16 points)
+  showingHeadShape: Int! @aws_cognito_user_pools
+  showingBodyType: Int! @aws_cognito_user_pools
+  showingTail: Int! @aws_cognito_user_pools
+  showingCoatTexture: Int! @aws_cognito_user_pools
+  
+  # Health Examination (21 points)
+  showingMouthTeethGums: Int! @aws_cognito_user_pools
+  conditionMouthTeethGums: Int! @aws_cognito_user_pools
+  showingNose: Int! @aws_cognito_user_pools
+  showingEyes: Int! @aws_cognito_user_pools
+  conditionNoseEyes: Int! @aws_cognito_user_pools
+  showingEars: Int! @aws_cognito_user_pools
+  earsClean: Int! @aws_cognito_user_pools
+  showingToenailsClaws: Int! @aws_cognito_user_pools
+  toenailsClipped: Int! @aws_cognito_user_pools
+  
+  # Grooming & Care (14 points)
+  showingBellyCoatCleanliness: Int! @aws_cognito_user_pools
+  coatCleanWellGroomed: Int! @aws_cognito_user_pools
+  catHealthCare: Int! @aws_cognito_user_pools
+  
+  # Knowledge (12 points)
+  generalKnowledge: Int! @aws_cognito_user_pools
+  catBreedsShowing: Int! @aws_cognito_user_pools
+  catAnatomy: Int! @aws_cognito_user_pools
+  fourHKnowledge: Int! @aws_cognito_user_pools
+  
+  # Calculated totals
+  appearanceTotal: Int! @aws_cognito_user_pools
+  handlingTotal: Int! @aws_cognito_user_pools
+  demonstrationTotal: Int! @aws_cognito_user_pools
+  healthExaminationTotal: Int! @aws_cognito_user_pools
+  groomingCareTotal: Int! @aws_cognito_user_pools
+  knowledgeTotal: Int! @aws_cognito_user_pools
+  totalScore: Int! @aws_cognito_user_pools
+  
+  # Comments
+  appearanceComments: String @aws_cognito_user_pools
+  handlingComments: String @aws_cognito_user_pools
+  demonstrationComments: String @aws_cognito_user_pools
+  healthExaminationComments: String @aws_cognito_user_pools
+  groomingCareComments: String @aws_cognito_user_pools
+  knowledgeComments: String @aws_cognito_user_pools
+  
+  # Metadata
+  timestamp: String! @aws_cognito_user_pools
+  createdAt: String! @aws_cognito_user_pools
+  updatedAt: String! @aws_cognito_user_pools
+  isFinalized: Boolean! @aws_cognito_user_pools
+  modificationCount: Int! @aws_cognito_user_pools
+  lastModifiedBy: String @aws_cognito_user_pools
+  lastModifiedAt: String @aws_cognito_user_pools
+}
+
+type FitShowScoreAuditEntry {
+  id: ID! @aws_cognito_user_pools
+  fitShowScoreId: ID! @aws_cognito_user_pools
+  action: String! @aws_cognito_user_pools
+  modifiedBy: String! @aws_cognito_user_pools
+  modifiedAt: String! @aws_cognito_user_pools
+  previousValues: AWSJSON @aws_cognito_user_pools
+  newValues: AWSJSON @aws_cognito_user_pools
+  reason: String @aws_cognito_user_pools
+}
+
+type FitShowScoreAuditConnection {
+  items: [FitShowScoreAuditEntry!]! @aws_cognito_user_pools
+}
+
+type FitShowScoreConnection {
+  items: [FitShowScore!]! @aws_cognito_user_pools
+  nextToken: String @aws_cognito_user_pools
+}
+
+input CreateFitShowScoreInput {
+  catId: ID!
+  participantName: String!
+  
+  # Appearance & Demeanor
+  attire: Int!
+  attentive: Int!
+  courteous: Int!
+  
+  # Handling & Control
+  controlEquipment: Int!
+  pickupCarrying: Int!
+  
+  # Demonstration Skills
+  showingHeadShape: Int!
+  showingBodyType: Int!
+  showingTail: Int!
+  showingCoatTexture: Int!
+  
+  # Health Examination
+  showingMouthTeethGums: Int!
+  conditionMouthTeethGums: Int!
+  showingNose: Int!
+  showingEyes: Int!
+  conditionNoseEyes: Int!
+  showingEars: Int!
+  earsClean: Int!
+  showingToenailsClaws: Int!
+  toenailsClipped: Int!
+  
+  # Grooming & Care
+  showingBellyCoatCleanliness: Int!
+  coatCleanWellGroomed: Int!
+  catHealthCare: Int!
+  
+  # Knowledge
+  generalKnowledge: Int!
+  catBreedsShowing: Int!
+  catAnatomy: Int!
+  fourHKnowledge: Int!
+  
+  # Comments
+  appearanceComments: String
+  handlingComments: String
+  demonstrationComments: String
+  healthExaminationComments: String
+  groomingCareComments: String
+  knowledgeComments: String
+  
+  isFinalized: Boolean
+}
+
+input UpdateFitShowScoreInput {
+  participantName: String
+  
+  # Appearance & Demeanor
+  attire: Int
+  attentive: Int
+  courteous: Int
+  
+  # Handling & Control
+  controlEquipment: Int
+  pickupCarrying: Int
+  
+  # Demonstration Skills
+  showingHeadShape: Int
+  showingBodyType: Int
+  showingTail: Int
+  showingCoatTexture: Int
+  
+  # Health Examination
+  showingMouthTeethGums: Int
+  conditionMouthTeethGums: Int
+  showingNose: Int
+  showingEyes: Int
+  conditionNoseEyes: Int
+  showingEars: Int
+  earsClean: Int
+  showingToenailsClaws: Int
+  toenailsClipped: Int
+  
+  # Grooming & Care
+  showingBellyCoatCleanliness: Int
+  coatCleanWellGroomed: Int
+  catHealthCare: Int
+  
+  # Knowledge
+  generalKnowledge: Int
+  catBreedsShowing: Int
+  catAnatomy: Int
+  fourHKnowledge: Int
+  
+  # Comments
+  appearanceComments: String
+  handlingComments: String
+  demonstrationComments: String
+  healthExaminationComments: String
+  groomingCareComments: String
+  knowledgeComments: String
+  
+  isFinalized: Boolean
+  modificationReason: String
+}

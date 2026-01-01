@@ -1,0 +1,123 @@
+type Cat {
+  id: ID! @aws_api_key @aws_cognito_user_pools
+  name: String! @aws_api_key @aws_cognito_user_pools
+  owner: String! @aws_api_key @aws_cognito_user_pools
+  votes: Int! @aws_api_key @aws_cognito_user_pools
+  cageNumber: Int @aws_api_key @aws_cognito_user_pools
+}
+
+type CatConnection {
+  items: [Cat!]!
+}
+
+input CreateCatInput {
+  name: String!
+  owner: String!
+  votes: Int!
+  cageNumber: Int
+}
+
+input UpdateCatInput {
+  name: String
+  owner: String
+  cageNumber: Int
+  votes: Int
+}
+
+scalar AWSJSON
+
+type Email {
+  id: ID! @aws_api_key @aws_cognito_user_pools
+  email: String! @aws_api_key @aws_cognito_user_pools
+  timestamp: String! @aws_api_key @aws_cognito_user_pools
+}
+
+type EmailConnection {
+  items: [Email!]!
+}
+
+type Query {
+  getCat(id: ID!): Cat
+  listCats: CatConnection!
+  listEmails: EmailConnection!
+  getVotingStatus: VotingStatus! @aws_api_key @aws_cognito_user_pools
+  getScore(id: ID!): Score @aws_cognito_user_pools
+  getScoresByCat(catId: ID!): ScoreConnection! @aws_cognito_user_pools
+  getScoresByCage(cageNumber: Int!): ScoreConnection! @aws_cognito_user_pools
+  listAllScores: ScoreConnection! @aws_cognito_user_pools
+  getScoresByJudge(judgeId: ID!): ScoreConnection! @aws_cognito_user_pools
+}
+
+type VotingStatus {
+  isActive: Boolean! @aws_api_key @aws_cognito_user_pools
+}
+
+type Mutation {
+  createCat(input: CreateCatInput!): Cat!
+  updateCat(id: ID!, input: UpdateCatInput!): Cat!
+  deleteCat(id: ID!): Cat!
+  updateVotes(id: ID!, votes: Int!): Cat! @aws_api_key
+  addEmail(email: String!, context: AWSJSON): Email! @aws_api_key
+  setVotingStatus(isActive: Boolean!): VotingStatus!
+  createScore(input: CreateScoreInput!): Score! @aws_cognito_user_pools
+  updateScore(id: ID!, input: UpdateScoreInput!): Score! @aws_cognito_user_pools
+  finalizeScore(id: ID!): Score! @aws_cognito_user_pools
+}
+
+type Score {
+  id: ID! @aws_cognito_user_pools
+  catId: ID! @aws_cognito_user_pools
+  judgeId: ID! @aws_cognito_user_pools
+  judgeName: String! @aws_cognito_user_pools
+  cageConditionScore: Int! @aws_cognito_user_pools
+  cageConditionComments: String @aws_cognito_user_pools
+  catConditionScore: Int! @aws_cognito_user_pools
+  catConditionComments: String @aws_cognito_user_pools
+  groomingScore: Int! @aws_cognito_user_pools
+  groomingComments: String @aws_cognito_user_pools
+  overallScore: Int! @aws_cognito_user_pools
+  overallComments: String @aws_cognito_user_pools
+  totalScore: Int! @aws_cognito_user_pools
+  timestamp: String! @aws_cognito_user_pools
+  isFinalized: Boolean! @aws_cognito_user_pools
+}
+
+type ScoreConnection {
+  items: [Score!]! @aws_cognito_user_pools
+}
+
+input CreateScoreInput {
+  catId: ID!
+  cageConditionScore: Int!
+  cageConditionComments: String
+  catConditionScore: Int!
+  catConditionComments: String
+  groomingScore: Int!
+  groomingComments: String
+  overallScore: Int!
+  overallComments: String
+  isFinalized: Boolean
+}
+
+input UpdateScoreInput {
+  cageConditionScore: Int
+  cageConditionComments: String
+  catConditionScore: Int
+  catConditionComments: String
+  groomingScore: Int
+  groomingComments: String
+  overallScore: Int
+  overallComments: String
+  isFinalized: Boolean
+}
+
+type Subscription {
+  onVoteUpdate: Cat
+    @aws_subscribe(mutations: ["updateVotes"]) @aws_api_key @aws_cognito_user_pools
+  onEmailAdded: Email
+    @aws_subscribe(mutations: ["addEmail"]) @aws_api_key @aws_cognito_user_pools
+  onVotingStatusChange: VotingStatus
+    @aws_subscribe(mutations: ["setVotingStatus"]) @aws_api_key @aws_cognito_user_pools
+  onScoreUpdate: Score
+    @aws_subscribe(mutations: ["createScore", "updateScore", "finalizeScore"]) @aws_cognito_user_pools
+}

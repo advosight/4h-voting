@@ -1,0 +1,11 @@
+.amazonq
+.kiro
+.vscode
+/build
+cdk.out
+cdk.out.temp
+/coverage
+node_modules
+.env
+cdk.context.json
+.DS_Store
