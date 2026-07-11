@@ -59,11 +59,12 @@ interface CatCardProps {
   cat: any;
   rank: number;
   onUpdate: () => void;
+  isAdmin?: boolean;
 }
 
 
 
-function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
+function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.Element {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -189,45 +190,47 @@ function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
           </Box>
         </CardContent>
         
-        <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-          <Tooltip title="Sign">
-            <IconButton
-              size="small"
-              onClick={handleGenerateSign}
-              aria-label="Sign"
-            >
-              <QrCodeIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => setEditing(true)}
-              aria-label="Edit"
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Test">
-            <IconButton
-              size="small"
-              onClick={handleTestVote}
-              aria-label="Test"
-            >
-              <VoteIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => setDeleting(true)}
-              aria-label="Delete"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        </CardActions>
+        {isAdmin && (
+          <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+            <Tooltip title="Sign">
+              <IconButton
+                size="small"
+                onClick={handleGenerateSign}
+                aria-label="Sign"
+              >
+                <QrCodeIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                onClick={() => setEditing(true)}
+                aria-label="Edit"
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Test">
+              <IconButton
+                size="small"
+                onClick={handleTestVote}
+                aria-label="Test"
+              >
+                <VoteIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => setDeleting(true)}
+                aria-label="Delete"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </CardActions>
+        )}
       </Card>
 
       {/* Edit Dialog */}

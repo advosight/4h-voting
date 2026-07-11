@@ -33,6 +33,7 @@ import {
 import { generateClient } from 'aws-amplify/api';
 import AddCatForm from '../components/AddCatForm';
 import CatCard from '../components/CatCard';
+import { useUserRole } from '../utils/roleUtils';
 
 const client = generateClient();
 
@@ -120,11 +121,24 @@ function DashboardPage(): JSX.Element {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'lg'));
 
+  const { userInfo } = useUserRole();
+  const isAdmin = userInfo?.role === 'admin';
+  const canScore = isAdmin || !!(
+    userInfo?.permissions?.cageScoring ||
+    userInfo?.permissions?.classScoring ||
+    userInfo?.permissions?.fitShowScoring
+  );
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchEmails();
+    }
+  }, [isAdmin]);
+
   useEffect(() => {
     fetchCats();
-    fetchEmails();
     fetchVotingStatus();
-    
+
     console.log('Setting up subscriptions...');
     
     let voteSubscription: any;
@@ -304,18 +318,20 @@ function DashboardPage(): JSX.Element {
         </Box>
         
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            variant={votingActive ? "contained" : "outlined"}
-            color={votingActive ? "error" : "success"}
-            onClick={toggleVotingStatus}
-            disabled={loading}
-            startIcon={votingActive ? <PauseIcon /> : <PlayArrowIcon />}
-            size={isMobile ? "small" : "medium"}
-            sx={{ flex: 1, minHeight: 44 }}
-          >
-            {loading ? 'Updating...' : votingActive ? 'Pause' : 'Resume'}
-          </Button>
-          
+          {isAdmin && (
+            <Button
+              variant={votingActive ? "contained" : "outlined"}
+              color={votingActive ? "error" : "success"}
+              onClick={toggleVotingStatus}
+              disabled={loading}
+              startIcon={votingActive ? <PauseIcon /> : <PlayArrowIcon />}
+              size={isMobile ? "small" : "medium"}
+              sx={{ flex: 1, minHeight: 44 }}
+            >
+              {loading ? 'Updating...' : votingActive ? 'Pause' : 'Resume'}
+            </Button>
+          )}
+
           <Button
             variant="outlined"
             onClick={() => window.open('/tv-mode', '_blank')}
@@ -345,24 +361,28 @@ function DashboardPage(): JSX.Element {
         </Typography>
         
         <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => window.location.href = '/scoring'}
-            size="small"
-            sx={{ minHeight: 44 }}
-          >
-            Scoring
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => window.location.href = '/reports'}
-            size="small"
-            sx={{ minHeight: 44 }}
-          >
-            Reports
-          </Button>
+          {canScore && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => window.location.href = '/scoring'}
+              size="small"
+              sx={{ minHeight: 44 }}
+            >
+              Scoring
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => window.location.href = '/reports'}
+              size="small"
+              sx={{ minHeight: 44 }}
+            >
+              Reports
+            </Button>
+          )}
           <Button
             variant="outlined"
             color="secondary"
@@ -392,16 +412,18 @@ function DashboardPage(): JSX.Element {
           }
         </Typography>
         
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<EmailIcon />}
-          onClick={() => navigate('/email-reports')}
-          fullWidth
-          sx={{ mt: 1 }}
-        >
-          View Email Reports (Admin)
-        </Button>
+        {isAdmin && (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<EmailIcon />}
+            onClick={() => navigate('/email-reports')}
+            fullWidth
+            sx={{ mt: 1 }}
+          >
+            View Email Reports (Admin)
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -440,10 +462,11 @@ function DashboardPage(): JSX.Element {
             </Box>
             
             {cats.length > 0 && (
-              <CatCard 
-                cat={cats[currentCardIndex]} 
+              <CatCard
+                cat={cats[currentCardIndex]}
                 rank={currentCardIndex + 1}
                 onUpdate={handleCatUpdated}
+                isAdmin={isAdmin}
               />
             )}
           </CardContent>
@@ -460,10 +483,11 @@ function DashboardPage(): JSX.Element {
         <Grid container spacing={2}>
           {cats.map((cat, index) => (
             <Grid size={{xs: 12, sm: 6, md: 4, lg: 3}} key={cat.id}>
-              <CatCard 
-                cat={cat} 
+              <CatCard
+                cat={cat}
                 rank={index + 1}
                 onUpdate={handleCatUpdated}
+                isAdmin={isAdmin}
               />
             </Grid>
           ))}
@@ -480,7 +504,7 @@ function DashboardPage(): JSX.Element {
           <VotingControlWidget />
           <QuickActionsWidget />
           <CatCardsWidget />
-          <EmailSignupsWidget />
+          {isAdmin && <EmailSignupsWidget />}
         </Box>
       ) : (
         /* Tablet/Desktop: Enhanced grid layout */
@@ -496,27 +520,29 @@ function DashboardPage(): JSX.Element {
 
           <CatCardsWidget />
 
-          <Grid container spacing={3}>
-            <Grid size={{xs: 12, lg: 6}}>
-              <EmailSignupsWidget />
+          {isAdmin && (
+            <Grid container spacing={3}>
+              <Grid size={{xs: 12, lg: 6}}>
+                <EmailSignupsWidget />
+              </Grid>
+              <Grid size={{xs: 12, lg: 6}}>
+                <Card elevation={2}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AddIcon color="primary" />
+                      Add New Cat
+                    </Typography>
+                    <AddCatForm onCatAdded={handleCatAdded} />
+                  </CardContent>
+                </Card>
+              </Grid>
             </Grid>
-            <Grid size={{xs: 12, lg: 6}}>
-              <Card elevation={2}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AddIcon color="primary" />
-                    Add New Cat
-                  </Typography>
-                  <AddCatForm onCatAdded={handleCatAdded} />
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          )}
         </Box>
       )}
 
       {/* Mobile: Floating Action Button for Add Cat */}
-      {isMobile && (
+      {isMobile && isAdmin && (
         <Fab
           color="primary"
           aria-label="add cat"
@@ -538,45 +564,47 @@ function DashboardPage(): JSX.Element {
       )}
 
       {/* Mobile: Add Cat Drawer */}
-      <SwipeableDrawer
-        anchor="bottom"
-        open={addCatDrawerOpen}
-        onClose={() => setAddCatDrawerOpen(false)}
-        onOpen={() => setAddCatDrawerOpen(true)}
-        disableSwipeToOpen={false}
-        slotProps={{
-          paper: {
-            sx: {
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              maxHeight: '90vh',
-              paddingBottom: 'env(safe-area-inset-bottom, 16px)', // Safe area for mobile devices
+      {isAdmin && (
+        <SwipeableDrawer
+          anchor="bottom"
+          open={addCatDrawerOpen}
+          onClose={() => setAddCatDrawerOpen(false)}
+          onOpen={() => setAddCatDrawerOpen(true)}
+          disableSwipeToOpen={false}
+          slotProps={{
+            paper: {
+              sx: {
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                maxHeight: '90vh',
+                paddingBottom: 'env(safe-area-inset-bottom, 16px)', // Safe area for mobile devices
+              }
             }
-          }
-        }}
-      >
-        <Box sx={{ 
-          p: 2, 
-          pb: 'calc(16px + env(safe-area-inset-bottom, 0px))', // Extra bottom padding for safe area
-          minHeight: 'fit-content'
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h6">Add New Cat</Typography>
-            <IconButton 
-              onClick={() => setAddCatDrawerOpen(false)}
-              sx={{ minHeight: 44, minWidth: 44 }}
-            >
-              <CloseIcon />
-            </IconButton>
+          }}
+        >
+          <Box sx={{
+            p: 2,
+            pb: 'calc(16px + env(safe-area-inset-bottom, 0px))', // Extra bottom padding for safe area
+            minHeight: 'fit-content'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">Add New Cat</Typography>
+              <IconButton
+                onClick={() => setAddCatDrawerOpen(false)}
+                sx={{ minHeight: 44, minWidth: 44 }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <AddCatForm
+              onCatAdded={() => {
+                handleCatAdded();
+                setAddCatDrawerOpen(false);
+              }}
+            />
           </Box>
-          <AddCatForm 
-            onCatAdded={() => {
-              handleCatAdded();
-              setAddCatDrawerOpen(false);
-            }} 
-          />
-        </Box>
-      </SwipeableDrawer>
+        </SwipeableDrawer>
+      )}
     </Box>
   );
 }

@@ -24,6 +24,10 @@ function UserDebugInfo(): JSX.Element {
     }
   };
 
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
+  }
+
   if (loading) {
     return <Typography>Loading user info...</Typography>;
   }
