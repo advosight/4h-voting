@@ -1,10 +1,20 @@
 import { AppSyncResolverEvent } from 'aws-lambda';
-import { handler } from '../fitShowScoreResolver';
-import { FitShowScoreDataAccess } from '../fitShowScoreDataAccess';
 
-// Mock the data access layer
-jest.mock('../fitShowScoreDataAccess');
-const MockFitShowScoreDataAccess = FitShowScoreDataAccess as jest.MockedClass<typeof FitShowScoreDataAccess>;
+// Mock the data access layer. The mock instance must exist before the resolver
+// module is imported below: the resolver constructs a module-level singleton via
+// `new FitShowScoreDataAccess(...)` at import time, so reassigning the mock's
+// return value afterwards (e.g. in beforeEach) would never reach that singleton.
+const mockDataAccess = {
+  createFitShowScoreWithAudit: jest.fn(),
+  updateFitShowScoreWithAudit: jest.fn(),
+  getFitShowScore: jest.fn(),
+  getFitShowScoreAuditHistory: jest.fn(),
+  finalizeFitShowScore: jest.fn()
+} as any;
+
+jest.mock('../fitShowScoreDataAccess', () => ({
+  FitShowScoreDataAccess: jest.fn().mockImplementation(() => mockDataAccess),
+}));
 
 // Mock role validation
 jest.mock('../roleValidation', () => ({
@@ -12,43 +22,37 @@ jest.mock('../roleValidation', () => ({
   requireAnyRole: jest.fn(),
   requireRole: jest.fn(),
   getJudgeId: jest.fn(),
-  requireScoreAccess: jest.fn()
+  requireScoreAccess: jest.fn(),
+  requireScoringPermission: jest.fn()
 }));
 
-import { getUserContext, getJudgeId, requireAnyRole, requireScoreAccess } from '../roleValidation';
+import { getUserContext, getJudgeId, requireAnyRole, requireScoreAccess, requireScoringPermission } from '../roleValidation';
 
 const mockGetUserContext = getUserContext as jest.MockedFunction<typeof getUserContext>;
 const mockGetJudgeId = getJudgeId as jest.MockedFunction<typeof getJudgeId>;
 const mockRequireAnyRole = requireAnyRole as jest.MockedFunction<typeof requireAnyRole>;
 const mockRequireScoreAccess = requireScoreAccess as jest.MockedFunction<typeof requireScoreAccess>;
+const mockRequireScoringPermission = requireScoringPermission as jest.MockedFunction<typeof requireScoringPermission>;
+
+// Import the handler after all mocks above are configured.
+import { handler } from '../fitShowScoreResolver';
 
 describe('FitShowScoreResolver - Audit Functionality', () => {
-  let mockDataAccess: jest.Mocked<FitShowScoreDataAccess>;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Create mock instance
-    mockDataAccess = {
-      createFitShowScoreWithAudit: jest.fn(),
-      updateFitShowScoreWithAudit: jest.fn(),
-      getFitShowScore: jest.fn(),
-      getFitShowScoreAuditHistory: jest.fn(),
-      finalizeFitShowScore: jest.fn()
-    } as any;
-
-    // Mock the constructor to return our mock instance
-    MockFitShowScoreDataAccess.mockImplementation(() => mockDataAccess);
 
     // Setup default mocks
     mockGetUserContext.mockReturnValue({
+      userId: 'judge-1',
       role: 'judge',
       claims: { 'cognito:username': 'judge-smith', email: 'judge@example.com' },
-      email: 'judge@example.com'
+      email: 'judge@example.com',
+      permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
     });
     mockGetJudgeId.mockReturnValue('judge-1');
     mockRequireAnyRole.mockImplementation(() => {});
     mockRequireScoreAccess.mockImplementation(() => {});
+    mockRequireScoringPermission.mockImplementation(() => {});
   });
 
   const mockEvent = (fieldName: string, args: any): AppSyncResolverEvent<any> => ({
@@ -160,7 +164,8 @@ describe('FitShowScoreResolver - Audit Functionality', () => {
           id: 'score-1',
           attire: 10
         }),
-        'Improved attire presentation'
+        'Improved attire presentation',
+        false
       );
       expect(result).toEqual(updatedScore);
     });
@@ -191,7 +196,8 @@ describe('FitShowScoreResolver - Audit Functionality', () => {
 
       expect(mockDataAccess.updateFitShowScoreWithAudit).toHaveBeenCalledWith(
         expect.anything(),
-        'Score updated by judge'
+        'Score updated by judge',
+        false
       );
     });
 
@@ -221,9 +227,11 @@ describe('FitShowScoreResolver - Audit Functionality', () => {
 
     it('allows admin users to modify finalized scores', async () => {
       mockGetUserContext.mockReturnValue({
+        userId: 'admin-1',
         role: 'admin',
         claims: { 'cognito:username': 'admin-user', email: 'admin@example.com' },
-        email: 'admin@example.com'
+        email: 'admin@example.com',
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
       });
 
       const finalizedScore = {
@@ -261,7 +269,8 @@ describe('FitShowScoreResolver - Audit Functionality', () => {
           id: 'score-1',
           attire: 10
         }),
-        'Admin correction'
+        'Admin correction',
+        true
       );
       expect(result).toEqual(updatedScore);
     });
@@ -339,6 +348,9 @@ describe('FitShowScoreResolver - Audit Functionality', () => {
     });
 
     it('requires appropriate role for audit access', async () => {
+      mockDataAccess.getFitShowScore.mockResolvedValue({ id: 'score-1', judgeId: 'judge-1' } as any);
+      mockDataAccess.getFitShowScoreAuditHistory.mockResolvedValue([] as any);
+
       const event = mockEvent('getFitShowScoreAuditHistory', {
         fitShowScoreId: 'score-1'
       });

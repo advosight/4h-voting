@@ -211,6 +211,9 @@ type JudgeAccount {
   role: String! @aws_cognito_user_pools
   createdAt: String! @aws_cognito_user_pools
   isActive: Boolean! @aws_cognito_user_pools
+  cageScoring: Boolean! @aws_cognito_user_pools
+  classScoring: Boolean! @aws_cognito_user_pools
+  fitShowScoring: Boolean! @aws_cognito_user_pools
 }
 
 type UserRoleUpdate {
@@ -225,6 +228,9 @@ input CreateJudgeInput {
   name: String!
   temporaryPassword: String!
   judgeId: String
+  cageScoring: Boolean
+  classScoring: Boolean
+  fitShowScoring: Boolean
 }
 
 

@@ -9,8 +9,8 @@ const FitShowLeaderboardPage: React.FC = () => {
         Fit and Show Scoring Leaderboard
       </Typography>
       
-      <Typography variant="body1" color="text.secondary" paragraph>
-        View participant rankings based on fit and show scoring results. Rankings show 
+      <Typography variant="body1" color="text.secondary" component="p" sx={{ mb: 2 }}>
+        View participant rankings based on fit and show scoring results. Rankings show
         participants' performance in showmanship, handling, and knowledge categories.
       </Typography>
 

@@ -3,13 +3,16 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 // Mock the FitShowScoreDataAccess before importing the handler
 const mockFitShowScoreDataAccess = {
   createFitShowScore: jest.fn(),
+  createFitShowScoreWithAudit: jest.fn(),
   updateFitShowScore: jest.fn(),
+  updateFitShowScoreWithAudit: jest.fn(),
   getFitShowScore: jest.fn(),
   getFitShowScoresByCat: jest.fn(),
   getFitShowScoresByCage: jest.fn(),
   listFitShowScores: jest.fn(),
   getFitShowScoresByJudge: jest.fn(),
   finalizeFitShowScore: jest.fn(),
+  getFitShowScoreAuditHistory: jest.fn(),
 };
 
 jest.mock('../fitShowScoreDataAccess', () => ({
@@ -145,12 +148,12 @@ describe('Fit and Show Score Resolver', () => {
         fourHKnowledge: 3,
       };
 
-      mockFitShowScoreDataAccess.createFitShowScore.mockResolvedValue(mockFitShowScore);
+      mockFitShowScoreDataAccess.createFitShowScoreWithAudit.mockResolvedValue(mockFitShowScore);
 
       const event = createMockEvent('createFitShowScore', { input });
       const result = await handler(event);
 
-      expect(mockFitShowScoreDataAccess.createFitShowScore).toHaveBeenCalledWith({
+      expect(mockFitShowScoreDataAccess.createFitShowScoreWithAudit).toHaveBeenCalledWith({
         ...input,
         judgeId: 'judge-123',
         judgeName: 'testjudge',
@@ -189,7 +192,7 @@ describe('Fit and Show Score Resolver', () => {
         fourHKnowledge: 3,
       };
 
-      mockFitShowScoreDataAccess.createFitShowScore.mockResolvedValue(mockFitShowScore);
+      mockFitShowScoreDataAccess.createFitShowScoreWithAudit.mockResolvedValue(mockFitShowScore);
 
       const event = createMockEvent('createFitShowScore', { input }, 'admin');
       const result = await handler(event);
@@ -231,7 +234,7 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('createFitShowScore', { input }, 'participant');
 
       await expect(handler(event)).rejects.toThrow('Forbidden: Judge role required');
-      expect(mockFitShowScoreDataAccess.createFitShowScore).not.toHaveBeenCalled();
+      expect(mockFitShowScoreDataAccess.createFitShowScoreWithAudit).not.toHaveBeenCalled();
     });
 
     it('should validate score ranges for attire (1-10)', async () => {
@@ -268,7 +271,7 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('createFitShowScore', { input });
 
       await expect(handler(event)).rejects.toThrow('attire must be between 1 and 10');
-      expect(mockFitShowScoreDataAccess.createFitShowScore).not.toHaveBeenCalled();
+      expect(mockFitShowScoreDataAccess.createFitShowScoreWithAudit).not.toHaveBeenCalled();
     });
 
     it('should validate score ranges for toenailsClipped (1-6)', async () => {
@@ -305,7 +308,7 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('createFitShowScore', { input });
 
       await expect(handler(event)).rejects.toThrow('toenailsClipped must be between 1 and 6');
-      expect(mockFitShowScoreDataAccess.createFitShowScore).not.toHaveBeenCalled();
+      expect(mockFitShowScoreDataAccess.createFitShowScoreWithAudit).not.toHaveBeenCalled();
     });
 
     it('should validate participant name is required', async () => {
@@ -342,7 +345,7 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('createFitShowScore', { input });
 
       await expect(handler(event)).rejects.toThrow('Participant name is required and cannot be empty');
-      expect(mockFitShowScoreDataAccess.createFitShowScore).not.toHaveBeenCalled();
+      expect(mockFitShowScoreDataAccess.createFitShowScoreWithAudit).not.toHaveBeenCalled();
     });
 
     it('should validate comment lengths', async () => {
@@ -381,7 +384,7 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('createFitShowScore', { input });
 
       await expect(handler(event)).rejects.toThrow('Comment must be 500 characters or less');
-      expect(mockFitShowScoreDataAccess.createFitShowScore).not.toHaveBeenCalled();
+      expect(mockFitShowScoreDataAccess.createFitShowScoreWithAudit).not.toHaveBeenCalled();
     });
   });
 
@@ -396,15 +399,15 @@ describe('Fit and Show Score Resolver', () => {
       const updatedScore = { ...existingScore, ...input };
 
       mockFitShowScoreDataAccess.getFitShowScore.mockResolvedValue(existingScore);
-      mockFitShowScoreDataAccess.updateFitShowScore.mockResolvedValue(updatedScore);
+      mockFitShowScoreDataAccess.updateFitShowScoreWithAudit.mockResolvedValue(updatedScore);
 
       const event = createMockEvent('updateFitShowScore', { id: 'fitshow-score-123', input });
       const result = await handler(event);
 
-      expect(mockFitShowScoreDataAccess.updateFitShowScore).toHaveBeenCalledWith({
+      expect(mockFitShowScoreDataAccess.updateFitShowScoreWithAudit).toHaveBeenCalledWith({
         ...input,
         id: 'fitshow-score-123',
-      });
+      }, 'Score updated by judge', false);
       expect(result).toEqual(updatedScore);
     });
 
@@ -416,7 +419,7 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('updateFitShowScore', { id: 'nonexistent', input });
 
       await expect(handler(event)).rejects.toThrow('Fit and show score with ID nonexistent not found');
-      expect(mockFitShowScoreDataAccess.updateFitShowScore).not.toHaveBeenCalled();
+      expect(mockFitShowScoreDataAccess.updateFitShowScoreWithAudit).not.toHaveBeenCalled();
     });
 
     it('should reject update for finalized score by non-admin', async () => {
@@ -428,7 +431,7 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('updateFitShowScore', { id: 'fitshow-score-123', input });
 
       await expect(handler(event)).rejects.toThrow('Cannot modify finalized fit and show scores. Admin access required.');
-      expect(mockFitShowScoreDataAccess.updateFitShowScore).not.toHaveBeenCalled();
+      expect(mockFitShowScoreDataAccess.updateFitShowScoreWithAudit).not.toHaveBeenCalled();
     });
   });
 
@@ -560,15 +563,17 @@ describe('Fit and Show Score Resolver', () => {
   });
 
   describe('getFitShowScoreAuditHistory', () => {
-    it('should return empty audit history (not yet implemented)', async () => {
+    it('should return audit history for the score', async () => {
       const score = { ...mockFitShowScore, judgeId: 'judge-123' };
+      const auditEntries = [{ id: 'audit-1', fitShowScoreId: 'fitshow-score-123', action: 'CREATE' }];
 
       mockFitShowScoreDataAccess.getFitShowScore.mockResolvedValue(score);
+      mockFitShowScoreDataAccess.getFitShowScoreAuditHistory.mockResolvedValue(auditEntries);
 
       const event = createMockEvent('getFitShowScoreAuditHistory', { fitShowScoreId: 'fitshow-score-123' });
       const result = await handler(event);
 
-      expect(result).toEqual({ items: [] });
+      expect(result).toEqual({ items: auditEntries });
     });
 
     it('should reject audit history for non-existent score', async () => {

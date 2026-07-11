@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la ~/.claude/CLAUDE.md 2>&1; echo \"---\"; ls -la /Users/nikody/src/advosight/4h-voting/CLAUDE.md 2>&1; echo \"---\"; find /Users/nikody/src/advosight/4h-voting -iname 'CLAUDE*.md' 2>&1)",
+      "Read(//Users/nikody/.claude/**)",
+      "Bash(npm install *)",
+      "Bash(git stash *)",
+      "Bash(npm outdated *)",
+      "Bash(npm -v)",
+      "Bash(npm view *)",
+      "Bash(node -e ' *)",
+      "Bash(mkdir -p /tmp/ts-repro)",
+      "Bash(npm init *)",
+      "Bash(npm test *)",
+      "Bash(grep -v \"Test suite failed to run\\\\|--$\")",
+      "Bash(npm ls *)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp"
+    ]
+  }
+}

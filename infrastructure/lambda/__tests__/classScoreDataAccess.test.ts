@@ -120,22 +120,26 @@ describe('ClassScoreDataAccess', () => {
 
       await classScoreDataAccess.createClassScore(validInput);
 
-      // Should make 3 PutCommand calls: main record, cat index, judge index
-      expect(ddbMock.commandCalls(PutCommand)).toHaveLength(3);
-      
+      // Should make 4 PutCommand calls: main record, cat index, judge index, audit entry
+      expect(ddbMock.commandCalls(PutCommand)).toHaveLength(4);
+
       const calls = ddbMock.commandCalls(PutCommand);
-      
+
       // Main record
       expect(calls[0].args[0].input.Item?.PK).toMatch(/^CLASS_SCORE#/);
       expect(calls[0].args[0].input.Item?.SK).toBe('METADATA');
-      
+
       // Cat index
       expect(calls[1].args[0].input.Item?.PK).toBe('CAT#cat-123');
       expect(calls[1].args[0].input.Item?.SK).toMatch(/^CLASS_SCORE#/);
-      
+
       // Judge index
       expect(calls[2].args[0].input.Item?.PK).toBe('JUDGE#judge-456');
       expect(calls[2].args[0].input.Item?.SK).toMatch(/^CLASS_SCORE#/);
+
+      // Audit entry
+      expect(calls[3].args[0].input.Item?.PK).toMatch(/^CLASS_SCORE_AUDIT#/);
+      expect(calls[3].args[0].input.Item?.SK).toMatch(/^ENTRY#/);
     });
   });
 
@@ -212,7 +216,7 @@ describe('ClassScoreDataAccess', () => {
       ddbMock.on(GetCommand).resolves({});
 
       await expect(
-        classScoreDataAccess.updateClassScore('nonexistent-id', {})
+        classScoreDataAccess.updateClassScore('nonexistent-id', {}, 'tester')
       ).rejects.toThrow('Class score not found');
     });
 
@@ -237,7 +241,7 @@ describe('ClassScoreDataAccess', () => {
         personalityScore: 20
       };
 
-      const result = await classScoreDataAccess.updateClassScore('score-123', updateInput);
+      const result = await classScoreDataAccess.updateClassScore('score-123', updateInput, 'tester');
 
       expect(result.beautyScore).toBe(15);
       expect(result.personalityScore).toBe(20);
@@ -265,7 +269,7 @@ describe('ClassScoreDataAccess', () => {
         fleaIssues: true // This should force Red ribbon
       };
 
-      const result = await classScoreDataAccess.updateClassScore('score-123', updateInput);
+      const result = await classScoreDataAccess.updateClassScore('score-123', updateInput, 'tester');
 
       expect(result.totalScore).toBe(50);
       expect(result.ribbonEligibility).toBe('Red'); // Flea issues override high score

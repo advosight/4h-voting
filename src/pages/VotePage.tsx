@@ -40,7 +40,7 @@ function VotePage(): JSX.Element {
     const baseDelay = 1000;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_VOTING_API_ENDPOINT || 'https://6ecl3xpx84.execute-api.us-west-2.amazonaws.com/prod/'}vote/${catId}`, {
+      const response = await fetch(`${process.env.REACT_APP_VOTING_API_ENDPOINT || 'https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/'}vote/${catId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -26,15 +26,34 @@ export const DEFAULT_RETRY_OPTIONS: RetryOptions = {
  * Parse error response from GraphQL or REST API
  */
 export const parseError = (error: any): ErrorResponse => {
-  // Handle GraphQL errors
-  if (error.graphQLErrors && error.graphQLErrors.length > 0) {
-    const graphQLError = error.graphQLErrors[0];
-    
+  // Handle AWS Amplify GraphQL errors (client.graphql() throws { errors: [...] })
+  if (error.errors && error.errors.length > 0) {
+    const graphQLError = error.errors[0];
+
     // Check if it's a structured error response
     if (graphQLError.extensions?.error) {
       return { error: graphQLError.extensions.error };
     }
-    
+
+    // Fallback to message
+    return {
+      error: {
+        type: 'SYSTEM_ERROR',
+        message: graphQLError.message || 'An unexpected error occurred',
+        code: graphQLError.errorType || 'GRAPHQL_ERROR'
+      }
+    };
+  }
+
+  // Handle Apollo-style GraphQL errors, kept for compatibility
+  if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+    const graphQLError = error.graphQLErrors[0];
+
+    // Check if it's a structured error response
+    if (graphQLError.extensions?.error) {
+      return { error: graphQLError.extensions.error };
+    }
+
     // Fallback to message
     return {
       error: {

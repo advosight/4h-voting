@@ -10,6 +10,7 @@ import {
   Box,
   Chip,
   IconButton,
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   QrCode as QrCodeIcon,
   HowToVote as VoteIcon,
   EmojiEvents as TrophyIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import { OWNER_AGE_GROUPS, CAT_AGE_GROUPS, getOwnerAgeGroupLabel, getCatAgeGroupLabel } from '../utils/ageGroups';
@@ -45,6 +47,14 @@ const updateCat = `
   }
 `;
 
+const deleteCat = `
+  mutation DeleteCat($id: ID!) {
+    deleteCat(id: $id) {
+      id
+    }
+  }
+`;
+
 interface CatCardProps {
   cat: any;
   rank: number;
@@ -56,6 +66,8 @@ interface CatCardProps {
 function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [name, setName] = useState<string>(cat.name);
   const [owner, setOwner] = useState<string>(cat.owner);
   const [cageNumber, setCageNumber] = useState<number>(cat.cageNumber || 1);
@@ -69,7 +81,7 @@ function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
   };
 
   const handleTestVote = () => {
-    window.open(`${process.env.REACT_APP_VOTING_API_ENDPOINT || 'https://6ecl3xpx84.execute-api.us-west-2.amazonaws.com/prod/'}vote/${cat.id}`, '_blank');
+    window.open(`${process.env.REACT_APP_VOTING_API_ENDPOINT || 'https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/'}vote/${cat.id}`, '_blank');
   };
 
   const handleSave = async () => {
@@ -94,6 +106,21 @@ function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
       setTimeout(() => onUpdate(), 100);
     } catch (error) {
       console.error('Error updating cat:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setDeleteError(null);
+      await client.graphql({
+        query: deleteCat,
+        variables: { id: cat.id }
+      });
+      setDeleting(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting cat:', error);
+      setDeleteError('Failed to delete this entry. Please try again.');
     }
   };
 
@@ -163,27 +190,43 @@ function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
         </CardContent>
         
         <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-          <Button
-            size="small"
-            startIcon={<QrCodeIcon />}
-            onClick={handleGenerateSign}
-          >
-            Sign
-          </Button>
-          <Button
-            size="small"
-            startIcon={<EditIcon />}
-            onClick={() => setEditing(true)}
-          >
-            Edit
-          </Button>
-          <Button
-            size="small"
-            startIcon={<VoteIcon />}
-            onClick={handleTestVote}
-          >
-            Test
-          </Button>
+          <Tooltip title="Sign">
+            <IconButton
+              size="small"
+              onClick={handleGenerateSign}
+              aria-label="Sign"
+            >
+              <QrCodeIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Edit">
+            <IconButton
+              size="small"
+              onClick={() => setEditing(true)}
+              aria-label="Edit"
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Test">
+            <IconButton
+              size="small"
+              onClick={handleTestVote}
+              aria-label="Test"
+            >
+              <VoteIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => setDeleting(true)}
+              aria-label="Delete"
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </CardActions>
       </Card>
 
@@ -284,6 +327,29 @@ function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
           </Button>
           <Button onClick={handleSave} variant="contained">
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleting} onClose={() => setDeleting(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Cage {cat.cageNumber}?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will permanently remove {cat.name} (Cage {cat.cageNumber}) and all associated votes. This cannot be undone.
+          </Typography>
+          {deleteError && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {deleteError}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleting(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleDelete} variant="contained" color="error">
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

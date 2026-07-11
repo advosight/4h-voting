@@ -120,7 +120,8 @@ export interface CreateFitShowScoreInput {
   catBreedsShowing: number;
   catAnatomy: number;
   fourHKnowledge: number;
-  
+  isFinalized?: boolean;
+
   // Optional comments
   appearanceComments?: string;
   handlingComments?: string;
@@ -281,19 +282,25 @@ export class FitShowScoreDataAccess {
 
   /**
    * Update a fit and show score
+   * @param allowFinalizedEdit set true only when the caller has already verified the
+   *   requester is an admin overriding a finalized score; otherwise the write is
+   *   rejected if the score was finalized between the caller's read and this write.
    */
-  async updateFitShowScore(input: UpdateFitShowScoreInput): Promise<FitShowScore> {
+  async updateFitShowScore(input: UpdateFitShowScoreInput, allowFinalizedEdit: boolean = false): Promise<FitShowScore> {
     const existing = await this.getFitShowScore(input.id);
     if (!existing) {
       throw new Error('Fit and show score not found');
     }
 
     const timestamp = new Date().toISOString();
-    const scores = this.calculateScores(input);
+    // Merge onto the existing record first so a partial update's absent fields fall
+    // back to their stored values instead of becoming undefined (which would corrupt
+    // the category totals computed below into NaN).
+    const merged = { ...existing, ...input };
+    const scores = this.calculateScores(merged);
 
     const updatedScore: FitShowScore = {
-      ...existing,
-      ...input,
+      ...merged,
       ...scores,
       updatedAt: timestamp,
       modificationCount: existing.modificationCount + 1,
@@ -301,26 +308,39 @@ export class FitShowScoreDataAccess {
       lastModifiedAt: timestamp
     };
 
-    // Update main record
+    // Update main record with optimistic locking. Unless the caller has confirmed an
+    // admin override, also require the score to still be unfinalized at write time,
+    // closing the gap between the resolver's finalized check and this write.
+    let conditionExpression = 'modificationCount = :expectedModificationCount';
+    const expressionAttributeValues: Record<string, any> = {
+      ':expectedModificationCount': existing.modificationCount,
+    };
+    if (!allowFinalizedEdit) {
+      conditionExpression += ' AND isFinalized = :expectedNotFinalized';
+      expressionAttributeValues[':expectedNotFinalized'] = false;
+    }
+
     await getDocClient().send(new PutCommand({
       TableName: this.tableName,
       Item: {
         PK: `FIT_SHOW_SCORE#${input.id}`,
         SK: 'METADATA',
         ...updatedScore
-      }
+      },
+      ConditionExpression: conditionExpression,
+      ExpressionAttributeValues: expressionAttributeValues
     }));
 
     // Update cat index
     await getDocClient().send(new PutCommand({
       TableName: this.tableName,
       Item: {
-        PK: `CAT#${input.catId}`,
+        PK: `CAT#${merged.catId}`,
         SK: `FIT_SHOW_SCORE#${input.id}`,
         fitShowScoreId: input.id,
-        judgeId: input.judgeId,
-        judgeName: input.judgeName,
-        participantName: input.participantName,
+        judgeId: merged.judgeId,
+        judgeName: merged.judgeName,
+        participantName: merged.participantName,
         totalScore: scores.totalScore,
         timestamp,
         isFinalized: updatedScore.isFinalized
@@ -331,11 +351,11 @@ export class FitShowScoreDataAccess {
     await getDocClient().send(new PutCommand({
       TableName: this.tableName,
       Item: {
-        PK: `JUDGE#${input.judgeId}`,
+        PK: `JUDGE#${merged.judgeId}`,
         SK: `FIT_SHOW_SCORE#${input.id}`,
         fitShowScoreId: input.id,
-        catId: input.catId,
-        participantName: input.participantName,
+        catId: merged.catId,
+        participantName: merged.participantName,
         totalScore: scores.totalScore,
         timestamp,
         isFinalized: updatedScore.isFinalized
@@ -588,26 +608,27 @@ export class FitShowScoreDataAccess {
   /**
    * Update fit and show score with audit trail
    */
-  async updateFitShowScoreWithAudit(input: UpdateFitShowScoreInput, reason?: string): Promise<FitShowScore> {
+  async updateFitShowScoreWithAudit(input: UpdateFitShowScoreInput, reason?: string, allowFinalizedEdit: boolean = false): Promise<FitShowScore> {
     const existing = await this.getFitShowScore(input.id);
     if (!existing) {
       throw new Error('Fit and show score not found');
     }
 
-    // Create audit entry before update
-    const timestamp = new Date().toISOString();
+    // Perform the update first so a rejected (conflicting) write never produces a
+    // phantom audit entry claiming the update succeeded.
+    const updated = await this.updateFitShowScore(input, allowFinalizedEdit);
+
     await this.createAuditEntry({
       fitShowScoreId: input.id,
       action: 'UPDATE',
       modifiedBy: input.judgeId,
-      modifiedAt: timestamp,
+      modifiedAt: updated.lastModifiedAt,
       previousValues: { ...existing },
       newValues: { ...input },
       reason: reason || 'Score updated by judge'
     });
 
-    // Perform the update
-    return this.updateFitShowScore(input);
+    return updated;
   }
 
   /**

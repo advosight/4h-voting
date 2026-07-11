@@ -265,8 +265,11 @@ export class ScoreDataAccess {
 
   /**
    * Update an existing score
+   * @param allowFinalizedEdit set true only when the caller has already verified the
+   *   requester is an admin overriding a finalized score; otherwise the write is
+   *   rejected if the score was finalized between the caller's read and this write.
    */
-  async updateScore(id: string, input: UpdateScoreInput, modifiedBy?: string): Promise<Score> {
+  async updateScore(id: string, input: UpdateScoreInput, modifiedBy?: string, allowFinalizedEdit: boolean = false): Promise<Score> {
     // First get the existing score
     const existingScore = await this.getScore(id);
     if (!existingScore) {
@@ -298,14 +301,45 @@ export class ScoreDataAccess {
       lastModifiedAt: timestamp,
     };
 
-    // Update main score record with optimistic locking
+    // Update main score record with optimistic locking. Unless the caller has confirmed
+    // an admin override, also require the score to still be unfinalized at write time,
+    // closing the gap between the resolver's finalized check and this write.
+    let conditionExpression = 'modificationCount = :expectedModificationCount';
+    const expressionAttributeValues: Record<string, any> = {
+      ':firstImpressionScore': finalScore.firstImpressionScore,
+      ':firstImpressionComments': finalScore.firstImpressionComments || null,
+      ':originalityScore': finalScore.originalityScore,
+      ':originalityComments': finalScore.originalityComments || null,
+      ':informationCardScore': finalScore.informationCardScore,
+      ':informationCardComments': finalScore.informationCardComments || null,
+      ':workDoneByMemberScore': finalScore.workDoneByMemberScore,
+      ':workDoneByMemberComments': finalScore.workDoneByMemberComments || null,
+      ':basicComfortScore': finalScore.basicComfortScore,
+      ':basicComfortComments': finalScore.basicComfortComments || null,
+      ':safetyScore': finalScore.safetyScore,
+      ':safetyComments': finalScore.safetyComments || null,
+      ':easyViewOfCatScore': finalScore.easyViewOfCatScore,
+      ':easyViewOfCatComments': finalScore.easyViewOfCatComments || null,
+      ':totalScore': finalScore.totalScore,
+      ':timestamp': timestamp,
+      ':isFinalized': finalScore.isFinalized,
+      ':newModificationCount': finalScore.modificationCount,
+      ':lastModifiedBy': finalScore.lastModifiedBy,
+      ':lastModifiedAt': finalScore.lastModifiedAt,
+      ':expectedModificationCount': existingScore.modificationCount
+    };
+    if (!allowFinalizedEdit) {
+      conditionExpression += ' AND isFinalized = :expectedNotFinalized';
+      expressionAttributeValues[':expectedNotFinalized'] = false;
+    }
+
     await this.docClient.send(new UpdateCommand({
       TableName: this.tableName,
       Key: {
         PK: `SCORE#${id}`,
         SK: 'METADATA',
       },
-      UpdateExpression: `SET 
+      UpdateExpression: `SET
         firstImpressionScore = :firstImpressionScore,
         firstImpressionComments = :firstImpressionComments,
         originalityScore = :originalityScore,
@@ -326,33 +360,11 @@ export class ScoreDataAccess {
         modificationCount = :newModificationCount,
         lastModifiedBy = :lastModifiedBy,
         lastModifiedAt = :lastModifiedAt`,
-      ConditionExpression: 'modificationCount = :expectedModificationCount',
+      ConditionExpression: conditionExpression,
       ExpressionAttributeNames: {
         '#timestamp': 'timestamp'
       },
-      ExpressionAttributeValues: {
-        ':firstImpressionScore': finalScore.firstImpressionScore,
-        ':firstImpressionComments': finalScore.firstImpressionComments || null,
-        ':originalityScore': finalScore.originalityScore,
-        ':originalityComments': finalScore.originalityComments || null,
-        ':informationCardScore': finalScore.informationCardScore,
-        ':informationCardComments': finalScore.informationCardComments || null,
-        ':workDoneByMemberScore': finalScore.workDoneByMemberScore,
-        ':workDoneByMemberComments': finalScore.workDoneByMemberComments || null,
-        ':basicComfortScore': finalScore.basicComfortScore,
-        ':basicComfortComments': finalScore.basicComfortComments || null,
-        ':safetyScore': finalScore.safetyScore,
-        ':safetyComments': finalScore.safetyComments || null,
-        ':easyViewOfCatScore': finalScore.easyViewOfCatScore,
-        ':easyViewOfCatComments': finalScore.easyViewOfCatComments || null,
-        ':totalScore': finalScore.totalScore,
-        ':timestamp': timestamp,
-        ':isFinalized': finalScore.isFinalized,
-        ':newModificationCount': finalScore.modificationCount,
-        ':lastModifiedBy': finalScore.lastModifiedBy,
-        ':lastModifiedAt': finalScore.lastModifiedAt,
-        ':expectedModificationCount': existingScore.modificationCount
-      }
+      ExpressionAttributeValues: expressionAttributeValues
     }));
 
     // Update score-by-cat index record

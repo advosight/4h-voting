@@ -12,11 +12,9 @@ interface JudgeAccount {
   role: string;
   createdAt: string;
   isActive: boolean;
-  permissions?: {
-    cageScoring?: boolean;
-    classScoring?: boolean;
-    fitShowScoring?: boolean;
-  };
+  cageScoring: boolean;
+  classScoring: boolean;
+  fitShowScoring: boolean;
 }
 
 interface CreateJudgeInput {
@@ -40,6 +38,9 @@ const LIST_JUDGE_ACCOUNTS = `
         role
         createdAt
         isActive
+        cageScoring
+        classScoring
+        fitShowScoring
       }
     }
   }
@@ -55,6 +56,9 @@ const CREATE_JUDGE_ACCOUNT = `
       role
       createdAt
       isActive
+      cageScoring
+      classScoring
+      fitShowScoring
     }
   }
 `;
@@ -139,6 +143,9 @@ function JudgeManagement(): JSX.Element {
         name: formData.name,
         temporaryPassword: formData.temporaryPassword,
         ...(formData.judgeId && { judgeId: formData.judgeId }),
+        cageScoring: formData.cageScoring,
+        classScoring: formData.classScoring,
+        fitShowScoring: formData.fitShowScoring,
       };
 
       await client.graphql({
@@ -423,7 +430,7 @@ function JudgeManagement(): JSX.Element {
                     <span style={{ color: '#6c757d', fontStyle: 'italic' }}>All Permissions</span>
                   ) : (
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      {judge.permissions?.cageScoring && (
+                      {judge.cageScoring && (
                         <span style={{
                           padding: '0.2rem 0.4rem',
                           borderRadius: '3px',
@@ -435,7 +442,7 @@ function JudgeManagement(): JSX.Element {
                           Cage
                         </span>
                       )}
-                      {judge.permissions?.classScoring && (
+                      {judge.classScoring && (
                         <span style={{
                           padding: '0.2rem 0.4rem',
                           borderRadius: '3px',
@@ -447,7 +454,7 @@ function JudgeManagement(): JSX.Element {
                           Class
                         </span>
                       )}
-                      {judge.permissions?.fitShowScoring && (
+                      {judge.fitShowScoring && (
                         <span style={{
                           padding: '0.2rem 0.4rem',
                           borderRadius: '3px',
@@ -459,7 +466,7 @@ function JudgeManagement(): JSX.Element {
                           Fit&Show
                         </span>
                       )}
-                      {!judge.permissions?.cageScoring && !judge.permissions?.classScoring && !judge.permissions?.fitShowScoring && (
+                      {!judge.cageScoring && !judge.classScoring && !judge.fitShowScoring && (
                         <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '0.8rem' }}>No permissions</span>
                       )}
                     </div>

@@ -67,7 +67,7 @@ Task 16 has been successfully completed. This implementation provides comprehens
 #### Frontend (`website/package.json`)
 ```json
 {
-  "test:integration": "node src/__tests__/run-integration-tests.js",
+  "test:integration": "node src/scripts/run-integration-tests.js",
   "test:scoring": "react-scripts test --testPathPattern=\"(scoring|score)\" --watchAll=false",
   "test:scoring:watch": "react-scripts test --testPathPattern=\"(scoring|score)\"",
   "test:coverage": "react-scripts test --testPathPattern=\"(scoring|score)\" --watchAll=false --coverage"
@@ -209,7 +209,7 @@ open coverage/lcov-report/index.html
 - `website/src/__tests__/end-to-end-scoring.integration.test.tsx`
 - `website/src/__tests__/scoring-integration-basic.test.tsx`
 - `website/src/__tests__/integration-test.config.js`
-- `website/src/__tests__/run-integration-tests.js`
+- `website/src/scripts/run-integration-tests.js`
 - `website/src/__tests__/README.md`
 
 ### Backend Tests

@@ -41,7 +41,7 @@ import {
   ExpandMore,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { useUserRole } from '../utils/roleUtils';
 import ScoreNotifications from './ScoreNotifications';
 import NetworkStatusIndicator from './NetworkStatusIndicator';
 import { PerformanceMonitorButton } from './PerformanceDashboard';
@@ -80,11 +80,12 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
     getCSSVariables
   } = useResponsive();
   
-  const [hasJudgeRole, setHasJudgeRole] = useState<boolean>(false);
-  const [hasAdminRole, setHasAdminRole] = useState<boolean>(false);
-  const [canCageScore, setCanCageScore] = useState<boolean>(false);
-  const [canClassScore, setCanClassScore] = useState<boolean>(false);
-  const [canFitShowScore, setCanFitShowScore] = useState<boolean>(false);
+  const { userInfo } = useUserRole();
+  const hasAdminRole = userInfo?.role === 'admin';
+  const hasJudgeRole = hasAdminRole || userInfo?.role === 'judge';
+  const canCageScore = userInfo?.permissions?.cageScoring ?? false;
+  const canClassScore = userInfo?.permissions?.classScoring ?? false;
+  const canFitShowScore = userInfo?.permissions?.fitShowScoring ?? false;
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
     scoring: true,
@@ -94,44 +95,6 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
   const [bottomNavValue, setBottomNavValue] = useState<string>('');
   const [touchStartX, setTouchStartX] = useState<number>(0);
   const [touchStartY, setTouchStartY] = useState<number>(0);
-
-  useEffect(() => {
-    checkUserRole();
-  }, []);
-
-  const checkUserRole = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      
-      // Check if user has admin role (default admin user)
-      const hasAdminRole = currentUser?.signInDetails?.loginId === '4h-leader@example.com';
-      
-      // Check if user has judge role
-      const hasJudgeRole = currentUser?.signInDetails?.loginId?.includes('judge') || 
-                          currentUser?.username?.includes('judge') ||
-                          // Default admin user can also be a judge
-                          hasAdminRole;
-      
-      // Get user attributes for specific scoring permissions
-      const userAttributes = (currentUser as any)?.attributes || {};
-      const cageScoring = userAttributes['custom:cageScoring'] === 'true' || hasAdminRole || (hasJudgeRole && !userAttributes['custom:cageScoring']);
-      const classScoring = userAttributes['custom:classScoring'] === 'true' || hasAdminRole || (hasJudgeRole && !userAttributes['custom:classScoring']);
-      const fitShowScoring = userAttributes['custom:fitShowScoring'] === 'true' || hasAdminRole || (hasJudgeRole && !userAttributes['custom:fitShowScoring']);
-      
-      setHasJudgeRole(hasJudgeRole);
-      setHasAdminRole(hasAdminRole);
-      setCanCageScore(cageScoring);
-      setCanClassScore(classScoring);
-      setCanFitShowScore(fitShowScoring);
-    } catch (error) {
-      console.error('Error checking user role:', error);
-      setHasJudgeRole(false);
-      setHasAdminRole(false);
-      setCanCageScore(false);
-      setCanClassScore(false);
-      setCanFitShowScore(false);
-    }
-  };
 
   const handleDrawerToggle = useCallback(() => {
     setMobileOpen(!mobileOpen);
@@ -395,17 +358,19 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
               }
             }}
           >
-            <ListItemText 
+            <ListItemText
               primary={title}
-              primaryTypographyProps={{ 
-                variant: isMobile ? 'body2' : 'caption',
-                color: 'text.secondary',
-                sx: { 
-                  fontWeight: 'bold', 
-                  textTransform: 'uppercase',
-                  fontSize: isMobile ? '0.875rem' : '0.75rem'
+              slotProps={{
+                primary: {
+                  variant: isMobile ? 'body2' : 'caption',
+                  color: 'text.secondary',
+                  sx: {
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    fontSize: isMobile ? '0.875rem' : '0.75rem'
+                  }
                 }
-              }} 
+              }}
             />
             {expandedSections[sectionKey] ? <ExpandLess /> : <ExpandMore />}
           </ListItemButton>
@@ -437,13 +402,15 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
                   >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary={item.label}
-                    primaryTypographyProps={{
-                      sx: { 
-                        color: location.pathname === item.path && item.color ? item.color : 'inherit',
-                        fontWeight: location.pathname === item.path ? 'bold' : 'normal',
-                        fontSize: isMobile ? '0.875rem' : '1rem'
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          color: location.pathname === item.path && item.color ? item.color : 'inherit',
+                          fontWeight: location.pathname === item.path ? 'bold' : 'normal',
+                          fontSize: isMobile ? '0.875rem' : '1rem'
+                        }
                       }
                     }}
                   />
@@ -611,10 +578,12 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
                       <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
                         {item.icon}
                       </ListItemIcon>
-                      <ListItemText 
+                      <ListItemText
                         primary={item.label}
-                        primaryTypographyProps={{
-                          sx: { fontSize: isMobile ? '0.875rem' : '1rem' }
+                        slotProps={{
+                          primary: {
+                            sx: { fontSize: isMobile ? '0.875rem' : '1rem' }
+                          }
                         }}
                       />
                     </ListItemButton>
@@ -726,14 +695,16 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
           open={mobileOpen}
           onClose={handleDrawerClose}
           onOpen={handleDrawerOpen}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile
-            'aria-labelledby': 'mobile-navigation-title',
-          }}
-          PaperProps={{
-            id: 'mobile-navigation-drawer',
-            role: 'navigation',
-            'aria-label': 'Main navigation menu',
+          slotProps={{
+            modal: {
+              keepMounted: true, // Better open performance on mobile
+              'aria-labelledby': 'mobile-navigation-title',
+            },
+            paper: {
+              id: 'mobile-navigation-drawer',
+              role: 'navigation',
+              'aria-label': 'Main navigation menu',
+            },
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
@@ -753,9 +724,11 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
         {/* Desktop drawer */}
         <Drawer
           variant="permanent"
-          PaperProps={{
-            role: 'navigation',
-            'aria-label': 'Main navigation menu',
+          slotProps={{
+            paper: {
+              role: 'navigation',
+              'aria-label': 'Main navigation menu',
+            },
           }}
           sx={{
             display: { xs: 'none', md: 'block' },

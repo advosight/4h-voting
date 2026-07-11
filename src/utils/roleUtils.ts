@@ -1,5 +1,5 @@
 import React from 'react';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 
 export type UserRole = 'admin' | 'judge' | 'participant';
 
@@ -22,23 +22,27 @@ export interface UserWithRole {
 export async function getUserRole(): Promise<UserWithRole | null> {
   try {
     const user = await getCurrentUser();
-    const attributes = user.signInDetails?.loginId;
-    
-    // Get custom attributes from user
-    const userAttributes = (user as any).attributes || {};
-    const customRole = userAttributes['custom:role'] as UserRole;
+    const loginId = user.signInDetails?.loginId;
+
+    // getCurrentUser() does not include custom attributes or group membership in
+    // Amplify v6 - those must be fetched separately.
+    const userAttributes = await fetchUserAttributes();
+    const session = await fetchAuthSession();
+    const cognitoGroups = (session.tokens?.idToken?.payload?.['cognito:groups'] as string[]) || [];
+
+    const customRole = userAttributes['custom:role'] as UserRole | undefined;
     const judgeId = userAttributes['custom:judgeId'];
-    
-    // Default role logic for existing users
+
+    // Cognito groups are the source of truth when present; fall back to custom:role,
+    // then judgeId, matching the backend's role derivation in roleValidation.ts.
     let role: UserRole = customRole || 'participant';
-    
-    // Special handling for the default admin user
-    if (attributes === '4h-leader@example.com') {
+    if (cognitoGroups.includes('admin')) {
       role = 'admin';
-    }
-    
-    // If user has judge ID but no role set, they're a judge
-    if (judgeId && !customRole) {
+    } else if (cognitoGroups.includes('judge')) {
+      role = 'judge';
+    } else if (customRole) {
+      role = customRole;
+    } else if (judgeId) {
       role = 'judge';
     }
 
@@ -58,10 +62,10 @@ export async function getUserRole(): Promise<UserWithRole | null> {
 
     return {
       userId: user.userId,
-      email: attributes || user.username,
+      email: userAttributes.email || loginId || user.username,
       role,
       judgeId,
-      name: userAttributes.name || userAttributes.email || attributes,
+      name: userAttributes.name || userAttributes.email || loginId,
       permissions,
     };
   } catch (error) {

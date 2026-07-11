@@ -357,6 +357,9 @@ export const calculateRibbonEligibility = (
 
   } catch (error) {
     console.error('Error calculating ribbon eligibility:', error);
+    if (error instanceof ClassScoringValidationError) {
+      throw error;
+    }
     throw new SystemError('Failed to calculate ribbon eligibility');
   }
 };

@@ -313,8 +313,11 @@ export class ClassScoreDataAccess {
 
   /**
    * Update an existing class score with audit trail
+   * @param allowFinalizedEdit set true only when the caller has already verified the
+   *   requester is an admin overriding a finalized score; otherwise the write is
+   *   rejected if the score was finalized between the caller's read and this write.
    */
-  async updateClassScore(id: string, input: UpdateClassScoreInput, modifiedBy: string): Promise<ClassScore> {
+  async updateClassScore(id: string, input: UpdateClassScoreInput, modifiedBy: string, allowFinalizedEdit: boolean = false): Promise<ClassScore> {
     // First get the existing class score
     const existingScore = await this.getClassScore(id);
     if (!existingScore) {
@@ -351,24 +354,45 @@ export class ClassScoreDataAccess {
       lastModifiedAt: timestamp,
     };
 
-    // Create audit trail entry before updating
-    await this.createAuditEntry(
-      id,
-      'UPDATE',
-      modifiedBy,
-      existingScore,
-      finalScore,
-      input.modificationReason || 'Class score updated'
-    );
+    // Update main class score record with optimistic locking. Unless the caller has
+    // confirmed an admin override, also require the score to still be unfinalized at
+    // write time, closing the gap between the resolver's finalized check and this write.
+    let conditionExpression = 'modificationCount = :expectedModificationCount';
+    const expressionAttributeValues: Record<string, any> = {
+      ':beautyScore': finalScore.beautyScore,
+      ':beautyComments': finalScore.beautyComments || null,
+      ':personalityScore': finalScore.personalityScore,
+      ':personalityComments': finalScore.personalityComments || null,
+      ':balanceProportionScore': finalScore.balanceProportionScore,
+      ':balanceProportionComments': finalScore.balanceProportionComments || null,
+      ':coatCleanGroomed': finalScore.coatCleanGroomed,
+      ':teethGumsHealthy': finalScore.teethGumsHealthy,
+      ':eyesNoseClear': finalScore.eyesNoseClear,
+      ':earsCleanMiteFree': finalScore.earsCleanMiteFree,
+      ':toenailsClipped': finalScore.toenailsClipped,
+      ':fleaIssues': finalScore.fleaIssues,
+      ':healthGroomingComments': finalScore.healthGroomingComments || null,
+      ':totalScore': finalScore.totalScore,
+      ':ribbonEligibility': finalScore.ribbonEligibility,
+      ':timestamp': timestamp,
+      ':isFinalized': finalScore.isFinalized,
+      ':modificationCount': finalScore.modificationCount,
+      ':lastModifiedBy': finalScore.lastModifiedBy,
+      ':lastModifiedAt': finalScore.lastModifiedAt,
+      ':expectedModificationCount': existingScore.modificationCount,
+    };
+    if (!allowFinalizedEdit) {
+      conditionExpression += ' AND isFinalized = :expectedNotFinalized';
+      expressionAttributeValues[':expectedNotFinalized'] = false;
+    }
 
-    // Update main class score record
     await this.docClient.send(new UpdateCommand({
       TableName: this.tableName,
       Key: {
         PK: `CLASS_SCORE#${id}`,
         SK: 'METADATA',
       },
-      UpdateExpression: `SET 
+      UpdateExpression: `SET
         beautyScore = :beautyScore,
         beautyComments = :beautyComments,
         personalityScore = :personalityScore,
@@ -389,31 +413,11 @@ export class ClassScoreDataAccess {
         modificationCount = :modificationCount,
         lastModifiedBy = :lastModifiedBy,
         lastModifiedAt = :lastModifiedAt`,
+      ConditionExpression: conditionExpression,
       ExpressionAttributeNames: {
         '#timestamp': 'timestamp'
       },
-      ExpressionAttributeValues: {
-        ':beautyScore': finalScore.beautyScore,
-        ':beautyComments': finalScore.beautyComments || null,
-        ':personalityScore': finalScore.personalityScore,
-        ':personalityComments': finalScore.personalityComments || null,
-        ':balanceProportionScore': finalScore.balanceProportionScore,
-        ':balanceProportionComments': finalScore.balanceProportionComments || null,
-        ':coatCleanGroomed': finalScore.coatCleanGroomed,
-        ':teethGumsHealthy': finalScore.teethGumsHealthy,
-        ':eyesNoseClear': finalScore.eyesNoseClear,
-        ':earsCleanMiteFree': finalScore.earsCleanMiteFree,
-        ':toenailsClipped': finalScore.toenailsClipped,
-        ':fleaIssues': finalScore.fleaIssues,
-        ':healthGroomingComments': finalScore.healthGroomingComments || null,
-        ':totalScore': finalScore.totalScore,
-        ':ribbonEligibility': finalScore.ribbonEligibility,
-        ':timestamp': timestamp,
-        ':isFinalized': finalScore.isFinalized,
-        ':modificationCount': finalScore.modificationCount,
-        ':lastModifiedBy': finalScore.lastModifiedBy,
-        ':lastModifiedAt': finalScore.lastModifiedAt,
-      }
+      ExpressionAttributeValues: expressionAttributeValues
     }));
 
     // Update class-score-by-cat index record
@@ -446,6 +450,16 @@ export class ClassScoreDataAccess {
         isFinalized: finalScore.isFinalized,
       },
     }));
+
+    // Create audit trail entry only after the conditional write actually succeeds
+    await this.createAuditEntry(
+      id,
+      'UPDATE',
+      modifiedBy,
+      existingScore,
+      finalScore,
+      input.modificationReason || 'Class score updated'
+    );
 
     return finalScore;
   }

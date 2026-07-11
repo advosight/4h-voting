@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from '../../theme/theme';
@@ -9,7 +9,7 @@ import ClassScoringPage from '../ClassScoringPage';
 const mockGraphql = jest.fn();
 jest.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: mockGraphql
+    graphql: (...args: unknown[]) => mockGraphql(...args)
   })
 }));
 
@@ -206,16 +206,18 @@ describe('ClassScoringPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Registered Cats & Scores')).toBeInTheDocument();
-      expect(screen.getByText('Bella')).toBeInTheDocument();
-      expect(screen.getByText('Max')).toBeInTheDocument();
+      expect(screen.getByRole('table')).toBeInTheDocument();
     });
-    
-    // Check table headers
-    expect(screen.getByText('Cage #')).toBeInTheDocument();
-    expect(screen.getByText('Cat Name')).toBeInTheDocument();
-    expect(screen.getByText('Beauty')).toBeInTheDocument();
-    expect(screen.getByText('Personality')).toBeInTheDocument();
-    expect(screen.getByText('Health')).toBeInTheDocument();
+
+    // Cats appear in both the quick-access cards and the table, so scope to the table
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Cage #')).toBeInTheDocument();
+    expect(table.getByText('Cat Name')).toBeInTheDocument();
+    expect(table.getByText('Beauty')).toBeInTheDocument();
+    expect(table.getByText('Personality')).toBeInTheDocument();
+    expect(table.getByText('Health')).toBeInTheDocument();
+    expect(table.getByText('Bella')).toBeInTheDocument();
+    expect(table.getByText('Max')).toBeInTheDocument();
   });
 
   it('filters cats by age group', async () => {
@@ -229,11 +231,14 @@ describe('ClassScoringPage', () => {
     // Filter by kitten age group
     const filterSelect = screen.getByLabelText('Filter by Cat Age Group');
     fireEvent.mouseDown(filterSelect);
-    fireEvent.click(screen.getByText('Kitten (under 8 months)'));
-    
-    // Should still show Bella (kitten) but Max (adult) should be filtered out
+    fireEvent.click(screen.getByRole('option', { name: 'Kitten (under 8 months)' }));
+
+    // The age filter only applies to the scores table (the quick-access cards
+    // above always list every cat), so scope the "Max filtered out" check to the table.
     await waitFor(() => {
-      expect(screen.getByText('Bella')).toBeInTheDocument();
+      const table = within(screen.getByRole('table'));
+      expect(table.getByText('Bella')).toBeInTheDocument();
+      expect(table.queryByText('Max')).not.toBeInTheDocument();
     });
   });
 

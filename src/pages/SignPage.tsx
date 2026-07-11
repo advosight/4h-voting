@@ -49,7 +49,7 @@ function SignPage(): JSX.Element {
       setCats(catsResult.data.listCats.items.sort((a, b) => b.votes - a.votes));
       
       // Generate QR code for voting
-      const voteUrl = `${process.env.REACT_APP_VOTING_API_ENDPOINT || 'https://6ecl3xpx84.execute-api.us-west-2.amazonaws.com/prod/'}vote/${catId}`;
+      const voteUrl = `${process.env.REACT_APP_VOTING_API_ENDPOINT || 'https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/'}vote/${catId}`;
       const qrUrl = await QRCode.toDataURL(voteUrl, {
         width: 300,        // Larger size for better scanning
         margin: 4,         // More margin for print safety

@@ -4,6 +4,13 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
+// CRA's bundled jsdom test environment doesn't provide TextEncoder/TextDecoder,
+// which react-router v7 requires at import time.
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+// @ts-expect-error - Node's TextDecoder type is slightly stricter than the DOM lib's
+global.TextDecoder = TextDecoder;
+
 // Mock IntersectionObserver for tests
 global.IntersectionObserver = class IntersectionObserver {
   constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {

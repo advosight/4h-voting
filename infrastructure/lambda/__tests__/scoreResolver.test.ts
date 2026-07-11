@@ -58,14 +58,14 @@ describe('Score Resolver', () => {
     catId: 'cat-456',
     judgeId: 'judge-123',
     judgeName: 'testjudge',
-    cageConditionScore: 20,
-    cageConditionComments: 'Good cage condition',
-    catConditionScore: 22,
-    catConditionComments: 'Healthy cat',
-    groomingScore: 18,
-    groomingComments: 'Well groomed',
-    overallScore: 23,
-    overallComments: 'Excellent overall',
+    firstImpressionScore: 8,
+    firstImpressionComments: 'Good cage condition',
+    originalityScore: 12,
+    originalityComments: 'Healthy cat',
+    informationCardScore: 14,
+    informationCardComments: 'Well groomed',
+    workDoneByMemberScore: 13,
+    workDoneByMemberComments: 'Excellent overall',
     totalScore: 83,
     timestamp: '2024-01-01T00:00:00.000Z',
     isFinalized: false,
@@ -75,10 +75,10 @@ describe('Score Resolver', () => {
     it('should create a score successfully for judge', async () => {
       const input = {
         catId: 'cat-456',
-        cageConditionScore: 20,
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
+        firstImpressionScore: 8,
+        originalityScore: 12,
+        informationCardScore: 14,
+        workDoneByMemberScore: 13,
       };
 
       mockScoreDataAccess.createScore.mockResolvedValue(mockScore);
@@ -89,18 +89,18 @@ describe('Score Resolver', () => {
       expect(mockScoreDataAccess.createScore).toHaveBeenCalledWith({
         ...input,
         judgeId: 'judge-123',
-        judgeName: 'testjudge',
-      });
+        judgeName: 'judge@example.com',
+      }, 'judge@example.com');
       expect(result).toEqual(mockScore);
     });
 
     it('should create a score successfully for admin', async () => {
       const input = {
         catId: 'cat-456',
-        cageConditionScore: 20,
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
+        firstImpressionScore: 8,
+        originalityScore: 12,
+        informationCardScore: 14,
+        workDoneByMemberScore: 13,
       };
 
       mockScoreDataAccess.createScore.mockResolvedValue(mockScore);
@@ -114,10 +114,10 @@ describe('Score Resolver', () => {
     it('should reject creation for non-judge/admin users', async () => {
       const input = {
         catId: 'cat-456',
-        cageConditionScore: 20,
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
+        firstImpressionScore: 8,
+        originalityScore: 12,
+        informationCardScore: 14,
+        workDoneByMemberScore: 13,
       };
 
       const event = createMockEvent('createScore', { input }, 'participant');
@@ -129,41 +129,41 @@ describe('Score Resolver', () => {
     it('should validate score ranges', async () => {
       const input = {
         catId: 'cat-456',
-        cageConditionScore: 30, // Invalid: > 25
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
+        firstImpressionScore: 15, // Invalid: > 10
+        originalityScore: 12,
+        informationCardScore: 14,
+        workDoneByMemberScore: 13,
       };
 
       const event = createMockEvent('createScore', { input });
 
-      await expect(handler(event)).rejects.toThrow('Invalid cageConditionScore: must be between 0 and 25');
+      await expect(handler(event)).rejects.toThrow('firstImpressionScore must be between 0 and 10');
       expect(mockScoreDataAccess.createScore).not.toHaveBeenCalled();
     });
 
     it('should validate comment lengths', async () => {
       const input = {
         catId: 'cat-456',
-        cageConditionScore: 20,
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
-        cageConditionComments: 'a'.repeat(501), // Too long
+        firstImpressionScore: 8,
+        originalityScore: 12,
+        informationCardScore: 14,
+        workDoneByMemberScore: 13,
+        firstImpressionComments: 'a'.repeat(501), // Too long
       };
 
       const event = createMockEvent('createScore', { input });
 
-      await expect(handler(event)).rejects.toThrow('Invalid cageConditionComments: must be 500 characters or less');
+      await expect(handler(event)).rejects.toThrow('Comment must be 500 characters or less');
       expect(mockScoreDataAccess.createScore).not.toHaveBeenCalled();
     });
 
     it('should reject creation without authentication', async () => {
       const input = {
         catId: 'cat-456',
-        cageConditionScore: 20,
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
+        firstImpressionScore: 8,
+        originalityScore: 12,
+        informationCardScore: 14,
+        workDoneByMemberScore: 13,
       };
 
       const event = {
@@ -172,14 +172,14 @@ describe('Score Resolver', () => {
         identity: null,
       } as any;
 
-      await expect(handler(event)).rejects.toThrow('Unauthorized: No user context found');
+      await expect(handler(event)).rejects.toThrow('Forbidden: Judge role required');
     });
   });
 
   describe('updateScore', () => {
     it('should update own score successfully', async () => {
-      const input = { cageConditionScore: 25 };
-      const updatedScore = { ...mockScore, cageConditionScore: 25, totalScore: 88 };
+      const input = { firstImpressionScore: 8 };
+      const updatedScore = { ...mockScore, firstImpressionScore: 8, totalScore: 88 };
 
       mockScoreDataAccess.getScore.mockResolvedValue(mockScore);
       mockScoreDataAccess.updateScore.mockResolvedValue(updatedScore);
@@ -187,14 +187,14 @@ describe('Score Resolver', () => {
       const event = createMockEvent('updateScore', { id: 'score-123', input });
       const result = await handler(event);
 
-      expect(mockScoreDataAccess.updateScore).toHaveBeenCalledWith('score-123', input);
+      expect(mockScoreDataAccess.updateScore).toHaveBeenCalledWith('score-123', input, 'judge@example.com', false);
       expect(result).toEqual(updatedScore);
     });
 
     it('should allow admin to update any score', async () => {
-      const input = { cageConditionScore: 25 };
+      const input = { firstImpressionScore: 8 };
       const otherJudgeScore = { ...mockScore, judgeId: 'other-judge' };
-      const updatedScore = { ...otherJudgeScore, cageConditionScore: 25 };
+      const updatedScore = { ...otherJudgeScore, firstImpressionScore: 8 };
 
       mockScoreDataAccess.getScore.mockResolvedValue(otherJudgeScore);
       mockScoreDataAccess.updateScore.mockResolvedValue(updatedScore);
@@ -206,33 +206,33 @@ describe('Score Resolver', () => {
     });
 
     it('should reject updating other judge scores', async () => {
-      const input = { cageConditionScore: 25 };
+      const input = { firstImpressionScore: 8 };
       const otherJudgeScore = { ...mockScore, judgeId: 'other-judge' };
 
       mockScoreDataAccess.getScore.mockResolvedValue(otherJudgeScore);
 
       const event = createMockEvent('updateScore', { id: 'score-123', input });
 
-      await expect(handler(event)).rejects.toThrow('Forbidden: Can only edit your own scores');
+      await expect(handler(event)).rejects.toThrow('Forbidden: Admin role required');
       expect(mockScoreDataAccess.updateScore).not.toHaveBeenCalled();
     });
 
     it('should reject updating finalized scores for non-admin', async () => {
-      const input = { cageConditionScore: 25 };
+      const input = { firstImpressionScore: 8 };
       const finalizedScore = { ...mockScore, isFinalized: true };
 
       mockScoreDataAccess.getScore.mockResolvedValue(finalizedScore);
 
       const event = createMockEvent('updateScore', { id: 'score-123', input });
 
-      await expect(handler(event)).rejects.toThrow('Forbidden: Cannot modify finalized scores');
+      await expect(handler(event)).rejects.toThrow('Cannot modify finalized scores. Admin access required.');
       expect(mockScoreDataAccess.updateScore).not.toHaveBeenCalled();
     });
 
     it('should allow admin to update finalized scores', async () => {
-      const input = { cageConditionScore: 25 };
+      const input = { firstImpressionScore: 8 };
       const finalizedScore = { ...mockScore, isFinalized: true };
-      const updatedScore = { ...finalizedScore, cageConditionScore: 25 };
+      const updatedScore = { ...finalizedScore, firstImpressionScore: 8 };
 
       mockScoreDataAccess.getScore.mockResolvedValue(finalizedScore);
       mockScoreDataAccess.updateScore.mockResolvedValue(updatedScore);
@@ -244,13 +244,13 @@ describe('Score Resolver', () => {
     });
 
     it('should handle non-existent score', async () => {
-      const input = { cageConditionScore: 25 };
+      const input = { firstImpressionScore: 8 };
 
       mockScoreDataAccess.getScore.mockResolvedValue(null);
 
       const event = createMockEvent('updateScore', { id: 'nonexistent', input });
 
-      await expect(handler(event)).rejects.toThrow('Score not found');
+      await expect(handler(event)).rejects.toThrow('Score with ID nonexistent not found');
       expect(mockScoreDataAccess.updateScore).not.toHaveBeenCalled();
     });
   });
@@ -281,7 +281,7 @@ describe('Score Resolver', () => {
 
       const event = createMockEvent('getScore', { id: 'score-123' });
 
-      await expect(handler(event)).rejects.toThrow('Forbidden: Can only view your own scores');
+      await expect(handler(event)).rejects.toThrow('Forbidden: Admin role required');
     });
 
     it('should return null for non-existent score', async () => {
@@ -383,7 +383,7 @@ describe('Score Resolver', () => {
     it('should reject getting other judge scores', async () => {
       const event = createMockEvent('getScoresByJudge', { judgeId: 'other-judge' });
 
-      await expect(handler(event)).rejects.toThrow('Forbidden: Can only view your own scores');
+      await expect(handler(event)).rejects.toThrow('Forbidden: Admin role required');
       expect(mockScoreDataAccess.getScoresByJudge).not.toHaveBeenCalled();
     });
   });
@@ -397,7 +397,7 @@ describe('Score Resolver', () => {
       const event = createMockEvent('finalizeScore', { id: 'score-123' });
       const result = await handler(event);
 
-      expect(mockScoreDataAccess.updateScore).toHaveBeenCalledWith('score-123', { isFinalized: true });
+      expect(mockScoreDataAccess.updateScore).toHaveBeenCalledWith('score-123', { isFinalized: true, modificationReason: 'Score finalized' }, 'judge@example.com');
       expect(result).toEqual(finalizedScore);
     });
 
@@ -419,7 +419,7 @@ describe('Score Resolver', () => {
 
       const event = createMockEvent('finalizeScore', { id: 'score-123' });
 
-      await expect(handler(event)).rejects.toThrow('Forbidden: Can only finalize your own scores');
+      await expect(handler(event)).rejects.toThrow('Forbidden: Admin role required');
       expect(mockScoreDataAccess.updateScore).not.toHaveBeenCalled();
     });
 
@@ -428,7 +428,7 @@ describe('Score Resolver', () => {
 
       const event = createMockEvent('finalizeScore', { id: 'nonexistent' });
 
-      await expect(handler(event)).rejects.toThrow('Score not found');
+      await expect(handler(event)).rejects.toThrow('Score with ID nonexistent not found');
       expect(mockScoreDataAccess.updateScore).not.toHaveBeenCalled();
     });
   });
@@ -445,7 +445,7 @@ describe('Score Resolver', () => {
 
       const event = createMockEvent('getScore', { id: 'score-123' });
 
-      await expect(handler(event)).rejects.toThrow('Database error');
+      await expect(handler(event)).rejects.toThrow('An unexpected error occurred. Please try again later.');
     });
   });
 });

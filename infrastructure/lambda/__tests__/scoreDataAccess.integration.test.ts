@@ -27,21 +27,24 @@ describe.skip('ScoreDataAccess Integration Tests', () => {
         catId: 'integration-test-cat',
         judgeId: 'integration-test-judge',
         judgeName: 'Test Judge',
-        cageConditionScore: 20,
-        cageConditionComments: 'Clean cage',
-        catConditionScore: 22,
-        catConditionComments: 'Healthy cat',
-        groomingScore: 18,
-        groomingComments: 'Well groomed',
-        overallScore: 23,
-        overallComments: 'Excellent presentation',
+        firstImpressionScore: 20,
+        firstImpressionComments: 'Clean cage',
+        originalityScore: 22,
+        originalityComments: 'Healthy cat',
+        informationCardScore: 18,
+        informationCardComments: 'Well groomed',
+        workDoneByMemberScore: 23,
+        workDoneByMemberComments: 'Excellent presentation',
+        basicComfortScore: 15,
+        safetyScore: 15,
+        easyViewOfCatScore: 15,
         isFinalized: false,
       };
 
       const createdScore = await scoreDataAccess.createScore(createInput);
       createdScoreId = createdScore.id;
 
-      expect(createdScore.totalScore).toBe(83);
+      expect(createdScore.totalScore).toBe(128);
       expect(createdScore.isFinalized).toBe(false);
 
       // Read
@@ -50,12 +53,12 @@ describe.skip('ScoreDataAccess Integration Tests', () => {
 
       // Update
       const updatedScore = await scoreDataAccess.updateScore(createdScoreId, {
-        cageConditionScore: 25,
+        firstImpressionScore: 25,
         isFinalized: true,
       });
 
-      expect(updatedScore.cageConditionScore).toBe(25);
-      expect(updatedScore.totalScore).toBe(88); // 25 + 22 + 18 + 23
+      expect(updatedScore.firstImpressionScore).toBe(25);
+      expect(updatedScore.totalScore).toBe(133); // 25 + 22 + 18 + 23 + 15 + 15 + 15
       expect(updatedScore.isFinalized).toBe(true);
 
       // Verify queries work
@@ -86,28 +89,37 @@ describe.skip('ScoreDataAccess Integration Tests', () => {
         catId: 'cat-1',
         judgeId: 'judge-1',
         judgeName: 'Judge A',
-        cageConditionScore: 20,
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
+        firstImpressionScore: 20,
+        originalityScore: 22,
+        informationCardScore: 18,
+        workDoneByMemberScore: 23,
+        basicComfortScore: 15,
+        safetyScore: 15,
+        easyViewOfCatScore: 15,
       },
       {
         catId: 'cat-1',
         judgeId: 'judge-2',
         judgeName: 'Judge B',
-        cageConditionScore: 22,
-        catConditionScore: 23,
-        groomingScore: 20,
-        overallScore: 25,
+        firstImpressionScore: 22,
+        originalityScore: 23,
+        informationCardScore: 20,
+        workDoneByMemberScore: 25,
+        basicComfortScore: 15,
+        safetyScore: 15,
+        easyViewOfCatScore: 15,
       },
       {
         catId: 'cat-2',
         judgeId: 'judge-1',
         judgeName: 'Judge A',
-        cageConditionScore: 18,
-        catConditionScore: 20,
-        groomingScore: 16,
-        overallScore: 21,
+        firstImpressionScore: 18,
+        originalityScore: 20,
+        informationCardScore: 16,
+        workDoneByMemberScore: 21,
+        basicComfortScore: 15,
+        safetyScore: 15,
+        easyViewOfCatScore: 15,
       },
     ];
 

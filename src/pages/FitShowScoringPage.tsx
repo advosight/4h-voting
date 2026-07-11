@@ -417,14 +417,14 @@ function FitShowScoringPage(): JSX.Element {
 
       {/* Real-time Leaderboard */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} lg={8}>
-          <FitShowScoreLeaderboard 
-            showOnlyFinalized={false}
-            maxEntries={10}
+        <Grid size={{ xs: 12, lg: 8 }}>
+          <FitShowScoreLeaderboard
+            finalizedOnly={false}
+            showTop={10}
             refreshInterval={30000}
           />
         </Grid>
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <FitShowScoreNotifications 
             maxNotifications={5}
             autoHideDelay={8000}

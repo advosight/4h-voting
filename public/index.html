@@ -74,11 +74,19 @@
         document.body.classList.add('offline');
       });
       
-      // Initial network status
-      if (navigator.onLine) {
-        document.body.classList.add('online');
+      // Initial network status (deferred until <body> exists, since this
+      // script runs in <head> before the body element is parsed)
+      function setInitialNetworkStatus() {
+        if (navigator.onLine) {
+          document.body.classList.add('online');
+        } else {
+          document.body.classList.add('offline');
+        }
+      }
+      if (document.body) {
+        setInitialNetworkStatus();
       } else {
-        document.body.classList.add('offline');
+        document.addEventListener('DOMContentLoaded', setInitialNetworkStatus);
       }
     </script>
     

@@ -146,7 +146,19 @@ export const useClassScoringValidation = (formData: {
     }
 
     setValidationErrors(errors);
-  }, [formData, isFinalized]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formData.beautyScore,
+    formData.personalityScore,
+    formData.balanceProportionScore,
+    formData.coatCleanGroomed,
+    formData.teethGumsHealthy,
+    formData.eyesNoseClear,
+    formData.earsCleanMiteFree,
+    formData.toenailsClipped,
+    formData.fleaIssues,
+    isFinalized,
+  ]);
 
   const isValid = validationErrors.length === 0;
   const hasErrors = validationErrors.length > 0;

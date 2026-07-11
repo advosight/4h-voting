@@ -21,6 +21,9 @@ interface CreateJudgeInput {
   name: string;
   temporaryPassword: string;
   judgeId?: string;
+  cageScoring?: boolean;
+  classScoring?: boolean;
+  fitShowScoring?: boolean;
 }
 
 interface JudgeAccount {
@@ -31,6 +34,9 @@ interface JudgeAccount {
   role: string;
   createdAt: string;
   isActive: boolean;
+  cageScoring: boolean;
+  classScoring: boolean;
+  fitShowScoring: boolean;
 }
 
 interface UserRoleUpdate {
@@ -65,6 +71,12 @@ function mapUserToJudgeAccount(user: UserType): JudgeAccount | null {
   const role = attributes['custom:role'];
   if (!role || !['judge', 'admin'].includes(role)) return null;
 
+  // Legacy accounts created before per-scoring-type permissions existed have none of these
+  // attributes set; default them to fully permitted so existing judges keep their access.
+  const hasAnyPermissionAttr = 'custom:cageScoring' in attributes ||
+    'custom:classScoring' in attributes ||
+    'custom:fitShowScoring' in attributes;
+
   return {
     userId: user.Username,
     email: attributes.email || '',
@@ -73,6 +85,9 @@ function mapUserToJudgeAccount(user: UserType): JudgeAccount | null {
     role,
     createdAt: user.UserCreateDate?.toISOString() || new Date().toISOString(),
     isActive: user.UserStatus === 'CONFIRMED' || user.UserStatus === 'FORCE_CHANGE_PASSWORD',
+    cageScoring: role === 'admin' || (hasAnyPermissionAttr ? attributes['custom:cageScoring'] === 'true' : true),
+    classScoring: role === 'admin' || (hasAnyPermissionAttr ? attributes['custom:classScoring'] === 'true' : true),
+    fitShowScoring: role === 'admin' || (hasAnyPermissionAttr ? attributes['custom:fitShowScoring'] === 'true' : true),
   };
 }
 
@@ -105,10 +120,15 @@ async function createJudgeAccount(event: AppSyncResolverEvent<{ input: CreateJud
   const userContext = getUserContext(event);
   requireRole(userContext, 'admin');
 
-  const { email, name, temporaryPassword, judgeId } = event.arguments.input;
+  const { email, name, temporaryPassword, judgeId, cageScoring, classScoring, fitShowScoring } = event.arguments.input;
 
   // Generate judge ID if not provided
   const finalJudgeId = judgeId || generateJudgeId();
+
+  // Default each permission to granted unless the admin explicitly unchecked it
+  const finalCageScoring = cageScoring ?? true;
+  const finalClassScoring = classScoring ?? true;
+  const finalFitShowScoring = fitShowScoring ?? true;
 
   try {
     // Create user in Cognito
@@ -120,6 +140,9 @@ async function createJudgeAccount(event: AppSyncResolverEvent<{ input: CreateJud
         { Name: 'name', Value: name },
         { Name: 'custom:role', Value: 'judge' },
         { Name: 'custom:judgeId', Value: finalJudgeId },
+        { Name: 'custom:cageScoring', Value: finalCageScoring ? 'true' : 'false' },
+        { Name: 'custom:classScoring', Value: finalClassScoring ? 'true' : 'false' },
+        { Name: 'custom:fitShowScoring', Value: finalFitShowScoring ? 'true' : 'false' },
         { Name: 'email_verified', Value: 'true' },
       ],
       TemporaryPassword: temporaryPassword,
@@ -140,6 +163,9 @@ async function createJudgeAccount(event: AppSyncResolverEvent<{ input: CreateJud
       role: 'judge',
       createdAt: new Date().toISOString(),
       isActive: true,
+      cageScoring: finalCageScoring,
+      classScoring: finalClassScoring,
+      fitShowScoring: finalFitShowScoring,
     };
 
   } catch (error) {

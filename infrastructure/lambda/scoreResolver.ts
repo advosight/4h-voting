@@ -2,13 +2,14 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { ScoreDataAccess, CreateScoreInput, UpdateScoreInput } from './scoreDataAccess';
-import { 
-  getUserContext, 
-  requireAnyRole, 
-  requireRole, 
-  getJudgeId, 
+import {
+  getUserContext,
+  requireAnyRole,
+  requireRole,
+  getJudgeId,
   requireScoreAccess,
-  UserContext 
+  requireScoringPermission,
+  UserContext
 } from './roleValidation';
 import { 
   handleError, 
@@ -103,14 +104,25 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
     console.error(`Error in ${fieldName}:`, error);
     
     // Re-throw AppError instances to preserve error type and status
-    if (error instanceof ValidationError || 
-        error instanceof PermissionError || 
-        error instanceof NotFoundError || 
-        error instanceof ConflictError || 
+    if (error instanceof ValidationError ||
+        error instanceof PermissionError ||
+        error instanceof NotFoundError ||
+        error instanceof ConflictError ||
         error instanceof SystemError) {
       throw error;
     }
-    
+
+    // Preserve optimistic-locking conflicts so the frontend's conflict-resolution UI
+    // (gated on type=CONFLICT/code=OPTIMISTIC_LOCK_FAILED) actually triggers, instead
+    // of relabeling them as a generic SystemError.
+    if ((error as any).name === 'ConditionalCheckFailedException') {
+      throw new ConflictError(
+        'The item has been modified by another user. Please refresh and try again.',
+        undefined,
+        'OPTIMISTIC_LOCK_FAILED'
+      );
+    }
+
     // Handle other errors
     const errorResponse = handleError(error);
     throw new SystemError(errorResponse.error.message, errorResponse.error.details);
@@ -123,6 +135,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
 async function createScore(event: AppSyncResolverEvent<{ input: CreateScoreInput }>) {
   const userContext = getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
+  requireScoringPermission(userContext, 'cageScoring');
 
   const input = event.arguments.input;
   validateScoreInput(input);
@@ -158,6 +171,7 @@ async function createScore(event: AppSyncResolverEvent<{ input: CreateScoreInput
 async function updateScore(event: AppSyncResolverEvent<{ id: string; input: UpdateScoreInput }>) {
   const userContext = getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
+  requireScoringPermission(userContext, 'cageScoring');
 
   const { id, input } = event.arguments;
   validateScoreInput(input);
@@ -177,7 +191,7 @@ async function updateScore(event: AppSyncResolverEvent<{ id: string; input: Upda
   }
 
   const modifiedBy = userContext?.email || 'Unknown User';
-  return await scoreDataAccess.updateScore(id, input, modifiedBy);
+  return await scoreDataAccess.updateScore(id, input, modifiedBy, userContext?.role === 'admin');
 }
 
 /**

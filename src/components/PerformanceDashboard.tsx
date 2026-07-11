@@ -236,7 +236,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                       <ListItem key={index} disablePadding>
                         <ListItemText
                           primary={recommendation}
-                          primaryTypographyProps={{ variant: 'body2' }}
+                          slotProps={{ primary: { variant: 'body2' } }}
                         />
                       </ListItem>
                     ))}

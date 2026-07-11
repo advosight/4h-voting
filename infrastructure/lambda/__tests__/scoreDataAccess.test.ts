@@ -20,14 +20,17 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 20,
-        cageConditionComments: 'Clean cage',
-        catConditionScore: 22,
-        catConditionComments: 'Healthy cat',
-        groomingScore: 18,
-        groomingComments: 'Well groomed',
-        overallScore: 23,
-        overallComments: 'Excellent presentation',
+        firstImpressionScore: 20,
+        firstImpressionComments: 'Clean cage',
+        originalityScore: 22,
+        originalityComments: 'Healthy cat',
+        informationCardScore: 18,
+        informationCardComments: 'Well groomed',
+        workDoneByMemberScore: 23,
+        workDoneByMemberComments: 'Excellent presentation',
+        basicComfortScore: 0,
+        safetyScore: 0,
+        easyViewOfCatScore: 0,
         isFinalized: false,
       };
 
@@ -39,10 +42,10 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 20,
-        catConditionScore: 22,
-        groomingScore: 18,
-        overallScore: 23,
+        firstImpressionScore: 20,
+        originalityScore: 22,
+        informationCardScore: 18,
+        workDoneByMemberScore: 23,
         totalScore: 83, // 20 + 22 + 18 + 23
         isFinalized: false,
       });
@@ -59,10 +62,13 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 25,
-        catConditionScore: 25,
-        groomingScore: 25,
-        overallScore: 25,
+        firstImpressionScore: 25,
+        originalityScore: 25,
+        informationCardScore: 25,
+        workDoneByMemberScore: 25,
+        basicComfortScore: 0,
+        safetyScore: 0,
+        easyViewOfCatScore: 0,
       };
 
       ddbMock.on(PutCommand).resolves({});
@@ -77,10 +83,13 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 20,
-        catConditionScore: 20,
-        groomingScore: 20,
-        overallScore: 20,
+        firstImpressionScore: 20,
+        originalityScore: 20,
+        informationCardScore: 20,
+        workDoneByMemberScore: 20,
+        basicComfortScore: 0,
+        safetyScore: 0,
+        easyViewOfCatScore: 0,
       };
 
       ddbMock.on(PutCommand).resolves({});
@@ -98,14 +107,20 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 20,
-        cageConditionComments: 'Clean cage',
-        catConditionScore: 22,
-        catConditionComments: 'Healthy cat',
-        groomingScore: 18,
-        groomingComments: 'Well groomed',
-        overallScore: 23,
-        overallComments: 'Excellent presentation',
+        firstImpressionScore: 20,
+        firstImpressionComments: 'Clean cage',
+        originalityScore: 22,
+        originalityComments: 'Healthy cat',
+        informationCardScore: 18,
+        informationCardComments: 'Well groomed',
+        workDoneByMemberScore: 23,
+        workDoneByMemberComments: 'Excellent presentation',
+        basicComfortScore: 0,
+        basicComfortComments: undefined,
+        safetyScore: 0,
+        safetyComments: undefined,
+        easyViewOfCatScore: 0,
+        easyViewOfCatComments: undefined,
         totalScore: 83,
         timestamp: '2024-01-01T00:00:00.000Z',
         isFinalized: false,
@@ -140,14 +155,14 @@ describe('ScoreDataAccess', () => {
       catId: 'cat-123',
       judgeId: 'judge-456',
       judgeName: 'Judge Smith',
-      cageConditionScore: 20,
-      cageConditionComments: 'Clean cage',
-      catConditionScore: 22,
-      catConditionComments: 'Healthy cat',
-      groomingScore: 18,
-      groomingComments: 'Well groomed',
-      overallScore: 23,
-      overallComments: 'Excellent presentation',
+      firstImpressionScore: 20,
+      firstImpressionComments: 'Clean cage',
+      originalityScore: 22,
+      originalityComments: 'Healthy cat',
+      informationCardScore: 18,
+      informationCardComments: 'Well groomed',
+      workDoneByMemberScore: 23,
+      workDoneByMemberComments: 'Excellent presentation',
       totalScore: 83,
       timestamp: '2024-01-01T00:00:00.000Z',
       isFinalized: false,
@@ -161,26 +176,27 @@ describe('ScoreDataAccess', () => {
       ddbMock.on(PutCommand).resolves({});
 
       const updateInput: UpdateScoreInput = {
-        cageConditionScore: 25,
+        firstImpressionScore: 25,
         isFinalized: true,
       };
 
       const result = await scoreDataAccess.updateScore('score-123', updateInput);
 
-      expect(result.cageConditionScore).toBe(25);
+      expect(result.firstImpressionScore).toBe(25);
       expect(result.totalScore).toBe(88); // 25 + 22 + 18 + 23
       expect(result.isFinalized).toBe(true);
       expect(result.timestamp).not.toBe(existingScore.timestamp); // Should be updated
 
-      // Verify four PutCommand calls were made (main record + 2 index records + audit entry)
-      expect(ddbMock.commandCalls(PutCommand)).toHaveLength(4);
+      // Main record is updated via UpdateCommand (optimistic locking); PutCommand is used
+      // only for the 2 index records + audit entry.
+      expect(ddbMock.commandCalls(PutCommand)).toHaveLength(3);
     });
 
     it('should throw error when score not found', async () => {
       ddbMock.on(GetCommand).resolves({});
 
       await expect(
-        scoreDataAccess.updateScore('nonexistent-score', { cageConditionScore: 25 })
+        scoreDataAccess.updateScore('nonexistent-score', { firstImpressionScore: 25 })
       ).rejects.toThrow('Score not found');
     });
   });
@@ -191,14 +207,20 @@ describe('ScoreDataAccess', () => {
       catId: 'cat-123',
       judgeId: 'judge-456',
       judgeName: 'Judge Smith',
-      cageConditionScore: 20,
-      cageConditionComments: undefined,
-      catConditionScore: 22,
-      catConditionComments: undefined,
-      groomingScore: 18,
-      groomingComments: undefined,
-      overallScore: 23,
-      overallComments: undefined,
+      firstImpressionScore: 20,
+      firstImpressionComments: undefined,
+      originalityScore: 22,
+      originalityComments: undefined,
+      informationCardScore: 18,
+      informationCardComments: undefined,
+      workDoneByMemberScore: 23,
+      workDoneByMemberComments: undefined,
+      basicComfortScore: 0,
+      basicComfortComments: undefined,
+      safetyScore: 0,
+      safetyComments: undefined,
+      easyViewOfCatScore: 0,
+      easyViewOfCatComments: undefined,
       totalScore: 83,
       timestamp: '2024-01-01T00:00:00.000Z',
       isFinalized: false,
@@ -245,14 +267,20 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-1',
         judgeName: 'Judge A',
-        cageConditionScore: 20,
-        cageConditionComments: undefined,
-        catConditionScore: 22,
-        catConditionComments: undefined,
-        groomingScore: 18,
-        groomingComments: undefined,
-        overallScore: 25,
-        overallComments: undefined,
+        firstImpressionScore: 20,
+        firstImpressionComments: undefined,
+        originalityScore: 22,
+        originalityComments: undefined,
+        informationCardScore: 18,
+        informationCardComments: undefined,
+        workDoneByMemberScore: 25,
+        workDoneByMemberComments: undefined,
+        basicComfortScore: 0,
+        basicComfortComments: undefined,
+        safetyScore: 0,
+        safetyComments: undefined,
+        easyViewOfCatScore: 0,
+        easyViewOfCatComments: undefined,
         totalScore: 85,
         timestamp: '2024-01-01T00:00:00.000Z',
         isFinalized: true,
@@ -266,14 +294,20 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-2',
         judgeName: 'Judge B',
-        cageConditionScore: 22,
-        cageConditionComments: undefined,
-        catConditionScore: 23,
-        catConditionComments: undefined,
-        groomingScore: 20,
-        groomingComments: undefined,
-        overallScore: 25,
-        overallComments: undefined,
+        firstImpressionScore: 22,
+        firstImpressionComments: undefined,
+        originalityScore: 23,
+        originalityComments: undefined,
+        informationCardScore: 20,
+        informationCardComments: undefined,
+        workDoneByMemberScore: 25,
+        workDoneByMemberComments: undefined,
+        basicComfortScore: 0,
+        basicComfortComments: undefined,
+        safetyScore: 0,
+        safetyComments: undefined,
+        easyViewOfCatScore: 0,
+        easyViewOfCatComments: undefined,
         totalScore: 90,
         timestamp: '2024-01-01T01:00:00.000Z',
         isFinalized: true,
@@ -324,14 +358,20 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-1',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 20,
-        cageConditionComments: undefined,
-        catConditionScore: 22,
-        catConditionComments: undefined,
-        groomingScore: 18,
-        groomingComments: undefined,
-        overallScore: 25,
-        overallComments: undefined,
+        firstImpressionScore: 20,
+        firstImpressionComments: undefined,
+        originalityScore: 22,
+        originalityComments: undefined,
+        informationCardScore: 18,
+        informationCardComments: undefined,
+        workDoneByMemberScore: 25,
+        workDoneByMemberComments: undefined,
+        basicComfortScore: 0,
+        basicComfortComments: undefined,
+        safetyScore: 0,
+        safetyComments: undefined,
+        easyViewOfCatScore: 0,
+        easyViewOfCatComments: undefined,
         totalScore: 85,
         timestamp: '2024-01-01T00:00:00.000Z',
         isFinalized: true,
@@ -345,14 +385,20 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-2',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 22,
-        cageConditionComments: undefined,
-        catConditionScore: 23,
-        catConditionComments: undefined,
-        groomingScore: 20,
-        groomingComments: undefined,
-        overallScore: 25,
-        overallComments: undefined,
+        firstImpressionScore: 22,
+        firstImpressionComments: undefined,
+        originalityScore: 23,
+        originalityComments: undefined,
+        informationCardScore: 20,
+        informationCardComments: undefined,
+        workDoneByMemberScore: 25,
+        workDoneByMemberComments: undefined,
+        basicComfortScore: 0,
+        basicComfortComments: undefined,
+        safetyScore: 0,
+        safetyComments: undefined,
+        easyViewOfCatScore: 0,
+        easyViewOfCatComments: undefined,
         totalScore: 90,
         timestamp: '2024-01-01T01:00:00.000Z',
         isFinalized: true,
@@ -398,14 +444,20 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-1',
         judgeName: 'Judge A',
-        cageConditionScore: 20,
-        cageConditionComments: undefined,
-        catConditionScore: 22,
-        catConditionComments: undefined,
-        groomingScore: 18,
-        groomingComments: undefined,
-        overallScore: 25,
-        overallComments: undefined,
+        firstImpressionScore: 20,
+        firstImpressionComments: undefined,
+        originalityScore: 22,
+        originalityComments: undefined,
+        informationCardScore: 18,
+        informationCardComments: undefined,
+        workDoneByMemberScore: 25,
+        workDoneByMemberComments: undefined,
+        basicComfortScore: 0,
+        basicComfortComments: undefined,
+        safetyScore: 0,
+        safetyComments: undefined,
+        easyViewOfCatScore: 0,
+        easyViewOfCatComments: undefined,
         totalScore: 85,
         timestamp: '2024-01-01T00:00:00.000Z',
         isFinalized: true,
@@ -451,14 +503,20 @@ describe('ScoreDataAccess', () => {
           catId: 'cat-1',
           judgeId: 'judge-1',
           judgeName: 'Judge A',
-          cageConditionScore: 20,
-          cageConditionComments: undefined,
-          catConditionScore: 22,
-          catConditionComments: undefined,
-          groomingScore: 18,
-          groomingComments: undefined,
-          overallScore: 25,
-          overallComments: undefined,
+          firstImpressionScore: 20,
+          firstImpressionComments: undefined,
+          originalityScore: 22,
+          originalityComments: undefined,
+          informationCardScore: 18,
+          informationCardComments: undefined,
+          workDoneByMemberScore: 25,
+          workDoneByMemberComments: undefined,
+          basicComfortScore: 0,
+          basicComfortComments: undefined,
+          safetyScore: 0,
+          safetyComments: undefined,
+          easyViewOfCatScore: 0,
+          easyViewOfCatComments: undefined,
           totalScore: 85,
           timestamp: '2024-01-01T00:00:00.000Z',
           isFinalized: true,
@@ -471,14 +529,20 @@ describe('ScoreDataAccess', () => {
           catId: 'cat-2',
           judgeId: 'judge-2',
           judgeName: 'Judge B',
-          cageConditionScore: 22,
-          cageConditionComments: undefined,
-          catConditionScore: 23,
-          catConditionComments: undefined,
-          groomingScore: 20,
-          groomingComments: undefined,
-          overallScore: 25,
-          overallComments: undefined,
+          firstImpressionScore: 22,
+          firstImpressionComments: undefined,
+          originalityScore: 23,
+          originalityComments: undefined,
+          informationCardScore: 20,
+          informationCardComments: undefined,
+          workDoneByMemberScore: 25,
+          workDoneByMemberComments: undefined,
+          basicComfortScore: 0,
+          basicComfortComments: undefined,
+          safetyScore: 0,
+          safetyComments: undefined,
+          easyViewOfCatScore: 0,
+          easyViewOfCatComments: undefined,
           totalScore: 90,
           timestamp: '2024-01-01T01:00:00.000Z',
           isFinalized: true,
@@ -521,10 +585,13 @@ describe('ScoreDataAccess', () => {
           catId: 'cat-123',
           judgeId: 'judge-456',
           judgeName: 'Judge Smith',
-          cageConditionScore: 20,
-          catConditionScore: 22,
-          groomingScore: 18,
-          overallScore: 23,
+          firstImpressionScore: 20,
+          originalityScore: 22,
+          informationCardScore: 18,
+          workDoneByMemberScore: 23,
+          basicComfortScore: 0,
+          safetyScore: 0,
+          easyViewOfCatScore: 0,
         };
 
         ddbMock.on(PutCommand).resolves({});
@@ -553,14 +620,14 @@ describe('ScoreDataAccess', () => {
         catId: 'cat-123',
         judgeId: 'judge-456',
         judgeName: 'Judge Smith',
-        cageConditionScore: 20,
-        cageConditionComments: 'Clean cage',
-        catConditionScore: 22,
-        catConditionComments: 'Healthy cat',
-        groomingScore: 18,
-        groomingComments: 'Well groomed',
-        overallScore: 23,
-        overallComments: 'Excellent presentation',
+        firstImpressionScore: 20,
+        firstImpressionComments: 'Clean cage',
+        originalityScore: 22,
+        originalityComments: 'Healthy cat',
+        informationCardScore: 18,
+        informationCardComments: 'Well groomed',
+        workDoneByMemberScore: 23,
+        workDoneByMemberComments: 'Excellent presentation',
         totalScore: 83,
         timestamp: '2024-01-01T00:00:00.000Z',
         isFinalized: false,
@@ -574,22 +641,23 @@ describe('ScoreDataAccess', () => {
         ddbMock.on(PutCommand).resolves({});
 
         const updateInput: UpdateScoreInput = {
-          cageConditionScore: 25,
+          firstImpressionScore: 25,
           modificationReason: 'Corrected scoring error',
         };
 
         const result = await scoreDataAccess.updateScore('score-123', updateInput, 'Admin User');
 
-        expect(result.cageConditionScore).toBe(25);
+        expect(result.firstImpressionScore).toBe(25);
         expect(result.modificationCount).toBe(1);
         expect(result.lastModifiedBy).toBe('Admin User');
         expect(result.lastModifiedAt).not.toBe(existingScore.lastModifiedAt);
 
-        // Verify four PutCommand calls were made (main record + 2 index records + audit entry)
-        expect(ddbMock.commandCalls(PutCommand)).toHaveLength(4);
+        // Main record is updated via UpdateCommand (optimistic locking); PutCommand is used
+        // only for the 2 index records + audit entry.
+        expect(ddbMock.commandCalls(PutCommand)).toHaveLength(3);
 
         // Check that audit entry was created
-        const auditCall = ddbMock.commandCalls(PutCommand)[3];
+        const auditCall = ddbMock.commandCalls(PutCommand)[2];
         expect(auditCall.args[0].input.Item?.action).toBe('UPDATE');
         expect(auditCall.args[0].input.Item?.modifiedBy).toBe('Admin User');
         expect(auditCall.args[0].input.Item?.reason).toBe('Corrected scoring error');
@@ -607,8 +675,8 @@ describe('ScoreDataAccess', () => {
             action: 'UPDATE',
             modifiedBy: 'Admin User',
             modifiedAt: '2024-01-01T01:00:00.000Z',
-            previousValues: '{"cageConditionScore": 20}',
-            newValues: '{"cageConditionScore": 25}',
+            previousValues: '{"firstImpressionScore": 20}',
+            newValues: '{"firstImpressionScore": 25}',
             reason: 'Corrected scoring error',
           },
           {
@@ -617,7 +685,7 @@ describe('ScoreDataAccess', () => {
             action: 'CREATE',
             modifiedBy: 'Judge Smith',
             modifiedAt: '2024-01-01T00:00:00.000Z',
-            newValues: '{"cageConditionScore": 20, "totalScore": 83}',
+            newValues: '{"firstImpressionScore": 20, "totalScore": 83}',
             reason: 'Initial score creation',
           },
         ];
@@ -629,8 +697,8 @@ describe('ScoreDataAccess', () => {
         expect(result).toHaveLength(2);
         expect(result[0].action).toBe('UPDATE');
         expect(result[0].modifiedBy).toBe('Admin User');
-        expect(result[0].previousValues).toEqual({ cageConditionScore: 20 });
-        expect(result[0].newValues).toEqual({ cageConditionScore: 25 });
+        expect(result[0].previousValues).toEqual({ firstImpressionScore: 20 });
+        expect(result[0].newValues).toEqual({ firstImpressionScore: 25 });
         expect(result[1].action).toBe('CREATE');
         expect(result[1].modifiedBy).toBe('Judge Smith');
 

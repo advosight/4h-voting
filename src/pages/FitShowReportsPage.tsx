@@ -9,8 +9,8 @@ const FitShowReportsPage: React.FC = () => {
         Fit and Show Scoring Reports
       </Typography>
       
-      <Typography variant="body1" color="text.secondary" paragraph>
-        View comprehensive reports for fit and show scoring results. Filter by judge, participant, 
+      <Typography variant="body1" color="text.secondary" component="p" sx={{ mb: 2 }}>
+        View comprehensive reports for fit and show scoring results. Filter by judge, participant,
         score range, or date to analyze performance and generate detailed reports.
       </Typography>
 

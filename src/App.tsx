@@ -38,12 +38,14 @@ const ParticipantClassScorePage = React.lazy(() => import('./pages/ParticipantCl
 // Loading fallback component
 const LoadingFallback: React.FC = () => (
   <Box
-    display="flex"
-    justifyContent="center"
-    alignItems="center"
-    minHeight="100vh"
-    flexDirection="column"
-    gap={2}
+    sx={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      flexDirection: 'column',
+      gap: 2,
+    }}
   >
     <CircularProgress size={40} />
     <Box sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>

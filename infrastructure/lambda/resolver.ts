@@ -1,7 +1,8 @@
 import { AppSyncResolverEvent } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
+import { getUserContext, requireRole } from './roleValidation';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -17,20 +18,26 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
     case 'getCatByCage':
       return await getCatByCage(event.arguments.cageNumber);
     case 'createCat':
+      requireRole(getUserContext(event), 'admin');
       return await createCat(event.arguments.input);
     case 'updateVotes':
+      // Called by the public voting Lambda via API key auth; no Cognito role check applies.
       return await updateVotes(event.arguments.id, event.arguments.votes);
     case 'updateCat':
+      requireRole(getUserContext(event), 'admin');
       return await updateCat(event.arguments.id, event.arguments.input);
     case 'listEmails':
+      requireRole(getUserContext(event), 'admin');
       return await listEmails();
     case 'addEmail':
       return await addEmail(event.arguments.email, event.arguments.context);
     case 'deleteCat':
+      requireRole(getUserContext(event), 'admin');
       return await deleteCat(event.arguments.id);
     case 'getVotingStatus':
       return await getVotingStatus();
     case 'setVotingStatus':
+      requireRole(getUserContext(event), 'admin');
       return await setVotingStatus(event.arguments.isActive);
     default:
       throw new Error(`Unknown field: ${fieldName}`);
@@ -185,28 +192,28 @@ async function updateCat(id: string, input: { name?: string; owner?: string; cag
   };
 }
 
+// `votes` is the number of votes to add (typically 1), not the new absolute total.
+// Using an atomic ADD instead of a read-then-SET avoids losing votes when two
+// requests for the same cat race each other.
 async function updateVotes(id: string, votes: number) {
-  await docClient.send(new UpdateCommand({
+  const result = await docClient.send(new UpdateCommand({
     TableName: process.env.TABLE_NAME,
     Key: { PK: `CAT#${id}`, SK: 'METADATA' },
-    UpdateExpression: 'SET votes = :votes',
-    ExpressionAttributeValues: { ':votes': votes },
+    UpdateExpression: 'ADD votes :increment',
+    ExpressionAttributeValues: { ':increment': votes },
+    ReturnValues: 'ALL_NEW',
   }));
 
-  const result = await docClient.send(new GetCommand({
-    TableName: process.env.TABLE_NAME,
-    Key: { PK: `CAT#${id}`, SK: 'METADATA' },
-  }));
-
+  const item = result.Attributes;
   return {
     id,
-    name: result.Item?.name,
-    owner: result.Item?.owner,
-    votes: votes,
-    cageNumber: result.Item?.cageNumber,
-    ownerAgeGroup: result.Item?.ownerAgeGroup,
-    catAgeGroup: result.Item?.catAgeGroup,
-    peoplesChoiceGroup: result.Item?.peoplesChoiceGroup ? parseInt(result.Item.peoplesChoiceGroup) : null,
+    name: item?.name,
+    owner: item?.owner,
+    votes: parseInt(item?.votes) || 0,
+    cageNumber: item?.cageNumber,
+    ownerAgeGroup: item?.ownerAgeGroup,
+    catAgeGroup: item?.catAgeGroup,
+    peoplesChoiceGroup: item?.peoplesChoiceGroup ? parseInt(item.peoplesChoiceGroup) : null,
   };
 }
 
@@ -261,6 +268,49 @@ async function deleteCat(id: string) {
   }));
 
   if (!result.Item) throw new Error('Cat not found');
+
+  // Cascade-delete every score (cage, class, and fit/show) tied to this cat.
+  // Without this, deleted cats leave orphaned score records behind that keep
+  // showing up in leaderboards/reports (e.g. as "Unknown Cat" or a stale name).
+  const relatedItems = await docClient.send(new QueryCommand({
+    TableName: process.env.TABLE_NAME,
+    KeyConditionExpression: 'PK = :pk',
+    ExpressionAttributeValues: { ':pk': `CAT#${id}` },
+  }));
+
+  const scoreIndexItems = (relatedItems.Items || []).filter(item => item.SK !== 'METADATA');
+
+  for (const indexItem of scoreIndexItems) {
+    const sk: string = indexItem.SK;
+    const separatorIndex = sk.lastIndexOf('#');
+    if (separatorIndex === -1) continue;
+
+    const scoreType = sk.slice(0, separatorIndex); // SCORE | CLASS_SCORE | FIT_SHOW_SCORE
+    const scoreId = sk.slice(separatorIndex + 1);
+
+    const scoreResult = await docClient.send(new GetCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { PK: `${scoreType}#${scoreId}`, SK: 'METADATA' },
+    }));
+    const judgeId = scoreResult.Item?.judgeId;
+
+    await docClient.send(new DeleteCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { PK: `${scoreType}#${scoreId}`, SK: 'METADATA' },
+    }));
+
+    await docClient.send(new DeleteCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { PK: `CAT#${id}`, SK: sk },
+    }));
+
+    if (judgeId) {
+      await docClient.send(new DeleteCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: { PK: `JUDGE#${judgeId}`, SK: sk },
+      }));
+    }
+  }
 
   await docClient.send(new DeleteCommand({
     TableName: process.env.TABLE_NAME,

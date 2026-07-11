@@ -2,13 +2,14 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { FitShowScoreDataAccess, CreateFitShowScoreInput, UpdateFitShowScoreInput } from './fitShowScoreDataAccess';
-import { 
-  getUserContext, 
-  requireAnyRole, 
-  requireRole, 
-  getJudgeId, 
+import {
+  getUserContext,
+  requireAnyRole,
+  requireRole,
+  getJudgeId,
   requireScoreAccess,
-  UserContext 
+  requireScoringPermission,
+  UserContext
 } from './roleValidation';
 import { 
   handleError, 
@@ -142,14 +143,25 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
     console.error(`Error in ${fieldName}:`, error);
     
     // Re-throw AppError instances to preserve error type and status
-    if (error instanceof ValidationError || 
-        error instanceof PermissionError || 
-        error instanceof NotFoundError || 
-        error instanceof ConflictError || 
+    if (error instanceof ValidationError ||
+        error instanceof PermissionError ||
+        error instanceof NotFoundError ||
+        error instanceof ConflictError ||
         error instanceof SystemError) {
       throw error;
     }
-    
+
+    // Preserve optimistic-locking conflicts so the frontend's conflict-resolution UI
+    // (gated on type=CONFLICT/code=OPTIMISTIC_LOCK_FAILED) actually triggers, instead
+    // of relabeling them as a generic SystemError.
+    if ((error as any).name === 'ConditionalCheckFailedException') {
+      throw new ConflictError(
+        'The item has been modified by another user. Please refresh and try again.',
+        undefined,
+        'OPTIMISTIC_LOCK_FAILED'
+      );
+    }
+
     // Handle other errors
     const errorResponse = handleError(error);
     throw new SystemError(errorResponse.error.message, errorResponse.error.details);
@@ -162,6 +174,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
 async function createFitShowScore(event: AppSyncResolverEvent<{ input: CreateFitShowScoreInput }>) {
   const userContext = getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
+  requireScoringPermission(userContext, 'fitShowScoring');
 
   const input = event.arguments.input;
   validateFitShowScoreInput(input);
@@ -195,6 +208,7 @@ async function createFitShowScore(event: AppSyncResolverEvent<{ input: CreateFit
 async function updateFitShowScore(event: AppSyncResolverEvent<{ id: string; input: UpdateFitShowScoreInput }>) {
   const userContext = getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
+  requireScoringPermission(userContext, 'fitShowScoring');
 
   const { id, input } = event.arguments;
   validateFitShowScoreInput(input);
@@ -215,7 +229,7 @@ async function updateFitShowScore(event: AppSyncResolverEvent<{ id: string; inpu
 
   const updateInput = { ...input, id };
   const reason = input.modificationReason || 'Score updated by judge';
-  return await fitShowScoreDataAccess.updateFitShowScoreWithAudit(updateInput, reason);
+  return await fitShowScoreDataAccess.updateFitShowScoreWithAudit(updateInput, reason, userContext?.role === 'admin');
 }
 
 /**

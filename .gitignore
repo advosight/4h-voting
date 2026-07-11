@@ -9,3 +9,5 @@ node_modules
 .env
 cdk.context.json
 .DS_Store
+
+.env.local

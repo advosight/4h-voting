@@ -278,19 +278,19 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
           </Box>
 
           <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Box sx={{ textAlign: 'center', p: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
                 <Typography variant="caption" sx={{ opacity: 0.9 }}>Owner</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{catData.owner}</Typography>
               </Box>
             </Grid>
-            <Grid xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Box sx={{ textAlign: 'center', p: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
                 <Typography variant="caption" sx={{ opacity: 0.9 }}>Cage</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{catData.cageNumber}</Typography>
               </Box>
             </Grid>
-            <Grid xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Box sx={{ textAlign: 'center', p: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
                 <Typography variant="caption" sx={{ opacity: 0.9 }}>Category</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
@@ -345,18 +345,18 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
             </Typography>
           </Box>
 
-          {/* Beauty Section */}
-          <Card sx={{ mb: 3, border: '2px solid #e91e63' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <StarIcon sx={{ mr: 2, color: '#e91e63', fontSize: '2rem' }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#e91e63' }}>
-                  Beauty (0-{BEAUTY_MAX_SCORE})
-                </Typography>
-              </Box>
+          <Grid container spacing={3}>
+            {/* Beauty Section */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card sx={{ height: '100%', border: '2px solid #e91e63' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <StarIcon sx={{ mr: 2, color: '#e91e63', fontSize: '2rem' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#e91e63' }}>
+                      Beauty (0-{BEAUTY_MAX_SCORE})
+                    </Typography>
+                  </Box>
 
-              <Grid container spacing={3}>
-                <Grid xs={12} md={4}>
                   <TextField
                     type="number"
                     label="Beauty Score"
@@ -378,9 +378,10 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                     marks
                     step={1}
                     valueLabelDisplay="auto"
-                    sx={{ 
+                    sx={{
                       color: '#e91e63',
                       width: '100%',
+                      mb: 2,
                       '& .MuiSlider-rail': {
                         width: '100%'
                       },
@@ -389,9 +390,7 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                       }
                     }}
                   />
-                </Grid>
 
-                <Grid xs={12} md={8}>
                   <TextField
                     multiline
                     rows={4}
@@ -404,23 +403,21 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                     fullWidth
                     slotProps={{ htmlInput: { maxLength: COMMENT_LIMITS.category } }}
                   />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </Grid>
 
-          {/* Personality Section */}
-          <Card sx={{ mb: 3, border: '2px solid #ff9800' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <HeartIcon sx={{ mr: 2, color: '#ff9800', fontSize: '2rem' }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
-                  Personality (0-{PERSONALITY_MAX_SCORE})
-                </Typography>
-              </Box>
+            {/* Personality Section */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card sx={{ height: '100%', border: '2px solid #ff9800' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <HeartIcon sx={{ mr: 2, color: '#ff9800', fontSize: '2rem' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                      Personality (0-{PERSONALITY_MAX_SCORE})
+                    </Typography>
+                  </Box>
 
-              <Grid container spacing={3}>
-                <Grid xs={12} md={4}>
                   <TextField
                     type="number"
                     label="Personality Score"
@@ -442,9 +439,10 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                     marks
                     step={1}
                     valueLabelDisplay="auto"
-                    sx={{ 
+                    sx={{
                       color: '#ff9800',
                       width: '100%',
+                      mb: 2,
                       '& .MuiSlider-rail': {
                         width: '100%'
                       },
@@ -453,9 +451,7 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                       }
                     }}
                   />
-                </Grid>
 
-                <Grid xs={12} md={8}>
                   <TextField
                     multiline
                     rows={4}
@@ -468,23 +464,21 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                     fullWidth
                     slotProps={{ htmlInput: { maxLength: COMMENT_LIMITS.category } }}
                   />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </Grid>
 
-          {/* Balance/Proportion Section */}
-          <Card sx={{ mb: 3, border: '2px solid #4caf50' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <BalanceIcon sx={{ mr: 2, color: '#4caf50', fontSize: '2rem' }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
-                  Balance/Proportion (0-{BALANCE_PROPORTION_MAX_SCORE})
-                </Typography>
-              </Box>
+            {/* Balance/Proportion Section */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card sx={{ height: '100%', border: '2px solid #4caf50' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <BalanceIcon sx={{ mr: 2, color: '#4caf50', fontSize: '2rem' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
+                      Balance/Proportion (0-{BALANCE_PROPORTION_MAX_SCORE})
+                    </Typography>
+                  </Box>
 
-              <Grid container spacing={3}>
-                <Grid xs={12} md={4}>
                   <TextField
                     type="number"
                     label="Balance/Proportion Score"
@@ -506,9 +500,10 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                     marks
                     step={1}
                     valueLabelDisplay="auto"
-                    sx={{ 
+                    sx={{
                       color: '#4caf50',
                       width: '100%',
+                      mb: 2,
                       '& .MuiSlider-rail': {
                         width: '100%'
                       },
@@ -517,9 +512,7 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                       }
                     }}
                   />
-                </Grid>
 
-                <Grid xs={12} md={8}>
                   <TextField
                     multiline
                     rows={4}
@@ -532,10 +525,10 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
                     fullWidth
                     slotProps={{ htmlInput: { maxLength: COMMENT_LIMITS.category } }}
                   />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
         </Paper>
 
         {/* Health & Grooming Section */}

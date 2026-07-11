@@ -234,8 +234,9 @@ function ClassScoringPage(): JSX.Element {
           </Typography>
           
           <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Filter by Cat Age Group</InputLabel>
+            <InputLabel id="class-age-group-filter-label">Filter by Cat Age Group</InputLabel>
             <Select
+              labelId="class-age-group-filter-label"
               value={selectedAgeGroup}
               label="Filter by Cat Age Group"
               onChange={handleAgeGroupChange}

@@ -3,7 +3,6 @@
  */
 
 import { AppSyncResolverEvent } from 'aws-lambda';
-import { handler } from '../classScoreResolver';
 import { ClassScoreDataAccess } from '../classScoreDataAccess';
 import { getUserContext, requireAnyRole, getJudgeId } from '../roleValidation';
 import { ValidationError, PermissionError, NotFoundError, ConflictError } from '../errorHandler';
@@ -19,33 +18,38 @@ const mockGetUserContext = getUserContext as jest.MockedFunction<typeof getUserC
 const mockRequireAnyRole = requireAnyRole as jest.MockedFunction<typeof requireAnyRole>;
 const mockGetJudgeId = getJudgeId as jest.MockedFunction<typeof getJudgeId>;
 
-describe('classScoreResolver', () => {
-  let mockDataAccess: jest.Mocked<ClassScoreDataAccess>;
+// The mock instance must exist and be wired up before the resolver module is
+// imported below: the resolver constructs a module-level singleton via
+// `new ClassScoreDataAccess(...)` at import time, so reassigning the mock's
+// return value afterwards (e.g. in beforeEach) would never reach that singleton.
+const mockDataAccess = {
+  createClassScore: jest.fn(),
+  updateClassScore: jest.fn(),
+  getClassScore: jest.fn(),
+  getClassScoresByCat: jest.fn(),
+  getClassScoresByCage: jest.fn(),
+  listAllClassScores: jest.fn(),
+  getClassScoresByJudge: jest.fn(),
+  deleteClassScore: jest.fn(),
+  finalizeClassScore: jest.fn(),
+  getClassScoreAuditHistory: jest.fn(),
+} as any;
+mockClassScoreDataAccess.mockImplementation(() => mockDataAccess);
 
+// Import the handler after all mocks above are configured.
+import { handler } from '../classScoreResolver';
+
+describe('classScoreResolver', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Create mock instance
-    mockDataAccess = {
-      createClassScore: jest.fn(),
-      updateClassScore: jest.fn(),
-      getClassScore: jest.fn(),
-      getClassScoresByCat: jest.fn(),
-      getClassScoresByCage: jest.fn(),
-      listAllClassScores: jest.fn(),
-      getClassScoresByJudge: jest.fn(),
-      deleteClassScore: jest.fn(),
-    } as any;
-
-    // Mock constructor to return our mock instance
-    mockClassScoreDataAccess.mockImplementation(() => mockDataAccess);
 
     // Default mock implementations
     mockGetUserContext.mockReturnValue({
       userId: 'user-123',
       role: 'judge',
       email: 'judge@example.com',
-      claims: { 'cognito:username': 'judge123' }
+      claims: { 'cognito:username': 'judge123' },
+      permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
     });
     mockRequireAnyRole.mockImplementation(() => {});
     mockGetJudgeId.mockReturnValue('judge-123');
@@ -83,6 +87,7 @@ describe('classScoreResolver', () => {
         judgeName: 'judge@example.com',
         totalScore: 43,
         ribbonEligibility: 'Red',
+        modificationCount: 0,
         timestamp: '2023-01-01T00:00:00.000Z'
       };
 
@@ -189,6 +194,7 @@ describe('classScoreResolver', () => {
       healthGroomingComments: 'Cat appears healthy',
       totalScore: 43,
       ribbonEligibility: 'Red',
+      modificationCount: 0,
       timestamp: '2023-01-01T00:00:00.000Z',
       isFinalized: false
     };
@@ -203,7 +209,7 @@ describe('classScoreResolver', () => {
 
       expect(mockRequireAnyRole).toHaveBeenCalledWith(expect.any(Object), ['judge', 'admin']);
       expect(mockDataAccess.getClassScore).toHaveBeenCalledWith('score-123');
-      expect(mockDataAccess.updateClassScore).toHaveBeenCalledWith('score-123', updateInput);
+      expect(mockDataAccess.updateClassScore).toHaveBeenCalledWith('score-123', updateInput, 'judge@example.com', false);
       expect(result).toEqual(updatedScore);
     });
 
@@ -230,7 +236,8 @@ describe('classScoreResolver', () => {
         userId: 'admin-123',
         role: 'admin', 
         email: 'admin@example.com',
-        claims: {}
+        claims: {},
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
       });
       mockDataAccess.getClassScore.mockResolvedValue(finalizedScore);
       mockDataAccess.updateClassScore.mockResolvedValue(updatedScore);
@@ -267,6 +274,7 @@ describe('classScoreResolver', () => {
       healthGroomingComments: 'Cat appears healthy',
       totalScore: 43,
       ribbonEligibility: 'Red',
+      modificationCount: 0,
       timestamp: '2023-01-01T00:00:00.000Z',
       isFinalized: true
     };
@@ -276,7 +284,8 @@ describe('classScoreResolver', () => {
         userId: 'admin-123',
         role: 'admin', 
         email: 'admin@example.com',
-        claims: {}
+        claims: {},
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
       });
       mockDataAccess.getClassScore.mockResolvedValue(existingScore);
 
@@ -298,7 +307,8 @@ describe('classScoreResolver', () => {
         userId: 'participant-123',
         role: 'participant', 
         email: 'participant@example.com',
-        claims: {}
+        claims: {},
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
       });
       mockDataAccess.getClassScore.mockResolvedValue(existingScore);
 
@@ -313,7 +323,8 @@ describe('classScoreResolver', () => {
         userId: 'participant-123',
         role: 'participant', 
         email: 'participant@example.com',
-        claims: {}
+        claims: {},
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
       });
       mockDataAccess.getClassScore.mockResolvedValue(nonFinalizedScore);
 
@@ -356,6 +367,7 @@ describe('classScoreResolver', () => {
         healthGroomingComments: 'Cat appears healthy',
         totalScore: 43,
         ribbonEligibility: 'Red',
+        modificationCount: 0,
         timestamp: '2023-01-01T00:00:00.000Z',
         isFinalized: true
       },
@@ -379,6 +391,7 @@ describe('classScoreResolver', () => {
         healthGroomingComments: 'Excellent health',
         totalScore: 47,
         ribbonEligibility: 'Blue',
+        modificationCount: 0,
         timestamp: '2023-01-01T01:00:00.000Z',
         isFinalized: false
       }
@@ -389,7 +402,8 @@ describe('classScoreResolver', () => {
         userId: 'admin-123',
         role: 'admin', 
         email: 'admin@example.com',
-        claims: {}
+        claims: {},
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
       });
       mockDataAccess.getClassScoresByCat.mockResolvedValue(mockScores);
 
@@ -411,7 +425,8 @@ describe('classScoreResolver', () => {
         userId: 'participant-123',
         role: 'participant', 
         email: 'participant@example.com',
-        claims: {}
+        claims: {},
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true }
       });
       mockDataAccess.getClassScoresByCat.mockResolvedValue(mockScores);
 
@@ -447,6 +462,7 @@ describe('classScoreResolver', () => {
       healthGroomingComments: 'Cat appears healthy',
       totalScore: 43,
       ribbonEligibility: 'Red',
+      modificationCount: 0,
       timestamp: '2023-01-01T00:00:00.000Z',
       isFinalized: false
     };
@@ -455,12 +471,12 @@ describe('classScoreResolver', () => {
       const finalizedScore = { ...existingScore, isFinalized: true };
 
       mockDataAccess.getClassScore.mockResolvedValue(existingScore);
-      mockDataAccess.updateClassScore.mockResolvedValue(finalizedScore);
+      mockDataAccess.finalizeClassScore.mockResolvedValue(finalizedScore);
 
       const result = await handler(mockEvent);
 
       expect(mockDataAccess.getClassScore).toHaveBeenCalledWith('score-123');
-      expect(mockDataAccess.updateClassScore).toHaveBeenCalledWith('score-123', { isFinalized: true });
+      expect(mockDataAccess.finalizeClassScore).toHaveBeenCalledWith('score-123', 'judge@example.com');
       expect(result).toEqual(finalizedScore);
     });
 
@@ -468,7 +484,7 @@ describe('classScoreResolver', () => {
       mockDataAccess.getClassScore.mockResolvedValue(null);
 
       await expect(handler(mockEvent)).rejects.toThrow(NotFoundError);
-      expect(mockDataAccess.updateClassScore).not.toHaveBeenCalled();
+      expect(mockDataAccess.finalizeClassScore).not.toHaveBeenCalled();
     });
 
     it('should throw error when score is already finalized', async () => {
@@ -476,7 +492,7 @@ describe('classScoreResolver', () => {
       mockDataAccess.getClassScore.mockResolvedValue(alreadyFinalizedScore);
 
       await expect(handler(mockEvent)).rejects.toThrow(ConflictError);
-      expect(mockDataAccess.updateClassScore).not.toHaveBeenCalled();
+      expect(mockDataAccess.finalizeClassScore).not.toHaveBeenCalled();
     });
   });
 

@@ -1,6 +1,40 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { generateClient } from 'aws-amplify/api';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  Button,
+  Chip,
+  IconButton,
+  Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+} from '@mui/material';
+import {
+  Assessment as ReportsIcon,
+  Refresh as RefreshIcon,
+  Download as DownloadIcon,
+  Visibility as ViewIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { FitShowScore } from '../types/scoring';
+
+const client = generateClient();
 
 const LIST_FIT_SHOW_SCORES = `
   query ListFitShowScores($limit: Int, $nextToken: String) {
@@ -50,12 +84,22 @@ interface FilterOptions {
   finalizedOnly: boolean;
 }
 
-export const FitShowScoreReports: React.FC<FitShowScoreReportsProps> = ({ className = '' }) => {
+const CATEGORY_BREAKDOWN = [
+  { key: 'appearanceTotal', commentsKey: 'appearanceComments', label: 'Appearance', max: 20 },
+  { key: 'handlingTotal', commentsKey: 'handlingComments', label: 'Handling', max: 14 },
+  { key: 'demonstrationTotal', commentsKey: 'demonstrationComments', label: 'Demonstration', max: 16 },
+  { key: 'healthExaminationTotal', commentsKey: 'healthExaminationComments', label: 'Health Exam', max: 21 },
+  { key: 'groomingCareTotal', commentsKey: 'groomingCareComments', label: 'Grooming & Care', max: 14 },
+  { key: 'knowledgeTotal', commentsKey: 'knowledgeComments', label: 'Knowledge', max: 12 },
+] as const;
+
+export const FitShowScoreReports: React.FC<FitShowScoreReportsProps> = () => {
   const [scores, setScores] = useState<FitShowScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('totalScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedScore, setSelectedScore] = useState<FitShowScore | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({
     judge: '',
     participant: '',
@@ -74,8 +118,7 @@ export const FitShowScoreReports: React.FC<FitShowScoreReportsProps> = ({ classN
     try {
       setLoading(true);
       setError(null);
-      
-      const client = generateClient();
+
       const result = await client.graphql({
         query: LIST_FIT_SHOW_SCORES,
         variables: { limit: 1000 }
@@ -90,26 +133,20 @@ export const FitShowScoreReports: React.FC<FitShowScoreReportsProps> = ({ classN
   };
 
   const filteredAndSortedScores = useMemo(() => {
-    let filtered = scores.filter(score => {
-      // Judge filter
+    const filtered = scores.filter(score => {
       if (filters.judge && !score.judgeName.toLowerCase().includes(filters.judge.toLowerCase())) {
         return false;
       }
-      
-      // Participant filter
       if (filters.participant && !score.participantName.toLowerCase().includes(filters.participant.toLowerCase())) {
         return false;
       }
-      
-      // Score range filters
       if (filters.minScore && score.totalScore < parseInt(filters.minScore)) {
         return false;
       }
       if (filters.maxScore && score.totalScore > parseInt(filters.maxScore)) {
         return false;
       }
-      
-      // Date range filters
+
       const scoreDate = new Date(score.createdAt);
       if (filters.dateFrom && scoreDate < new Date(filters.dateFrom)) {
         return false;
@@ -117,30 +154,28 @@ export const FitShowScoreReports: React.FC<FitShowScoreReportsProps> = ({ classN
       if (filters.dateTo && scoreDate > new Date(filters.dateTo + 'T23:59:59')) {
         return false;
       }
-      
-      // Finalized filter
+
       if (filters.finalizedOnly && !score.isFinalized) {
         return false;
       }
-      
+
       return true;
     });
 
-    // Sort the filtered results
     filtered.sort((a, b) => {
       let aValue: any = a[sortField];
       let bValue: any = b[sortField];
-      
+
       if (sortField === 'createdAt') {
         aValue = new Date(aValue).getTime();
         bValue = new Date(bValue).getTime();
       }
-      
+
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
       }
-      
+
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -227,201 +262,298 @@ export const FitShowScoreReports: React.FC<FitShowScoreReportsProps> = ({ classN
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return '↕️';
-    return sortDirection === 'asc' ? '↑' : '↓';
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return '#2e7d32';
+    if (score >= 60) return '#f9a825';
+    return '#c62828';
   };
 
   if (loading) {
     return (
-      <div className={`fit-show-score-reports ${className}`}>
-        <div className="loading">Loading fit and show scoring reports...</div>
-      </div>
+      <Card elevation={2}>
+        <CardContent sx={{ textAlign: 'center', py: 6 }}>
+          <ReportsIcon sx={{ fontSize: '2.5rem', color: '#1976d2', mb: 1 }} />
+          <Typography color="text.secondary">Loading fit and show scoring reports...</Typography>
+        </CardContent>
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <div className={`fit-show-score-reports ${className}`}>
-        <div className="error">
-          <p>{error}</p>
-          <button onClick={loadScores}>Retry</button>
-        </div>
-      </div>
+      <Card elevation={2} sx={{ border: '1px solid', borderColor: 'error.main' }}>
+        <CardContent sx={{ textAlign: 'center', py: 4 }}>
+          <Typography color="error" gutterBottom>{error}</Typography>
+          <Button variant="outlined" color="error" onClick={loadScores} startIcon={<RefreshIcon />}>
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className={`fit-show-score-reports ${className}`}>
-      <div className="reports-header">
-        <h2>Fit and Show Scoring Reports</h2>
-        <div className="header-actions">
-          <button onClick={exportToCSV} className="export-btn">
-            Export to CSV ({filteredAndSortedScores.length} records)
-          </button>
-          <button onClick={loadScores} className="refresh-btn">
-            Refresh
-          </button>
-        </div>
-      </div>
+    <Card elevation={2}>
+      <CardContent>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, color: '#1976d2' }}>
+            <ReportsIcon sx={{ fontSize: '2rem' }} />
+            Fit and Show Scoring Reports
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              startIcon={<DownloadIcon />}
+              onClick={exportToCSV}
+            >
+              Export to CSV ({filteredAndSortedScores.length})
+            </Button>
+            <Tooltip title="Refresh">
+              <IconButton onClick={loadScores} aria-label="Refresh">
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
 
-      <div className="filters-section">
-        <h3>Filters</h3>
-        <div className="filters-grid">
-          <div className="filter-group">
-            <label>Judge:</label>
-            <input
-              type="text"
-              value={filters.judge}
-              onChange={(e) => handleFilterChange('judge', e.target.value)}
-              placeholder="Filter by judge name"
-            />
-          </div>
-          
-          <div className="filter-group">
-            <label>Participant:</label>
-            <input
-              type="text"
-              value={filters.participant}
-              onChange={(e) => handleFilterChange('participant', e.target.value)}
-              placeholder="Filter by participant name"
-            />
-          </div>
-          
-          <div className="filter-group">
-            <label>Min Score:</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={filters.minScore}
-              onChange={(e) => handleFilterChange('minScore', e.target.value)}
-              placeholder="0"
-            />
-          </div>
-          
-          <div className="filter-group">
-            <label>Max Score:</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={filters.maxScore}
-              onChange={(e) => handleFilterChange('maxScore', e.target.value)}
-              placeholder="100"
-            />
-          </div>
-          
-          <div className="filter-group">
-            <label>From Date:</label>
-            <input
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-            />
-          </div>
-          
-          <div className="filter-group">
-            <label>To Date:</label>
-            <input
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-            />
-          </div>
-          
-          <div className="filter-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={filters.finalizedOnly}
-                onChange={(e) => handleFilterChange('finalizedOnly', e.target.checked)}
+        {/* Filters */}
+        <Box sx={{ p: 2, mb: 3, backgroundColor: 'action.hover', borderRadius: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>Filters</Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                label="Judge"
+                size="small"
+                fullWidth
+                value={filters.judge}
+                onChange={(e) => handleFilterChange('judge', e.target.value)}
+                placeholder="Filter by judge name"
               />
-              Finalized scores only
-            </label>
-          </div>
-          
-          <div className="filter-group">
-            <button onClick={clearFilters} className="clear-filters-btn">
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      </div>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                label="Participant"
+                size="small"
+                fullWidth
+                value={filters.participant}
+                onChange={(e) => handleFilterChange('participant', e.target.value)}
+                placeholder="Filter by participant name"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+              <TextField
+                label="Min Score"
+                type="number"
+                size="small"
+                fullWidth
+                slotProps={{ htmlInput: { min: 0, max: 100 } }}
+                value={filters.minScore}
+                onChange={(e) => handleFilterChange('minScore', e.target.value)}
+                placeholder="0"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+              <TextField
+                label="Max Score"
+                type="number"
+                size="small"
+                fullWidth
+                slotProps={{ htmlInput: { min: 0, max: 100 } }}
+                value={filters.maxScore}
+                onChange={(e) => handleFilterChange('maxScore', e.target.value)}
+                placeholder="100"
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+              <TextField
+                label="From Date"
+                type="date"
+                size="small"
+                fullWidth
+                slotProps={{ inputLabel: { shrink: true } }}
+                value={filters.dateFrom}
+                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+              <TextField
+                label="To Date"
+                type="date"
+                size="small"
+                fullWidth
+                slotProps={{ inputLabel: { shrink: true } }}
+                value={filters.dateTo}
+                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+              />
+            </Grid>
+          </Grid>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, flexWrap: 'wrap', gap: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={filters.finalizedOnly}
+                  onChange={(e) => handleFilterChange('finalizedOnly', e.target.checked)}
+                />
+              }
+              label="Finalized scores only"
+            />
+            <Button size="small" onClick={clearFilters}>Clear Filters</Button>
+          </Box>
+        </Box>
 
-      <div className="results-summary">
-        <p>Showing {filteredAndSortedScores.length} of {scores.length} fit and show scores</p>
-      </div>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Showing {filteredAndSortedScores.length} of {scores.length} fit and show scores
+        </Typography>
 
-      <div className="scores-table-container">
-        <table className="scores-table">
-          <thead>
-            <tr>
-              <th onClick={() => handleSort('participantName')} className="sortable">
-                Participant {getSortIcon('participantName')}
-              </th>
-              <th onClick={() => handleSort('judgeName')} className="sortable">
-                Judge {getSortIcon('judgeName')}
-              </th>
-              <th onClick={() => handleSort('totalScore')} className="sortable">
-                Total Score {getSortIcon('totalScore')}
-              </th>
-              <th>Category Breakdown</th>
-              <th onClick={() => handleSort('createdAt')} className="sortable">
-                Date {getSortIcon('createdAt')}
-              </th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAndSortedScores.map((score) => (
-              <tr key={score.id}>
-                <td className="participant-name">{score.participantName}</td>
-                <td className="judge-name">{score.judgeName}</td>
-                <td className="total-score">
-                  <strong>{score.totalScore}/100</strong>
-                </td>
-                <td className="category-breakdown">
-                  <div className="category-scores">
-                    <span>App: {score.appearanceTotal}/20</span>
-                    <span>Hand: {score.handlingTotal}/14</span>
-                    <span>Demo: {score.demonstrationTotal}/16</span>
-                    <span>Health: {score.healthExaminationTotal}/21</span>
-                    <span>Groom: {score.groomingCareTotal}/14</span>
-                    <span>Know: {score.knowledgeTotal}/12</span>
-                  </div>
-                </td>
-                <td className="date">
-                  {new Date(score.createdAt).toLocaleDateString()}
-                </td>
-                <td className="status">
-                  <span className={`status-badge ${score.isFinalized ? 'finalized' : 'draft'}`}>
-                    {score.isFinalized ? 'Finalized' : 'Draft'}
-                  </span>
-                </td>
-                <td className="actions">
-                  <button 
-                    className="view-details-btn"
-                    onClick={() => {/* TODO: Implement view details */}}
-                  >
-                    View Details
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        {filteredAndSortedScores.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 6 }}>
+            <Typography color="text.secondary">No fit and show scores found matching the current filters.</Typography>
+          </Box>
+        ) : (
+          <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sortDirection={sortField === 'participantName' ? sortDirection : false}>
+                    <TableSortLabel
+                      active={sortField === 'participantName'}
+                      direction={sortField === 'participantName' ? sortDirection : 'asc'}
+                      onClick={() => handleSort('participantName')}
+                    >
+                      Participant
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell sortDirection={sortField === 'judgeName' ? sortDirection : false}>
+                    <TableSortLabel
+                      active={sortField === 'judgeName'}
+                      direction={sortField === 'judgeName' ? sortDirection : 'asc'}
+                      onClick={() => handleSort('judgeName')}
+                    >
+                      Judge
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align="center" sortDirection={sortField === 'totalScore' ? sortDirection : false}>
+                    <TableSortLabel
+                      active={sortField === 'totalScore'}
+                      direction={sortField === 'totalScore' ? sortDirection : 'asc'}
+                      onClick={() => handleSort('totalScore')}
+                    >
+                      Total Score
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>Category Breakdown</TableCell>
+                  <TableCell sortDirection={sortField === 'createdAt' ? sortDirection : false}>
+                    <TableSortLabel
+                      active={sortField === 'createdAt'}
+                      direction={sortField === 'createdAt' ? sortDirection : 'asc'}
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      Date
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align="center">Status</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredAndSortedScores.map((score) => (
+                  <TableRow key={score.id} hover>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{score.participantName}</TableCell>
+                    <TableCell>{score.judgeName}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={`${score.totalScore}/100`}
+                        size="small"
+                        sx={{ backgroundColor: getScoreColor(score.totalScore), color: 'white', fontWeight: 'bold' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(60px, 1fr))', gap: 0.5 }}>
+                        {CATEGORY_BREAKDOWN.map((category) => (
+                          <Typography key={category.key} variant="caption" color="text.secondary" noWrap>
+                            {category.label.split(' ')[0]}: {score[category.key]}/{category.max}
+                          </Typography>
+                        ))}
+                      </Box>
+                    </TableCell>
+                    <TableCell>{new Date(score.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={score.isFinalized ? 'Finalized' : 'Draft'}
+                        size="small"
+                        color={score.isFinalized ? 'success' : 'warning'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="View Details">
+                        <IconButton size="small" onClick={() => setSelectedScore(score)} aria-label="View details">
+                          <ViewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </CardContent>
 
-      {filteredAndSortedScores.length === 0 && (
-        <div className="no-results">
-          <p>No fit and show scores found matching the current filters.</p>
-        </div>
-      )}
-    </div>
+      <Dialog open={!!selectedScore} onClose={() => setSelectedScore(null)} maxWidth="sm" fullWidth>
+        {selectedScore && (
+          <>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              Fit and Show Score Details
+              <IconButton onClick={() => setSelectedScore(null)} aria-label="Close">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Typography variant="h6" gutterBottom>{selectedScore.participantName}</Typography>
+              <Typography variant="body2" color="text.secondary">Judge: {selectedScore.judgeName}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Date: {new Date(selectedScore.createdAt).toLocaleString()}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1, mb: 3 }}>
+                <Chip
+                  label={`Total: ${selectedScore.totalScore}/100`}
+                  sx={{ backgroundColor: getScoreColor(selectedScore.totalScore), color: 'white', fontWeight: 'bold' }}
+                />
+                <Chip
+                  label={selectedScore.isFinalized ? 'Finalized' : 'Draft'}
+                  size="small"
+                  color={selectedScore.isFinalized ? 'success' : 'warning'}
+                  variant="outlined"
+                />
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {CATEGORY_BREAKDOWN.map((category) => (
+                  <Box key={category.key} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{category.label}</Typography>
+                      <Typography variant="subtitle2">{selectedScore[category.key]}/{category.max}</Typography>
+                    </Box>
+                    {selectedScore[category.commentsKey] && (
+                      <Typography variant="body2" color="text.secondary">
+                        {selectedScore[category.commentsKey]}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setSelectedScore(null)}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+    </Card>
   );
 };
 

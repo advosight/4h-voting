@@ -22,7 +22,7 @@ This document summarizes the comprehensive integration tests created for the com
 - **Coverage**: 8 comprehensive end-to-end scenarios
 
 ### 4. Updated Test Runner
-- **File**: `src/__tests__/run-integration-tests.js`
+- **File**: `src/scripts/run-integration-tests.js`
 - **Purpose**: Automated test execution for all type class scoring integration tests
 - **Features**: Includes type class scoring tests in the comprehensive test suite
 
@@ -246,7 +246,7 @@ cd infrastructure && npm test -- --testPathPattern=class-scoring-workflow.integr
 npm run web:test -- --testPathPattern=end-to-end-class-scoring.integration.test.tsx --watchAll=false
 
 # All type class scoring integration tests
-node src/__tests__/run-integration-tests.js
+node src/scripts/run-integration-tests.js
 ```
 
 ### Test Coverage

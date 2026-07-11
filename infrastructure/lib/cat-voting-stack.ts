@@ -12,11 +12,23 @@ import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as cloudwatchActions from 'aws-cdk-lib/aws-cloudwatch-actions';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
+import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager';
 import { Construct } from 'constructs';
 
+export interface CatVotingStackProps extends cdk.StackProps {
+  /** Deployment stage. Only 'production' provisions the 4hcats.advosight.com domain. */
+  stage?: string;
+}
+
+const PRODUCTION_DOMAIN_NAME = '4hcats.advosight.com';
+
 export class CatVotingStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: CatVotingStackProps) {
     super(scope, id, props);
+
+    const isProduction = props?.stage === 'production';
 
     // DynamoDB Table - Single table design
     const table = new dynamodb.Table(this, 'CatVotingTable', {
@@ -496,6 +508,29 @@ export class CatVotingStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
+    // Production-only custom domain (4hcats.advosight.com). The hosted zone is
+    // created here (this account doesn't hold the advosight.com apex zone), so
+    // its NS records must be added under advosight.com to delegate the subdomain
+    // -- see the ProductionDomainNameServers output after a production deploy.
+    let productionHostedZone: route53.HostedZone | undefined;
+    let productionCertificate: certificatemanager.ICertificate | undefined;
+
+    if (isProduction) {
+      productionHostedZone = new route53.HostedZone(this, 'ProductionHostedZone', {
+        zoneName: PRODUCTION_DOMAIN_NAME,
+      });
+
+      // CloudFront requires the certificate to live in us-east-1, regardless of
+      // this stack's own region, so this uses the (deprecated but still
+      // functional) cross-region-capable construct rather than a plain
+      // Certificate, which would have to be created in a us-east-1 stack.
+      productionCertificate = new certificatemanager.DnsValidatedCertificate(this, 'ProductionCertificate', {
+        domainName: PRODUCTION_DOMAIN_NAME,
+        hostedZone: productionHostedZone,
+        region: 'us-east-1',
+      });
+    }
+
     // CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, 'WebsiteDistribution', {
       defaultBehavior: {
@@ -503,6 +538,8 @@ export class CatVotingStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
       defaultRootObject: 'index.html',
+      domainNames: isProduction ? [PRODUCTION_DOMAIN_NAME] : undefined,
+      certificate: productionCertificate,
       errorResponses: [
         {
           httpStatus: 404,
@@ -511,6 +548,31 @@ export class CatVotingStack extends cdk.Stack {
         },
       ],
     });
+
+    if (isProduction && productionHostedZone) {
+      const cloudFrontTarget = route53.RecordTarget.fromAlias(
+        new route53targets.CloudFrontTarget(distribution)
+      );
+
+      new route53.ARecord(this, 'ProductionAliasRecordA', {
+        zone: productionHostedZone,
+        target: cloudFrontTarget,
+      });
+
+      new route53.AaaaRecord(this, 'ProductionAliasRecordAAAA', {
+        zone: productionHostedZone,
+        target: cloudFrontTarget,
+      });
+
+      new cdk.CfnOutput(this, 'ProductionDomainUrl', {
+        value: `https://${PRODUCTION_DOMAIN_NAME}`,
+      });
+
+      new cdk.CfnOutput(this, 'ProductionDomainNameServers', {
+        value: cdk.Fn.join(', ', productionHostedZone.hostedZoneNameServers!),
+        description: `Add these as NS records for ${PRODUCTION_DOMAIN_NAME} under the advosight.com hosted zone to delegate this subdomain`,
+      });
+    }
 
     // Deploy website
     new s3deploy.BucketDeployment(this, 'WebsiteDeployment', {

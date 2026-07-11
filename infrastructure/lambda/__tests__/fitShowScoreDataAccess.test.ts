@@ -267,7 +267,8 @@ describe('FitShowScoreDataAccess', () => {
         catId: 'cat-123',
         participantName: 'John Doe',
         totalScore: 85,
-        isFinalized: false
+        isFinalized: false,
+        timestamp: '2024-01-01T00:00:00.000Z'
       };
 
       mockSend.mockResolvedValue({ Item: mockScore });
@@ -279,7 +280,8 @@ describe('FitShowScoreDataAccess', () => {
         catId: 'cat-123',
         participantName: 'John Doe',
         totalScore: 85,
-        isFinalized: false
+        isFinalized: false,
+        timestamp: '2024-01-01T00:00:00.000Z'
       });
 
       const call = mockSend.mock.calls[0][0];
@@ -495,8 +497,8 @@ describe('FitShowScoreDataAccess', () => {
       expect(result.lastModifiedBy).toBe('judge-123');
       expect(result.updatedAt).toBeDefined();
 
-      // Verify four database operations (get + 3 updates)
-      expect(mockSend).toHaveBeenCalledTimes(4);
+      // Verify five database operations (get + audit entry + main record + cat index + judge index)
+      expect(mockSend).toHaveBeenCalledTimes(5);
     });
 
     it('should throw error when score not found', async () => {

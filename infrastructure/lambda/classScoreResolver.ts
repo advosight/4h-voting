@@ -2,12 +2,13 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { ClassScoreDataAccess, CreateClassScoreInput, UpdateClassScoreInput } from './classScoreDataAccess';
-import { 
-  getUserContext, 
-  requireAnyRole, 
-  requireRole, 
-  getJudgeId, 
-  requireScoreAccess
+import {
+  getUserContext,
+  requireAnyRole,
+  requireRole,
+  getJudgeId,
+  requireScoreAccess,
+  requireScoringPermission
 } from './roleValidation';
 import { 
   handleError, 
@@ -96,7 +97,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
 
     return result;
 
-  } catch (error) {
+  } catch (error: any) {
     const duration = Date.now() - startTime;
     
     // Enhanced error logging with context
@@ -211,6 +212,7 @@ async function createClassScore(event: AppSyncResolverEvent<{ input: CreateClass
     // Validate permissions
     validateClassScoringPermissions(userContext?.role || '', 'create');
     requireAnyRole(userContext, ['judge', 'admin']);
+    requireScoringPermission(userContext, 'classScoring');
 
     const input = event.arguments.input;
     
@@ -243,7 +245,7 @@ async function createClassScore(event: AppSyncResolverEvent<{ input: CreateClass
 
     return await classScoreDataAccess.createClassScore(createInput);
     
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof ClassScoringValidationError || 
         error instanceof ClassScoringPermissionError) {
       throw error;
@@ -271,6 +273,7 @@ async function updateClassScore(event: AppSyncResolverEvent<{ id: string; input:
     // Validate permissions
     validateClassScoringPermissions(userContext?.role || '', 'update');
     requireAnyRole(userContext, ['judge', 'admin']);
+    requireScoringPermission(userContext, 'classScoring');
 
     const { id, input } = event.arguments;
     
@@ -304,15 +307,15 @@ async function updateClassScore(event: AppSyncResolverEvent<{ id: string; input:
                       userContext?.claims?.name ||
                       'Unknown User';
 
-    return await classScoreDataAccess.updateClassScore(id, input, modifiedBy);
-    
-  } catch (error) {
-    if (error instanceof ClassScoringValidationError || 
+    return await classScoreDataAccess.updateClassScore(id, input, modifiedBy, userContext?.role === 'admin');
+
+  } catch (error: any) {
+    if (error instanceof ClassScoringValidationError ||
         error instanceof ClassScoringPermissionError ||
         error instanceof ClassScoringNotFoundError) {
       throw error;
     }
-    
+
     // Handle optimistic locking conflicts
     if (error.name === 'ConditionalCheckFailedException') {
       throw new ClassScoringConflictError(
@@ -452,14 +455,18 @@ async function getClassScoresByJudge(event: AppSyncResolverEvent<{ judgeId: stri
   
   try {
     requireAnyRole(userContext, ['judge', 'admin']);
-    // Validate score access permissions
-    requireScoreAccess(userContext, event.arguments.judgeId);
   } catch (error) {
     console.log('User does not have required role for getClassScoresByJudge, returning empty connection');
     return { items: [] };
   }
 
   const { judgeId } = event.arguments;
+
+  // A judge requesting another judge's scores is a genuine access violation, not an
+  // "empty result" case — let it surface as a real permission error instead of masking
+  // it as {items: []}, which would make a broken access check indistinguishable from
+  // a judge who legitimately has no scores yet.
+  requireScoreAccess(userContext, judgeId);
 
   const scores = await classScoreDataAccess.getClassScoresByJudge(judgeId);
   return { items: scores };

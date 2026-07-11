@@ -1,11 +1,14 @@
 export type UserRole = 'admin' | 'judge' | 'participant';
 
+export type ScoringType = 'cageScoring' | 'classScoring' | 'fitShowScoring';
+
 export interface UserContext {
   userId: string;
   email: string;
   role: UserRole;
   judgeId?: string;
   claims: Record<string, any>;
+  permissions: Record<ScoringType, boolean>;
 }
 
 /**
@@ -33,20 +36,32 @@ export function getUserContext(event: any): UserContext | null {
     // Default role logic
     let role: UserRole = customRole || 'participant';
     
-    // Check Cognito groups first (highest priority)
+    // Cognito groups are the source of truth when present; fall back to custom:role otherwise
     if (cognitoGroups.includes('admin')) {
       role = 'admin';
     } else if (cognitoGroups.includes('judge')) {
       role = 'judge';
-    }
-    // Special handling for the default admin user
-    else if (email === '4h-leader@example.com') {
-      role = 'admin';
+    } else if (customRole) {
+      if (cognitoGroups.length > 0) {
+        console.warn(`Role mismatch for user ${userId}: custom:role=${customRole} but cognito:groups=${JSON.stringify(cognitoGroups)} contains neither 'admin' nor 'judge'`);
+      }
+      role = customRole;
     }
     // If user has judge ID but no role set, they're a judge
-    else if (judgeId && !customRole) {
+    else if (judgeId) {
       role = 'judge';
     }
+
+    // Legacy accounts created before per-scoring-type permissions existed have none of these
+    // claims set; default them to fully permitted so existing judges keep their access.
+    const hasAnyPermissionClaim = 'custom:cageScoring' in claims ||
+      'custom:classScoring' in claims ||
+      'custom:fitShowScoring' in claims;
+    const permissions: Record<ScoringType, boolean> = {
+      cageScoring: role === 'admin' || (hasAnyPermissionClaim ? claims['custom:cageScoring'] === 'true' : true),
+      classScoring: role === 'admin' || (hasAnyPermissionClaim ? claims['custom:classScoring'] === 'true' : true),
+      fitShowScoring: role === 'admin' || (hasAnyPermissionClaim ? claims['custom:fitShowScoring'] === 'true' : true),
+    };
 
     return {
       userId,
@@ -54,6 +69,7 @@ export function getUserContext(event: any): UserContext | null {
       role,
       judgeId,
       claims,
+      permissions,
     };
   } catch (error) {
     console.error('Error extracting user context:', error);
@@ -142,5 +158,17 @@ export function canAccessScore(userContext: UserContext | null, scoreJudgeId?: s
 export function requireScoreAccess(userContext: UserContext | null, scoreJudgeId?: string): void {
   if (!canAccessScore(userContext, scoreJudgeId)) {
     throw new Error('Access denied. You can only access your own scores.');
+  }
+}
+
+/**
+ * Validate that a judge has been granted the given scoring-type permission.
+ * Admins always pass; participants are rejected by the caller's role check upstream.
+ */
+export function requireScoringPermission(userContext: UserContext | null, scoringType: ScoringType): void {
+  if (!userContext || userContext.role === 'admin') return;
+
+  if (!userContext.permissions[scoringType]) {
+    throw new Error(`Access denied. You do not have ${scoringType} permission.`);
   }
 }

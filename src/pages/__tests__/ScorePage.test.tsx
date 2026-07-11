@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
 import ScorePage from '../ScorePage';
 
@@ -9,10 +8,10 @@ import ScorePage from '../ScorePage';
 const mockGraphql = jest.fn();
 
 jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(),
+  generateClient: () => ({
+    graphql: (...args: unknown[]) => mockGraphql(...args),
+  }),
 }));
-
-const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
 
 jest.mock('aws-amplify/auth', () => ({
   getCurrentUser: jest.fn(),
@@ -71,12 +70,6 @@ const mockScore = {
   timestamp: '2024-01-01T12:00:00Z',
   isFinalized: false,
 };
-
-// Set up the mock client before the module is imported
-const mockClient = {
-  graphql: mockGraphql,
-};
-mockGenerateClient.mockReturnValue(mockClient as any);
 
 describe('ScorePage', () => {
   beforeEach(() => {

@@ -17,6 +17,7 @@ describe('roleValidation', () => {
         sub: 'admin-123',
         'cognito:username': 'admin',
         email: '4h-leader@example.com',
+        'cognito:groups': ['admin'],
       },
     },
   };
@@ -58,6 +59,7 @@ describe('roleValidation', () => {
         role: 'admin',
         judgeId: undefined,
         claims: mockAdminEvent.identity.claims,
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true },
       });
     });
 
@@ -70,6 +72,7 @@ describe('roleValidation', () => {
         role: 'judge',
         judgeId: 'JUDGE_001',
         claims: mockJudgeEvent.identity.claims,
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true },
       });
     });
 
@@ -82,6 +85,7 @@ describe('roleValidation', () => {
         role: 'participant',
         judgeId: undefined,
         claims: mockParticipantEvent.identity.claims,
+        permissions: { cageScoring: true, classScoring: true, fitShowScoring: true },
       });
     });
 

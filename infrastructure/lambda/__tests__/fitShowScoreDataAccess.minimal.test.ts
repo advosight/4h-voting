@@ -174,7 +174,8 @@ describe('FitShowScoreDataAccess - Core Functionality', () => {
         catId: 'cat-123',
         participantName: 'John Doe',
         totalScore: 85,
-        createdAt: '2023-01-01T00:00:00.000Z'
+        createdAt: '2023-01-01T00:00:00.000Z',
+        timestamp: '2023-01-01T00:00:00.000Z'
       });
 
       expect(ddbMock.commandCalls(GetCommand)).toHaveLength(1);

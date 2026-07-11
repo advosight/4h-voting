@@ -5,12 +5,12 @@
     "infrastructure": "bin/infrastructure.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmit",
     "watch": "tsc -w",
-    "test": "jest",
-    "test:integration": "jest --testPathPattern=\"integration.test\"",
-    "test:scoring": "jest --testPathPattern=\"(scoring|score)\"",
-    "test:coverage": "jest --testPathPattern=\"(scoring|score)\" --coverage",
+    "test": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest",
+    "test:integration": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"integration.test\"",
+    "test:scoring": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"(scoring|score)\"",
+    "test:coverage": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"(scoring|score)\" --coverage",
     "cdk": "cdk",
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
@@ -18,24 +18,23 @@
     "migrate:fitshow:sample": "node scripts/migrate-fit-show-scoring.js --create-sample"
   },
   "devDependencies": {
-    "@types/jest": "^29.4.0",
-    "@types/node": "^20.0.0",
-    "aws-cdk": "^2.1021.0",
-    "aws-sdk-client-mock": "^4.0.1",
-    "jest": "^29.5.0",
-    "ts-jest": "^29.0.5",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.1",
+    "aws-cdk": "^2.1130.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "cross-env": "^10.1.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.1",
-    "typescript": "~5.3.0"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.844.0",
-    "@aws-sdk/client-dynamodb": "^3.844.0",
-    "@aws-sdk/client-lambda": "^3.844.0",
-    "@aws-sdk/lib-dynamodb": "^3.844.0",
-    "@types/node-fetch": "^2.6.11",
-    "aws-cdk-lib": "^2.206.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1084.0",
+    "@aws-sdk/client-dynamodb": "^3.1084.0",
+    "@aws-sdk/client-lambda": "^3.1084.0",
+    "@aws-sdk/lib-dynamodb": "^3.1084.0",
+    "aws-cdk-lib": "^2.261.0",
     "aws-lambda": "^1.0.7",
-    "constructs": "^10.0.0",
-    "node-fetch": "^2.7.0"
+    "constructs": "^10.6.0"
   }
 }

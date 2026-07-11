@@ -3,7 +3,6 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { randomUUID } from 'crypto';
-import fetch from 'node-fetch';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -56,7 +55,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }),
     });
 
-    const votingStatusData = await votingStatusResponse.json();
+    const votingStatusData = await votingStatusResponse.json() as any;
     console.log('Voting status response:', JSON.stringify(votingStatusData, null, 2));
     // Explicitly check if isActive is false (not just falsy)
     const isVotingActive = votingStatusData?.data?.getVotingStatus?.isActive === true;
@@ -114,8 +113,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    const newVotes = (result.Item?.votes || 0) + 1;
-    console.log(`Updating votes from ${result.Item?.votes || 0} to ${newVotes}`);
+    console.log(`Recording a vote for cat: ${catId} (current votes: ${result.Item?.votes || 0})`);
 
     // Store vote with device info in DynamoDB
     const voteId = randomUUID();
@@ -131,7 +129,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
     }));
 
-    // Always use GraphQL mutation for vote updates
+    // Always use GraphQL mutation for vote updates. `votes: 1` here means "add one
+    // vote" — the resolver performs an atomic increment rather than a set, so this
+    // stays correct even when two votes for the same cat race each other.
     const mutation = `
       mutation UpdateVotes($id: ID!, $votes: Int!) {
         updateVotes(id: $id, votes: $votes) {
@@ -143,7 +143,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     console.log('Sending GraphQL mutation:', {
       endpoint: process.env.GRAPHQL_ENDPOINT,
-      variables: { id: catId, votes: newVotes }
+      variables: { id: catId, votes: 1 }
     });
 
     const response = await fetch(process.env.GRAPHQL_ENDPOINT, {
@@ -156,12 +156,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         query: mutation,
         variables: {
           id: catId,
-          votes: newVotes,
+          votes: 1,
         },
       }),
     });
 
-    const responseData = await response.json();
+    const responseData = await response.json() as any;
     console.log('GraphQL response:', JSON.stringify(responseData, null, 2));
 
     if (!response.ok) {
@@ -443,7 +443,7 @@ async function handleEmailSubmission(event: APIGatewayProxyEvent): Promise<APIGa
       }),
     });
 
-    const responseData = await response.json();
+    const responseData = await response.json() as any;
     console.log('Email GraphQL response:', JSON.stringify(responseData, null, 2));
 
     if (!response.ok) {
