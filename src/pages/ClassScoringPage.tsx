@@ -407,11 +407,7 @@ function ClassScoringPage(): JSX.Element {
               </TableBody>
             </Table>
           </TableContainer>
-        ) : (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-          </Box>
-        )}
+        ) : null}
 
         {filteredCats.length === 0 && !loading && !catsLoading && (
           <Box sx={{ textAlign: 'center', py: 4 }}>
