@@ -33,10 +33,10 @@ jobs:
         # enforces it strictly and fails without this flag.
         run: npm ci --legacy-peer-deps
 
-      - name: Typecheck frontend
-        run: npx tsc --noEmit -p .
-
       - name: Build frontend
+        # react-scripts' fork-ts-checker-webpack-plugin typechecks src/ as part of this
+        # build and fails it on real type errors -- no separate frontend typecheck step
+        # needed. (The root tsconfig.json only covers infrastructure/**, not src/.)
         run: npm run build
 
       - name: Install infrastructure dependencies
