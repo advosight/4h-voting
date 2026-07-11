@@ -7,6 +7,16 @@ const GITHUB_REPO = 'advosight/4h-voting';
 // Default CDK bootstrap qualifier (from `cdk bootstrap`, BootstrapVersion output).
 const CDK_BOOTSTRAP_QUALIFIER = 'hnb659fds';
 
+export interface GitHubOidcStackProps extends cdk.StackProps {
+  /**
+   * ARN of a GitHub OIDC provider that already exists in this account (e.g. set
+   * up by another project). IAM only allows one provider per URL per account,
+   * so pass this instead of letting the stack create a new one whenever one is
+   * already present -- otherwise deployment fails with "provider already exists".
+   */
+  existingGitHubOidcProviderArn?: string;
+}
+
 /**
  * One-time infrastructure for GitHub Actions to deploy this app via OIDC federation
  * instead of long-lived access keys. Deploy this stack manually (`cdk deploy
@@ -18,13 +28,17 @@ const CDK_BOOTSTRAP_QUALIFIER = 'hnb659fds';
  * CDK's CLI handles switching to those roles during `cdk deploy`.
  */
 export class GitHubOidcStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: GitHubOidcStackProps) {
     super(scope, id, props);
 
-    const provider = new iam.OpenIdConnectProvider(this, 'GitHubOidcProvider', {
-      url: 'https://token.actions.githubusercontent.com',
-      clientIds: [GITHUB_OIDC_AUDIENCE],
-    });
+    const provider = props?.existingGitHubOidcProviderArn
+      ? iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
+          this, 'GitHubOidcProvider', props.existingGitHubOidcProviderArn
+        )
+      : new iam.OpenIdConnectProvider(this, 'GitHubOidcProvider', {
+          url: 'https://token.actions.githubusercontent.com',
+          clientIds: [GITHUB_OIDC_AUDIENCE],
+        });
 
     const deployRole = new iam.Role(this, 'GitHubActionsDeployRole', {
       roleName: 'github-actions-4h-voting-deploy',

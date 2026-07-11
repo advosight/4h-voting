@@ -23,4 +23,13 @@ new CatVotingStack(app, 'CatVotingStack', {
 
 // One-time CI/CD IAM setup for GitHub Actions OIDC deploys. Not gated by
 // `stage` -- deploy it once manually, independent of app deployments.
-new GitHubOidcStack(app, 'GitHubOidcStack', { env });
+//
+// The production account (273809175524) already has a GitHub OIDC provider
+// set up by another project (acrafty-phoenix-blog); IAM only allows one
+// provider per URL per account, so this account must import it rather than
+// create a new one.
+const existingGitHubOidcProviderArn = env.account === '273809175524'
+  ? 'arn:aws:iam::273809175524:oidc-provider/token.actions.githubusercontent.com'
+  : undefined;
+
+new GitHubOidcStack(app, 'GitHubOidcStack', { env, existingGitHubOidcProviderArn });
