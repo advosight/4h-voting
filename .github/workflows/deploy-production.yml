@@ -39,6 +39,18 @@ jobs:
         # typecheck` to see it) that was never a hard gate; not enforcing it here
         # preserves that. (tsconfig.app.json covers src/ for the IDE and vitest; the
         # root tsconfig.json only covers infrastructure/**.)
+        #
+        # The production environment's vars are still named REACT_APP_* (from the
+        # pre-Vite setup); map them to the VITE_* names the app now reads via
+        # import.meta.env. Nothing previously wired these into the build at all, so
+        # production has been silently running on the hardcoded fallback values in
+        # src/index.tsx until now.
+        env:
+          VITE_USER_POOL_ID: ${{ vars.REACT_APP_USER_POOL_ID }}
+          VITE_USER_POOL_CLIENT_ID: ${{ vars.REACT_APP_USER_POOL_CLIENT_ID }}
+          VITE_REGION: ${{ vars.REACT_APP_REGION }}
+          VITE_GRAPHQL_ENDPOINT: ${{ vars.REACT_APP_GRAPHQL_ENDPOINT }}
+          VITE_VOTING_API_ENDPOINT: ${{ vars.REACT_APP_VOTING_API_ENDPOINT }}
         run: npm run build
 
       - name: Install infrastructure dependencies
