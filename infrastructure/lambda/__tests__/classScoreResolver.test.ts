@@ -496,6 +496,30 @@ describe('classScoreResolver', () => {
     });
   });
 
+  describe('listAllClassScores', () => {
+    const mockEvent: AppSyncResolverEvent<{}> = {
+      info: { fieldName: 'listAllClassScores' },
+      arguments: {}
+    } as any;
+
+    it('should require judge or admin role', async () => {
+      mockDataAccess.listAllClassScores.mockResolvedValue([]);
+
+      await handler(mockEvent);
+
+      expect(mockRequireAnyRole).toHaveBeenCalledWith(expect.any(Object), ['judge', 'admin']);
+    });
+
+    it('should list all class scores for the leaderboard', async () => {
+      const scores = [{ id: 'score-123' }, { id: 'score-456' }];
+      mockDataAccess.listAllClassScores.mockResolvedValue(scores);
+
+      const result = await handler(mockEvent);
+
+      expect(result).toEqual({ items: scores });
+    });
+  });
+
   describe('unknown field', () => {
     it('should throw error for unknown field', async () => {
       const mockEvent: AppSyncResolverEvent<any> = {

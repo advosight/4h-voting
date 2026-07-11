@@ -353,10 +353,20 @@ describe('Score Resolver', () => {
       expect(result).toEqual({ items: allScores });
     });
 
-    it('should reject listing all scores for non-admin', async () => {
-      const event = createMockEvent('listAllScores', {});
+    it('should list all scores for judge', async () => {
+      const allScores = [mockScore, { ...mockScore, id: 'score-456' }];
+      mockScoreDataAccess.listAllScores.mockResolvedValue(allScores);
 
-      await expect(handler(event)).rejects.toThrow('Forbidden: Admin role required');
+      const event = createMockEvent('listAllScores', {}, 'judge');
+      const result = await handler(event);
+
+      expect(result).toEqual({ items: allScores });
+    });
+
+    it('should reject listing all scores for participant', async () => {
+      const event = createMockEvent('listAllScores', {}, 'participant');
+
+      await expect(handler(event)).rejects.toThrow('Forbidden: Judge role required');
       expect(mockScoreDataAccess.listAllScores).not.toHaveBeenCalled();
     });
   });

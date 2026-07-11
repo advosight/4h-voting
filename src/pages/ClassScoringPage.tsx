@@ -64,9 +64,14 @@ const listAllClassScores = `
         catId
         beautyScore
         personalityScore
-        healthScore
+        coatCleanGroomed
+        teethGumsHealthy
+        eyesNoseClear
+        earsCleanMiteFree
+        toenailsClipped
+        fleaIssues
         totalScore
-        ribbon
+        ribbonEligibility
         isFinalized
         judgeId
         judgeName
@@ -77,6 +82,14 @@ const listAllClassScores = `
     }
   }
 `;
+
+const isHealthyClassScore = (classScore: any): boolean =>
+  classScore.coatCleanGroomed &&
+  classScore.teethGumsHealthy &&
+  classScore.eyesNoseClear &&
+  classScore.earsCleanMiteFree &&
+  classScore.toenailsClipped &&
+  !classScore.fleaIssues;
 
 function ClassScoringPage(): JSX.Element {
   const navigate = useNavigate();
@@ -337,10 +350,10 @@ function ClassScoringPage(): JSX.Element {
                       </TableCell>
                       <TableCell align="center">
                         {classScore ? (
-                          <Chip 
-                            label={classScore.healthScore} 
-                            size="small" 
-                            color={classScore.healthScore >= 80 ? "success" : classScore.healthScore >= 60 ? "warning" : "default"}
+                          <Chip
+                            label={isHealthyClassScore(classScore) ? 'Healthy' : 'Issues Found'}
+                            size="small"
+                            color={isHealthyClassScore(classScore) ? 'success' : 'warning'}
                           />
                         ) : (
                           <Typography variant="body2" color="text.secondary">-</Typography>
@@ -359,14 +372,14 @@ function ClassScoringPage(): JSX.Element {
                         )}
                       </TableCell>
                       <TableCell align="center">
-                        {classScore?.ribbon ? (
-                          <Chip 
-                            label={classScore.ribbon} 
-                            size="small" 
+                        {classScore?.ribbonEligibility ? (
+                          <Chip
+                            label={classScore.ribbonEligibility}
+                            size="small"
                             color={
-                              classScore.ribbon === 'Blue' ? 'primary' :
-                              classScore.ribbon === 'Red' ? 'error' :
-                              classScore.ribbon === 'White' ? 'default' : 'secondary'
+                              classScore.ribbonEligibility === 'Blue' ? 'primary' :
+                              classScore.ribbonEligibility === 'Red' ? 'error' :
+                              classScore.ribbonEligibility === 'White' ? 'default' : 'secondary'
                             }
                             sx={{ fontWeight: 'bold' }}
                           />

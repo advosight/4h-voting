@@ -669,7 +669,11 @@ describe('Scoring Workflow Backend Integration Tests', () => {
       );
     });
 
-    it('should enforce admin role for comprehensive reports', async () => {
+    it('should allow judges to list all scores for the leaderboard', async () => {
+      ddbMock.on(ScanCommand).resolves({
+        Items: [{ ...mockScore1, scoreId: 'score-1' }],
+      });
+
       const judgeEvent = {
         info: {
           fieldName: 'listAllScores',
@@ -683,8 +687,25 @@ describe('Scoring Workflow Backend Integration Tests', () => {
         },
       };
 
-      await expect(scoreResolverHandler(judgeEvent as any)).rejects.toThrow(
-        'Forbidden: Admin role required'
+      await expect(scoreResolverHandler(judgeEvent as any)).resolves.toBeDefined();
+    });
+
+    it('should enforce judge or admin role for comprehensive reports', async () => {
+      const participantEvent = {
+        info: {
+          fieldName: 'listAllScores',
+        },
+        arguments: {},
+        identity: {
+          claims: {
+          sub: 'participant-1',
+          'custom:role': 'participant',
+          }
+        },
+      };
+
+      await expect(scoreResolverHandler(participantEvent as any)).rejects.toThrow(
+        'Forbidden: Judge role required'
       );
     });
 

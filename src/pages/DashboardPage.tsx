@@ -123,6 +123,7 @@ function DashboardPage(): JSX.Element {
 
   const { userInfo } = useUserRole();
   const isAdmin = userInfo?.role === 'admin';
+  const isJudgeOrAdmin = isAdmin || userInfo?.role === 'judge';
   const canScore = isAdmin || !!(
     userInfo?.permissions?.cageScoring ||
     userInfo?.permissions?.classScoring ||
@@ -383,15 +384,17 @@ function DashboardPage(): JSX.Element {
               Reports
             </Button>
           )}
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => window.location.href = '/leaderboard'}
-            size="small"
-            sx={{ minHeight: 44 }}
-          >
-            Leaderboard
-          </Button>
+          {isJudgeOrAdmin && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => window.location.href = '/leaderboard'}
+              size="small"
+              sx={{ minHeight: 44 }}
+            >
+              Leaderboard
+            </Button>
+          )}
         </Box>
       </CardContent>
     </Card>

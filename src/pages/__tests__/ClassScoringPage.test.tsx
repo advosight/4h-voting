@@ -102,9 +102,14 @@ describe('ClassScoringPage', () => {
                   catId: 'cat1',
                   beautyScore: 85,
                   personalityScore: 90,
-                  healthScore: 88,
+                  coatCleanGroomed: true,
+                  teethGumsHealthy: true,
+                  eyesNoseClear: true,
+                  earsCleanMiteFree: true,
+                  toenailsClipped: true,
+                  fleaIssues: false,
                   totalScore: 263,
-                  ribbon: 'Blue',
+                  ribbonEligibility: 'Blue',
                   isFinalized: true
                 }
               ],
@@ -253,7 +258,7 @@ describe('ClassScoringPage', () => {
       // Check that scores are displayed for Bella
       expect(screen.getByText('85')).toBeInTheDocument(); // Beauty score
       expect(screen.getByText('90')).toBeInTheDocument(); // Personality score
-      expect(screen.getByText('88')).toBeInTheDocument(); // Health score
+      expect(screen.getByText('Healthy')).toBeInTheDocument(); // Health status
       expect(screen.getByText('263')).toBeInTheDocument(); // Total score
       expect(screen.getByText('Blue')).toBeInTheDocument(); // Ribbon
     });

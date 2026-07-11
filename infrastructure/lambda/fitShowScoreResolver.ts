@@ -5,7 +5,6 @@ import { FitShowScoreDataAccess, CreateFitShowScoreInput, UpdateFitShowScoreInpu
 import {
   getUserContext,
   requireAnyRole,
-  requireRole,
   getJudgeId,
   requireScoreAccess,
   requireScoringPermission,
@@ -246,13 +245,16 @@ async function getFitShowScore(event: AppSyncResolverEvent<{ id: string }>) {
     return null;
   }
 
-  // Check permissions: judges can see their own scores, admins can see all, participants can see finalized scores
-  if (userContext?.role === 'participant') {
+  // Check permissions: judges can see their own scores plus any finalized score,
+  // admins can see all, participants can only see finalized scores
+  if (userContext?.role === 'judge') {
+    if (!score.isFinalized) {
+      requireScoreAccess(userContext, score.judgeId);
+    }
+  } else if (userContext?.role === 'participant') {
     if (!score.isFinalized) {
       throw new PermissionError('Fit and show score is not yet finalized and cannot be viewed by participants');
     }
-  } else if (userContext?.role === 'judge') {
-    requireScoreAccess(userContext, score.judgeId);
   }
   // Admin can see all scores
 
@@ -275,10 +277,10 @@ async function getFitShowScoresByCat(event: AppSyncResolverEvent<{ catId: string
     // Admins can see all scores
     return { items: scores };
   } else if (userContext?.role === 'judge') {
-    // Judges can only see their own scores
+    // Judges can see their own scores (finalized or not) plus any finalized score
     const currentJudgeId = getJudgeId(userContext);
-    const filteredScores = scores.filter(score => score.judgeId === currentJudgeId);
-    return { items: filteredScores };
+    const visibleScores = scores.filter(score => score.isFinalized || score.judgeId === currentJudgeId);
+    return { items: visibleScores };
   } else {
     // Participants can only see finalized scores
     const finalizedScores = scores.filter(score => score.isFinalized);
@@ -306,7 +308,7 @@ async function getFitShowScoresByCage(event: AppSyncResolverEvent<{ cageNumber: 
  */
 async function listAllFitShowScores(event: AppSyncResolverEvent<{}>) {
   const userContext = getUserContext(event);
-  requireRole(userContext, 'admin'); // Only admins can list all scores
+  requireAnyRole(userContext, ['judge', 'admin']); // Judges and admins can list all scores for the leaderboard
 
   const scores = await fitShowScoreDataAccess.listFitShowScores();
   return { items: scores };
@@ -317,7 +319,7 @@ async function listAllFitShowScores(event: AppSyncResolverEvent<{}>) {
  */
 async function listFitShowScores(event: AppSyncResolverEvent<{}>) {
   const userContext = getUserContext(event);
-  requireRole(userContext, 'admin'); // Only admins can list all scores
+  requireAnyRole(userContext, ['judge', 'admin']); // Judges and admins can list all scores for the leaderboard
 
   const scores = await fitShowScoreDataAccess.listFitShowScores();
   return { items: scores };

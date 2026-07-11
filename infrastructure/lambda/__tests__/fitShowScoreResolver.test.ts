@@ -554,10 +554,20 @@ describe('Fit and Show Score Resolver', () => {
       expect(result).toEqual({ items: scores });
     });
 
-    it('should reject listing all scores for non-admin', async () => {
-      const event = createMockEvent('listAllFitShowScores', {}, 'judge');
+    it('should list all fit and show scores for judge', async () => {
+      const scores = [mockFitShowScore];
+      mockFitShowScoreDataAccess.listFitShowScores.mockResolvedValue(scores);
 
-      await expect(handler(event)).rejects.toThrow('Forbidden: Admin role required');
+      const event = createMockEvent('listAllFitShowScores', {}, 'judge');
+      const result = await handler(event);
+
+      expect(result).toEqual({ items: scores });
+    });
+
+    it('should reject listing all scores for participant', async () => {
+      const event = createMockEvent('listAllFitShowScores', {}, 'participant');
+
+      await expect(handler(event)).rejects.toThrow('Forbidden: Judge role required');
       expect(mockFitShowScoreDataAccess.listFitShowScores).not.toHaveBeenCalled();
     });
   });
