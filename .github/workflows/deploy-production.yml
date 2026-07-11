@@ -28,7 +28,10 @@ jobs:
           cache: npm
 
       - name: Install frontend dependencies
-        run: npm ci
+        # --legacy-peer-deps: react-scripts@5.0.1 peer-requires typescript@"^3.2.1 || ^4",
+        # but this project uses typescript@^6. npm install tolerates this locally; npm ci
+        # enforces it strictly and fails without this flag.
+        run: npm ci --legacy-peer-deps
 
       - name: Typecheck frontend
         run: npx tsc --noEmit -p .
@@ -38,7 +41,7 @@ jobs:
 
       - name: Install infrastructure dependencies
         working-directory: infrastructure
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Typecheck infrastructure
         working-directory: infrastructure
