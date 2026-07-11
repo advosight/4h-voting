@@ -42,14 +42,19 @@ export class GitHubOidcStack extends cdk.Stack {
 
     const deployRole = new iam.Role(this, 'GitHubActionsDeployRole', {
       roleName: 'github-actions-4h-voting-deploy',
-      description: 'Assumed by GitHub Actions (main branch only) to deploy the 4H Cat Voting app via CDK',
+      description: 'Assumed by GitHub Actions (production environment only) to deploy the 4H Cat Voting app via CDK',
       maxSessionDuration: cdk.Duration.hours(1),
       assumedBy: new iam.OpenIdConnectPrincipal(provider, {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': GITHUB_OIDC_AUDIENCE,
         },
         StringLike: {
-          'token.actions.githubusercontent.com:sub': `repo:${GITHUB_REPO}:ref:refs/heads/main`,
+          // The workflow job sets `environment: production`, which makes GitHub
+          // issue the OIDC token with an environment-scoped sub claim
+          // (repo:{repo}:environment:{name}) instead of a ref-scoped one
+          // (repo:{repo}:ref:refs/heads/{branch}) -- match that actual format,
+          // not the branch-based one this used before.
+          'token.actions.githubusercontent.com:sub': `repo:${GITHUB_REPO}:environment:production`,
         },
       }),
     });
