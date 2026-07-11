@@ -24,7 +24,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Node 20 rejects --localstorage-file in NODE_OPTIONS (used by every
+          # npm script in this repo, e.g. `build`/`test`); Node 22+ allows it.
+          node-version: '22'
           cache: npm
 
       - name: Install frontend dependencies
