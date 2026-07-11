@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "watch": "tsc -w",
+    "pretest": "cd .. && npm run build",
     "test": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest",
     "test:integration": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"integration.test\"",
     "test:scoring": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"(scoring|score)\"",
