@@ -3,8 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ConflictResolutionDialog } from '../ConflictResolutionDialog';
 
 // Mock the error handling utilities
-jest.mock('../../utils/errorHandling', () => ({
-  parseError: jest.fn((error) => ({
+vi.mock('../../utils/errorHandling', () => ({
+  parseError: vi.fn((error) => ({
     error: {
       type: error.type || 'CONFLICT',
       message: error.message || 'Conflict occurred',
@@ -14,12 +14,12 @@ jest.mock('../../utils/errorHandling', () => ({
   }))
 }));
 
-const mockOnRefresh = jest.fn();
-const mockOnCancel = jest.fn();
+const mockOnRefresh = vi.fn();
+const mockOnCancel = vi.fn();
 
 describe('ConflictResolutionDialog', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders conflict dialog with default message', () => {
@@ -115,7 +115,7 @@ describe('ConflictResolutionDialog', () => {
 
   it('shows loading state during refresh', async () => {
     const error = { type: 'CONFLICT' };
-    const slowRefresh = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const slowRefresh = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
 
     render(
       <ConflictResolutionDialog
@@ -136,7 +136,7 @@ describe('ConflictResolutionDialog', () => {
 
   it('disables buttons during refresh', async () => {
     const error = { type: 'CONFLICT' };
-    const slowRefresh = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const slowRefresh = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
 
     render(
       <ConflictResolutionDialog

@@ -5,52 +5,65 @@ import { ThemeProvider } from '@mui/material/styles';
 import { generateClient } from 'aws-amplify/api';
 import ScoringDashboardPage from '../ScoringDashboardPage';
 import { theme } from '../../theme/theme';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
-const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+vi.mock('aws-amplify/api');
+const mockGenerateClient = generateClient as MockedFunction<typeof generateClient>;
 
 // Mock components that might cause issues in tests
-jest.mock('../../components/ScoreLeaderboard', () => {
-  return function MockScoreLeaderboard() {
+vi.mock('../../components/ScoreLeaderboard', () => {
+  return {
+    default: function MockScoreLeaderboard() {
     return <div data-testid="score-leaderboard">Score Leaderboard</div>;
+    }
   };
 });
 
-jest.mock('../../components/ClassScoreLeaderboard', () => {
-  return function MockClassScoreLeaderboard() {
+vi.mock('../../components/ClassScoreLeaderboard', () => {
+  return {
+    default: function MockClassScoreLeaderboard() {
     return <div data-testid="class-score-leaderboard">Class Score Leaderboard</div>;
+    }
   };
 });
 
-jest.mock('../../components/FitShowScoreLeaderboard', () => {
-  return function MockFitShowScoreLeaderboard() {
+vi.mock('../../components/FitShowScoreLeaderboard', () => {
+  return {
+    default: function MockFitShowScoreLeaderboard() {
     return <div data-testid="fit-show-score-leaderboard">Fit Show Score Leaderboard</div>;
+    }
   };
 });
 
-jest.mock('../../components/ScoreNotifications', () => {
-  return function MockScoreNotifications() {
+vi.mock('../../components/ScoreNotifications', () => {
+  return {
+    default: function MockScoreNotifications() {
     return <div data-testid="score-notifications">Score Notifications</div>;
+    }
   };
 });
 
-jest.mock('../../components/ClassScoreNotifications', () => {
-  return function MockClassScoreNotifications() {
+vi.mock('../../components/ClassScoreNotifications', () => {
+  return {
+    default: function MockClassScoreNotifications() {
     return <div data-testid="class-score-notifications">Class Score Notifications</div>;
+    }
   };
 });
 
-jest.mock('../../components/FitShowScoreNotifications', () => {
-  return function MockFitShowScoreNotifications() {
+vi.mock('../../components/FitShowScoreNotifications', () => {
+  return {
+    default: function MockFitShowScoreNotifications() {
     return <div data-testid="fit-show-score-notifications">Fit Show Score Notifications</div>;
+    }
   };
 });
 
 // Mock react-router-dom
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
 }));
 
@@ -87,10 +100,10 @@ const renderScoringDashboardPage = () => {
 
 describe('ScoringDashboardPage - Fit and Show Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     const mockClient = {
-      graphql: jest.fn().mockResolvedValue({
+      graphql: vi.fn().mockResolvedValue({
         data: {
           listCats: {
             items: mockCats
@@ -123,7 +136,7 @@ describe('ScoringDashboardPage - Fit and Show Integration', () => {
 
     it('should scroll to fit and show section when card button is clicked', async () => {
       // Mock scrollIntoView
-      const mockScrollIntoView = jest.fn();
+      const mockScrollIntoView = vi.fn();
       Element.prototype.scrollIntoView = mockScrollIntoView;
 
       renderScoringDashboardPage();
@@ -265,7 +278,7 @@ describe('ScoringDashboardPage - Fit and Show Integration', () => {
   describe('Error Handling', () => {
     it('should handle API errors gracefully', async () => {
       const mockClient = {
-        graphql: jest.fn().mockRejectedValue(new Error('API Error'))
+        graphql: vi.fn().mockRejectedValue(new Error('API Error'))
       };
       mockGenerateClient.mockReturnValue(mockClient as any);
 

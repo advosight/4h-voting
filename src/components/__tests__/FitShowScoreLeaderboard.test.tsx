@@ -2,16 +2,17 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { API } from 'aws-amplify';
 import FitShowScoreLeaderboard from '../FitShowScoreLeaderboard';
+import type { Mocked, Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify', () => ({
+vi.mock('aws-amplify', () => ({
   API: {
-    graphql: jest.fn(),
+    graphql: vi.fn(),
   },
-  graphqlOperation: jest.fn((query) => query),
+  graphqlOperation: vi.fn((query) => query),
 }));
 
-const mockAPI = API as jest.Mocked<typeof API>;
+const mockAPI = API as Mocked<typeof API>;
 
 const mockFitShowScores = [
   {
@@ -82,7 +83,7 @@ const mockFitShowScores = [
 
 describe('FitShowScoreLeaderboard', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders loading state initially', () => {

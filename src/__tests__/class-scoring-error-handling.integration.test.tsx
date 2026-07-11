@@ -8,33 +8,35 @@ import { useClassScoringErrorHandling } from '../hooks/useClassScoringErrorHandl
 import {
   ClassScoringValidationError,
   validateClassScoringInput,
+  validateHealthRequirements,
   retryClassScoringOperation,
   withOptimisticLockRetry
 } from '../utils/classErrorHandling';
+import type { Mock } from 'vitest';
 
 // Mock the error handling utilities
-jest.mock('../utils/classErrorHandling', () => ({
-  ...jest.requireActual('../utils/classErrorHandling'),
-  logClassScoringError: jest.fn(),
-  retryClassScoringOperation: jest.fn(),
-  withOptimisticLockRetry: jest.fn(),
+vi.mock('../utils/classErrorHandling', async () => ({
+  ...(await vi.importActual('../utils/classErrorHandling')),
+  logClassScoringError: vi.fn(),
+  retryClassScoringOperation: vi.fn(),
+  withOptimisticLockRetry: vi.fn(),
   classScoringNetworkMonitor: {
-    addListener: jest.fn(() => jest.fn()),
-    getIsOnline: jest.fn(() => true),
-    waitForConnection: jest.fn(() => Promise.resolve(true))
+    addListener: vi.fn(() => vi.fn()),
+    getIsOnline: vi.fn(() => true),
+    waitForConnection: vi.fn(() => Promise.resolve(true))
   }
 }));
 
 // Mock the base error handling
-jest.mock('../utils/errorHandling', () => ({
-  parseError: jest.fn((error) => ({
+vi.mock('../utils/errorHandling', () => ({
+  parseError: vi.fn((error) => ({
     error: {
       type: error.type || 'SYSTEM_ERROR',
       message: error.message || 'Test error'
     }
   })),
-  isRetryableError: jest.fn(() => true),
-  logError: jest.fn()
+  isRetryableError: vi.fn(() => true),
+  logError: vi.fn()
 }));
 
 // Test component that uses the error handling hook
@@ -99,7 +101,7 @@ const TestClassScoringComponent: React.FC<{
 
 describe('Class Scoring Error Handling Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Error Boundary Integration', () => {
@@ -137,7 +139,7 @@ describe('Class Scoring Error Handling Integration', () => {
   describe('Network Error Handling Integration', () => {
     it('should display network error with retry options', () => {
       const networkError = { type: 'NETWORK_ERROR', message: 'Connection failed' };
-      const onRetry = jest.fn().mockResolvedValue(undefined);
+      const onRetry = vi.fn().mockResolvedValue(undefined);
 
       render(
         <ClassScoringNetworkErrorHandler
@@ -165,7 +167,7 @@ describe('Class Scoring Error Handling Integration', () => {
       });
 
       const networkError = { type: 'NETWORK_ERROR', message: 'Offline' };
-      const onRetry = jest.fn();
+      const onRetry = vi.fn();
 
       render(
         <ClassScoringNetworkErrorHandler
@@ -257,7 +259,7 @@ describe('Class Scoring Error Handling Integration', () => {
         fleaIssues: false
       };
 
-      const onResolve = jest.fn();
+      const onResolve = vi.fn();
 
       render(
         <ClassScoringConflictResolutionDialog
@@ -326,7 +328,7 @@ describe('Class Scoring Error Handling Integration', () => {
     });
 
     it('should handle retry operations', async () => {
-      (retryClassScoringOperation as jest.Mock).mockResolvedValue(undefined);
+      (retryClassScoringOperation as Mock).mockResolvedValue(undefined);
 
       render(<TestClassScoringComponent shouldThrowError={true} errorType="NETWORK_ERROR" />);
 
@@ -364,7 +366,7 @@ describe('Class Scoring Error Handling Integration', () => {
     });
 
     it('should call custom error handlers', async () => {
-      const onError = jest.fn();
+      const onError = vi.fn();
       render(<TestClassScoringComponent shouldThrowError={true} onError={onError} />);
 
       fireEvent.click(screen.getByTestId('test-operation'));
@@ -397,7 +399,6 @@ describe('Class Scoring Error Handling Integration', () => {
         // Missing other required health fields
       };
 
-      const { validateHealthRequirements } = require('../utils/classErrorHandling');
       const errors = validateHealthRequirements(incompleteHealthInput);
 
       expect(errors).toHaveLength(1);
@@ -410,7 +411,7 @@ describe('Class Scoring Error Handling Integration', () => {
     it('should handle complete error workflow with retry and recovery', async () => {
       // Mock initial failure then success
       let callCount = 0;
-      (retryClassScoringOperation as jest.Mock).mockImplementation(async (operation) => {
+      (retryClassScoringOperation as Mock).mockImplementation(async (operation) => {
         callCount++;
         if (callCount === 1) {
           throw new Error('Network failure');
@@ -435,7 +436,7 @@ describe('Class Scoring Error Handling Integration', () => {
         message: 'Score modified by another judge'
       };
 
-      (withOptimisticLockRetry as jest.Mock).mockRejectedValue(conflictError);
+      (withOptimisticLockRetry as Mock).mockRejectedValue(conflictError);
 
       render(<TestClassScoringComponent shouldThrowError={true} errorType="CONFLICT" />);
 

@@ -3,19 +3,20 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { generateClient } from 'aws-amplify/api';
 import FitShowScoreNotifications from '../FitShowScoreNotifications';
 import { FitShowScore } from '../../types/scoring';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 
 const mockClient = {
-  graphql: jest.fn()
+  graphql: vi.fn()
 };
 
-const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+const mockGenerateClient = generateClient as MockedFunction<typeof generateClient>;
 
 describe('FitShowScoreNotifications', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGenerateClient.mockReturnValue(mockClient as any);
   });
 
@@ -66,8 +67,8 @@ describe('FitShowScoreNotifications', () => {
 
   it('should render nothing when no notifications', () => {
     const mockSubscription = {
-      subscribe: jest.fn().mockReturnValue({
-        unsubscribe: jest.fn()
+      subscribe: vi.fn().mockReturnValue({
+        unsubscribe: vi.fn()
       })
     };
 
@@ -79,8 +80,8 @@ describe('FitShowScoreNotifications', () => {
 
   it('should setup subscriptions on mount', () => {
     const mockSubscription = {
-      subscribe: jest.fn().mockReturnValue({
-        unsubscribe: jest.fn()
+      subscribe: vi.fn().mockReturnValue({
+        unsubscribe: vi.fn()
       })
     };
 
@@ -94,10 +95,10 @@ describe('FitShowScoreNotifications', () => {
 
   it('should display connection status', async () => {
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next }) => {
+      subscribe: vi.fn().mockImplementation(({ next }) => {
         // Simulate successful connection
         setTimeout(() => next({ data: { onFitShowScoreCreated: mockFitShowScore } }), 0);
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 
@@ -111,13 +112,13 @@ describe('FitShowScoreNotifications', () => {
   });
 
   it('should handle score creation notifications', async () => {
-    const onScoreCreated = jest.fn();
+    const onScoreCreated = vi.fn();
     let subscriptionCallback: any;
 
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next }) => {
+      subscribe: vi.fn().mockImplementation(({ next }) => {
         subscriptionCallback = next;
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 
@@ -138,13 +139,13 @@ describe('FitShowScoreNotifications', () => {
   });
 
   it('should handle score update notifications', async () => {
-    const onScoreUpdate = jest.fn();
+    const onScoreUpdate = vi.fn();
     let subscriptionCallback: any;
 
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next }) => {
+      subscribe: vi.fn().mockImplementation(({ next }) => {
         subscriptionCallback = next;
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 
@@ -166,13 +167,13 @@ describe('FitShowScoreNotifications', () => {
   });
 
   it('should filter notifications by catId', async () => {
-    const onScoreCreated = jest.fn();
+    const onScoreCreated = vi.fn();
     let subscriptionCallback: any;
 
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next }) => {
+      subscribe: vi.fn().mockImplementation(({ next }) => {
         subscriptionCallback = next;
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 
@@ -201,13 +202,13 @@ describe('FitShowScoreNotifications', () => {
   });
 
   it('should filter notifications by judgeId', async () => {
-    const onScoreCreated = jest.fn();
+    const onScoreCreated = vi.fn();
     let subscriptionCallback: any;
 
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next }) => {
+      subscribe: vi.fn().mockImplementation(({ next }) => {
         subscriptionCallback = next;
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 
@@ -240,10 +241,10 @@ describe('FitShowScoreNotifications', () => {
     let errorCallback: any;
 
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next, error }) => {
+      subscribe: vi.fn().mockImplementation(({ next, error }) => {
         subscriptionCallback = next;
         errorCallback = error;
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 
@@ -263,14 +264,14 @@ describe('FitShowScoreNotifications', () => {
   });
 
   it('should auto-hide notifications after timeout', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     let subscriptionCallback: any;
 
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next }) => {
+      subscribe: vi.fn().mockImplementation(({ next }) => {
         subscriptionCallback = next;
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 
@@ -289,20 +290,20 @@ describe('FitShowScoreNotifications', () => {
 
     // Fast-forward time
     act(() => {
-      jest.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
       expect(screen.queryByText('New Fit & Show Score')).not.toBeInTheDocument();
     });
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should cleanup subscriptions on unmount', () => {
-    const mockUnsubscribe = jest.fn();
+    const mockUnsubscribe = vi.fn();
     const mockSubscription = {
-      subscribe: jest.fn().mockReturnValue({
+      subscribe: vi.fn().mockReturnValue({
         unsubscribe: mockUnsubscribe
       })
     };
@@ -320,9 +321,9 @@ describe('FitShowScoreNotifications', () => {
     let subscriptionCallback: any;
 
     const mockSubscription = {
-      subscribe: jest.fn().mockImplementation(({ next }) => {
+      subscribe: vi.fn().mockImplementation(({ next }) => {
         subscriptionCallback = next;
-        return { unsubscribe: jest.fn() };
+        return { unsubscribe: vi.fn() };
       })
     };
 

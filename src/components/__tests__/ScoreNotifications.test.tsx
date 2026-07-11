@@ -2,23 +2,24 @@ import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { generateClient } from 'aws-amplify/api';
 import ScoreNotifications from '../ScoreNotifications';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 const mockClient = {
-  graphql: jest.fn(),
+  graphql: vi.fn(),
 };
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock subscription
 const mockSubscription = {
-  subscribe: jest.fn(),
-  unsubscribe: jest.fn(),
+  subscribe: vi.fn(),
+  unsubscribe: vi.fn(),
 };
 
 describe('ScoreNotifications', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockClient.graphql.mockImplementation((query) => {
       if (query.query.includes('subscription')) {
         return mockSubscription;
@@ -36,7 +37,7 @@ describe('ScoreNotifications', () => {
     });
     
     mockSubscription.subscribe.mockReturnValue({
-      unsubscribe: jest.fn()
+      unsubscribe: vi.fn()
     });
   });
 
@@ -57,7 +58,7 @@ describe('ScoreNotifications', () => {
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications />);
@@ -89,7 +90,7 @@ describe('ScoreNotifications', () => {
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications />);
@@ -122,7 +123,7 @@ describe('ScoreNotifications', () => {
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications />);
@@ -155,7 +156,7 @@ describe('ScoreNotifications', () => {
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications showOnlyFinalized={true} />);
@@ -210,7 +211,7 @@ describe('ScoreNotifications', () => {
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications />);
@@ -250,7 +251,7 @@ describe('ScoreNotifications', () => {
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications />);
@@ -304,13 +305,13 @@ describe('ScoreNotifications', () => {
   });
 
   it('auto-hides notifications after delay', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     let subscriptionCallback: any;
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications autoHideDelay={3000} />);
@@ -338,14 +339,14 @@ describe('ScoreNotifications', () => {
 
     // Fast-forward time
     act(() => {
-      jest.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3000);
     });
 
     await waitFor(() => {
       expect(screen.queryByText(/Fluffy received a final score/)).not.toBeInTheDocument();
     });
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('respects maxNotifications limit', async () => {
@@ -353,7 +354,7 @@ describe('ScoreNotifications', () => {
 
     mockSubscription.subscribe.mockImplementation(({ next }) => {
       subscriptionCallback = next;
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications maxNotifications={2} />);
@@ -386,7 +387,7 @@ describe('ScoreNotifications', () => {
   });
 
   it('cleans up subscription on unmount', () => {
-    const mockUnsubscribe = jest.fn();
+    const mockUnsubscribe = vi.fn();
     mockSubscription.subscribe.mockReturnValue({
       unsubscribe: mockUnsubscribe
     });
@@ -399,11 +400,11 @@ describe('ScoreNotifications', () => {
   });
 
   it('handles subscription errors gracefully', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
     
     mockSubscription.subscribe.mockImplementation(({ error }) => {
       error(new Error('Subscription failed'));
-      return { unsubscribe: jest.fn() };
+      return { unsubscribe: vi.fn() };
     });
 
     render(<ScoreNotifications />);

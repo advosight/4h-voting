@@ -38,11 +38,11 @@ const mockExistingClassScore: ClassScore = {
 };
 
 describe('ClassScoringForm', () => {
-  const mockOnSave = jest.fn();
-  const mockOnSubmit = jest.fn();
+  const mockOnSave = vi.fn();
+  const mockOnSubmit = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders form with cat information', () => {

@@ -8,17 +8,18 @@ import FitShowScoringPage from '../pages/FitShowScoringPage';
 import ScorePage from '../pages/ScorePage';
 import ClassScorePage from '../pages/ClassScorePage';
 import AppLayout from '../components/AppLayout';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
-jest.mock('aws-amplify/auth');
+vi.mock('aws-amplify/api');
+vi.mock('aws-amplify/auth');
 
 const mockClient = {
-  graphql: jest.fn(),
-  cancel: jest.fn(),
+  graphql: vi.fn(),
+  cancel: vi.fn(),
 };
 
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock data for all scoring types
 const mockCat = {
@@ -68,7 +69,7 @@ const mockFitShowScore = {
 
 describe('Fit and Show Scoring System Integration Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     Amplify.configure({
       API: {
@@ -483,8 +484,8 @@ describe('Fit and Show Scoring System Integration Tests', () => {
       });
 
       // Mock CSV download
-      const mockCreateObjectURL = jest.fn(() => 'blob:mock-url');
-      const mockRevokeObjectURL = jest.fn();
+      const mockCreateObjectURL = vi.fn(() => 'blob:mock-url');
+      const mockRevokeObjectURL = vi.fn();
       
       Object.defineProperty(window.URL, 'createObjectURL', { value: mockCreateObjectURL });
       Object.defineProperty(window.URL, 'revokeObjectURL', { value: mockRevokeObjectURL });

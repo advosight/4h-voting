@@ -39,8 +39,8 @@ const mockScreenOrientation = (angle: number = 0) => {
     configurable: true,
     value: {
       angle,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     },
   });
 };
@@ -75,7 +75,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('Orientation and Device Adaptation', () => {
   beforeEach(() => {
     // Reset mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockScreenOrientation();
   });
 

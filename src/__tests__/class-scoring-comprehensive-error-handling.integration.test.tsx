@@ -4,16 +4,17 @@ import { BrowserRouter } from 'react-router-dom';
 import { ClassScoringForm } from '../components/ClassScoringForm';
 import { ClassScoringErrorBoundary } from '../components/ClassScoringErrorBoundary';
 import { ClassScoringNetworkErrorHandler, useClassScoringNetworkErrorHandler } from '../components/ClassScoringNetworkErrorHandler';
-import { 
+import {
   retryClassScoringOperation,
   withOptimisticLockRetry,
   ClassScoringNetworkMonitor,
   logClassScoringError
 } from '../utils/classErrorHandling';
+import type { Mock } from 'vitest';
 
 // Mock GraphQL operations
-const mockGraphQLOperation = jest.fn();
-jest.mock('@aws-amplify/api-graphql', () => ({
+const mockGraphQLOperation = vi.fn();
+vi.mock('@aws-amplify/api-graphql', () => ({
   generateClient: () => ({
     graphql: mockGraphQLOperation
   })
@@ -24,8 +25,8 @@ const originalError = console.error;
 const originalLog = console.log;
 
 beforeAll(() => {
-  console.error = jest.fn();
-  console.log = jest.fn();
+  console.error = vi.fn();
+  console.log = vi.fn();
 });
 
 afterAll(() => {
@@ -42,15 +43,15 @@ Object.defineProperty(navigator, 'onLine', {
 // Mock clipboard API
 Object.assign(navigator, {
   clipboard: {
-    writeText: jest.fn(() => Promise.resolve()),
+    writeText: vi.fn(() => Promise.resolve()),
   },
 });
 
 // Mock alert
-global.alert = jest.fn();
+global.alert = vi.fn();
 
 // Mock fetch for network testing
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Test component that uses error handling
 const TestClassScoringComponent: React.FC<{
@@ -155,10 +156,10 @@ const TestClassScoringComponent: React.FC<{
 
 describe('Class Scoring Comprehensive Error Handling Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockClear();
-    (navigator.clipboard.writeText as jest.Mock).mockClear();
-    (global.alert as jest.Mock).mockClear();
+    vi.clearAllMocks();
+    (global.fetch as Mock).mockClear();
+    (navigator.clipboard.writeText as Mock).mockClear();
+    (global.alert as Mock).mockClear();
   });
 
   describe('Error Boundary Integration', () => {
@@ -266,7 +267,7 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
     });
 
     it('should retry network operations', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValue('success');
 
@@ -283,11 +284,11 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
     });
 
     it('should handle retry callbacks', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValue('success');
-      const onRetry = jest.fn();
-      const onFinalFailure = jest.fn();
+      const onRetry = vi.fn();
+      const onFinalFailure = vi.fn();
 
       await retryClassScoringOperation(mockOperation, {
         maxRetries: 2,
@@ -311,10 +312,10 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
         }
       };
 
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(conflictError)
         .mockResolvedValue('success');
-      const onConflict = jest.fn();
+      const onConflict = vi.fn();
 
       const result = await withOptimisticLockRetry(mockOperation, {
         maxRetries: 2,
@@ -335,8 +336,8 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
         }
       };
 
-      const mockOperation = jest.fn().mockRejectedValue(conflictError);
-      const onFinalConflict = jest.fn();
+      const mockOperation = vi.fn().mockRejectedValue(conflictError);
+      const onFinalConflict = vi.fn();
 
       await expect(
         withOptimisticLockRetry(mockOperation, {
@@ -366,7 +367,7 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
     });
 
     it('should monitor network status changes', () => {
-      const listener = jest.fn();
+      const listener = vi.fn();
       monitor.addListener(listener);
 
       // Simulate going offline
@@ -399,7 +400,7 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
     });
 
     it('should attempt reconnection', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true });
+      (global.fetch as Mock).mockResolvedValueOnce({ ok: true });
 
       const result = await monitor.attemptReconnect();
 
@@ -411,7 +412,7 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
     });
 
     it('should handle failed reconnection attempts', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      (global.fetch as Mock).mockRejectedValueOnce(new Error('Network error'));
 
       const result = await monitor.attemptReconnect();
 
@@ -422,11 +423,11 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
 
   describe('Error Logging Integration', () => {
     beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should log class scoring errors with context', () => {
@@ -456,7 +457,7 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
   describe('End-to-End Error Scenarios', () => {
     it('should handle complete error recovery workflow', async () => {
       let attemptCount = 0;
-      const mockSave = jest.fn().mockImplementation(async () => {
+      const mockSave = vi.fn().mockImplementation(async () => {
         attemptCount++;
         if (attemptCount === 1) {
           throw new Error('Network error');
@@ -529,8 +530,8 @@ describe('Class Scoring Comprehensive Error Handling Integration', () => {
   describe('Performance and Memory Management', () => {
     it('should properly clean up network monitor listeners', () => {
       const monitor = new ClassScoringNetworkMonitor();
-      const listener1 = jest.fn();
-      const listener2 = jest.fn();
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
 
       const remove1 = monitor.addListener(listener1);
       const remove2 = monitor.addListener(listener2);

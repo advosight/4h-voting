@@ -4,19 +4,20 @@
  */
 
 import { generateClient } from 'aws-amplify/api';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(() => ({
-    graphql: jest.fn()
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => ({
+    graphql: vi.fn()
   }))
 }));
 
-const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+const mockGenerateClient = generateClient as MockedFunction<typeof generateClient>;
 
 describe('ClassScoreReports Component Logic', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('GraphQL Query', () => {

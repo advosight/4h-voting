@@ -74,12 +74,12 @@ const ON_SCORE_UPDATE = 'ON_SCORE_UPDATE';
 const GET_CATS = 'GET_CATS';
 
 // Mock authentication
-jest.mock('../utils/roleUtils', () => ({
-  getCurrentUser: jest.fn(),
-  hasRole: jest.fn(),
-  isJudge: jest.fn(),
-  isAdmin: jest.fn(),
-  requireRole: jest.fn(),
+vi.mock('../utils/roleUtils', () => ({
+  getCurrentUser: vi.fn(),
+  hasRole: vi.fn(),
+  isJudge: vi.fn(),
+  isAdmin: vi.fn(),
+  requireRole: vi.fn(),
 }));
 
 // Mock data
@@ -152,7 +152,7 @@ describe('Complete Scoring Workflow Integration Tests', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('End-to-End Judge Scoring Process', () => {
@@ -730,10 +730,10 @@ ribe('Report Generation and Export Functionality', () => {
       const user = userEvent.setup();
       
       // Mock URL.createObjectURL and document.createElement
-      const mockCreateObjectURL = jest.fn(() => 'blob:mock-url');
-      const mockClick = jest.fn();
-      const mockAppendChild = jest.fn();
-      const mockRemoveChild = jest.fn();
+      const mockCreateObjectURL = vi.fn(() => 'blob:mock-url');
+      const mockClick = vi.fn();
+      const mockAppendChild = vi.fn();
+      const mockRemoveChild = vi.fn();
       
       Object.defineProperty(window.URL, 'createObjectURL', {
         value: mockCreateObjectURL,
@@ -745,9 +745,9 @@ ribe('Report Generation and Export Functionality', () => {
         click: mockClick,
       };
       
-      jest.spyOn(document, 'createElement').mockReturnValue(mockAnchor as any);
-      jest.spyOn(document.body, 'appendChild').mockImplementation(mockAppendChild);
-      jest.spyOn(document.body, 'removeChild').mockImplementation(mockRemoveChild);
+      vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor as any);
+      vi.spyOn(document.body, 'appendChild').mockImplementation(mockAppendChild);
+      vi.spyOn(document.body, 'removeChild').mockImplementation(mockRemoveChild);
 
       const mockScores = [mockScore1, mockScore2];
 

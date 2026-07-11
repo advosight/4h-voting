@@ -6,9 +6,9 @@ import { theme } from '../../theme/theme';
 import FitShowScoringPage from '../FitShowScoringPage';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: jest.fn().mockResolvedValue({
+    graphql: vi.fn().mockResolvedValue({
       data: {
         listCats: {
           items: [
@@ -36,21 +36,25 @@ jest.mock('aws-amplify/api', () => ({
 }));
 
 // Mock components
-jest.mock('../../components/FitShowScoreLeaderboard', () => {
-  return function MockFitShowScoreLeaderboard() {
+vi.mock('../../components/FitShowScoreLeaderboard', () => {
+  return {
+    default: function MockFitShowScoreLeaderboard() {
     return <div data-testid="fit-show-score-leaderboard">Fit Show Score Leaderboard</div>;
+    }
   };
 });
 
-jest.mock('../../components/FitShowScoreNotifications', () => {
-  return function MockFitShowScoreNotifications() {
+vi.mock('../../components/FitShowScoreNotifications', () => {
+  return {
+    default: function MockFitShowScoreNotifications() {
     return <div data-testid="fit-show-score-notifications">Fit Show Score Notifications</div>;
+    }
   };
 });
 
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
 }));
 
@@ -66,7 +70,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe('FitShowScoringPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders fit & show scoring interface correctly', async () => {

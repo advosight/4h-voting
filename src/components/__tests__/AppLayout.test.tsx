@@ -5,19 +5,22 @@ import { ThemeProvider } from '@mui/material/styles';
 import { getCurrentUser } from 'aws-amplify/auth';
 import AppLayout from '../AppLayout';
 import { theme } from '../../theme/theme';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/auth');
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+vi.mock('aws-amplify/auth');
+const mockGetCurrentUser = getCurrentUser as MockedFunction<typeof getCurrentUser>;
 
 // Mock components that might cause issues in tests
-jest.mock('../ScoreNotifications', () => {
-  return function MockScoreNotifications() {
+vi.mock('../ScoreNotifications', () => {
+  return {
+    default: function MockScoreNotifications() {
     return <div data-testid="score-notifications">Score Notifications</div>;
+    }
   };
 });
 
-const renderAppLayout = (signOut = jest.fn()) => {
+const renderAppLayout = (signOut = vi.fn()) => {
   return render(
     <BrowserRouter>
       <ThemeProvider theme={theme}>
@@ -29,7 +32,7 @@ const renderAppLayout = (signOut = jest.fn()) => {
 
 describe('AppLayout Navigation Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Admin User Navigation', () => {

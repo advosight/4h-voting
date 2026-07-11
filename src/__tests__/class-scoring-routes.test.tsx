@@ -6,9 +6,9 @@ import { theme } from '../theme/theme';
 import App from '../App';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: jest.fn().mockResolvedValue({
+    graphql: vi.fn().mockResolvedValue({
       data: {
         listCats: {
           items: []
@@ -18,30 +18,32 @@ jest.mock('aws-amplify/api', () => ({
   })
 }));
 
-jest.mock('aws-amplify/auth', () => ({
-  getCurrentUser: jest.fn().mockResolvedValue({
+vi.mock('aws-amplify/auth', () => ({
+  getCurrentUser: vi.fn().mockResolvedValue({
     signInDetails: { loginId: '4h-leader@example.com' },
     username: 'admin'
   })
 }));
 
-jest.mock('@aws-amplify/ui-react', () => ({
+vi.mock('@aws-amplify/ui-react', () => ({
   Authenticator: ({ children }: { children: any }) => {
     const mockUser = { signInDetails: { loginId: '4h-leader@example.com' } };
-    const mockSignOut = jest.fn();
+    const mockSignOut = vi.fn();
     return children({ user: mockUser, signOut: mockSignOut });
   }
 }));
 
 // Mock the ClassScoringForm component since it's not fully implemented yet
-jest.mock('../components/ClassScoringForm', () => {
-  return function MockClassScoringForm({ catData, onSave }: any) {
+vi.mock('../components/ClassScoringForm', () => {
+  return {
+    default: function MockClassScoringForm({ catData, onSave }: any) {
     return (
       <div data-testid="class-scoring-form">
         <p>Type Class Scoring Form for {catData?.name}</p>
         <button onClick={() => onSave({ test: 'data' })}>Save Score</button>
       </div>
     );
+    }
   };
 });
 

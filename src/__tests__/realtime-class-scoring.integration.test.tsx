@@ -5,13 +5,14 @@ import { generateClient } from 'aws-amplify/api';
 import ClassScoreLeaderboard from '../components/ClassScoreLeaderboard';
 import ClassScoreNotifications from '../components/ClassScoreNotifications';
 import ClassScoreReports from '../components/ClassScoreReports';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 const mockClient = {
-  graphql: jest.fn()
+  graphql: vi.fn()
 };
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock data
 const mockCats = {
@@ -77,13 +78,13 @@ describe('Real-time Class Scoring Integration', () => {
   let reportsSubscription: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
     
     // Mock subscriptions
-    leaderboardSubscription = { unsubscribe: jest.fn() };
-    notificationsSubscription = { unsubscribe: jest.fn() };
-    reportsSubscription = { unsubscribe: jest.fn() };
+    leaderboardSubscription = { unsubscribe: vi.fn() };
+    notificationsSubscription = { unsubscribe: vi.fn() };
+    reportsSubscription = { unsubscribe: vi.fn() };
 
     // Mock GraphQL responses
     mockClient.graphql.mockImplementation(({ query, variables }) => {
@@ -108,7 +109,7 @@ describe('Real-time Class Scoring Integration', () => {
       
       if (query.includes('OnClassScoreUpdate')) {
         return {
-          subscribe: jest.fn().mockReturnValue(leaderboardSubscription)
+          subscribe: vi.fn().mockReturnValue(leaderboardSubscription)
         };
       }
       
@@ -117,7 +118,7 @@ describe('Real-time Class Scoring Integration', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('synchronizes real-time updates across leaderboard, notifications, and reports', async () => {
@@ -126,17 +127,17 @@ describe('Real-time Class Scoring Integration', () => {
     let reportsCallback: any;
 
     // Set up subscription callbacks
-    const mockLeaderboardSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockLeaderboardSubscribe = vi.fn().mockImplementation(({ next }) => {
       leaderboardCallback = next;
       return leaderboardSubscription;
     });
 
-    const mockNotificationsSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockNotificationsSubscribe = vi.fn().mockImplementation(({ next }) => {
       notificationsCallback = next;
       return notificationsSubscription;
     });
 
-    const mockReportsSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockReportsSubscribe = vi.fn().mockImplementation(({ next }) => {
       reportsCallback = next;
       return reportsSubscription;
     });
@@ -241,7 +242,7 @@ describe('Real-time Class Scoring Integration', () => {
 
     // Wait for Blue ribbon achievement notification
     act(() => {
-      jest.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(1100);
     });
 
     await waitFor(() => {
@@ -253,12 +254,12 @@ describe('Real-time Class Scoring Integration', () => {
     let leaderboardCallback: any;
     let notificationsCallback: any;
 
-    const mockLeaderboardSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockLeaderboardSubscribe = vi.fn().mockImplementation(({ next }) => {
       leaderboardCallback = next;
       return leaderboardSubscription;
     });
 
-    const mockNotificationsSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockNotificationsSubscribe = vi.fn().mockImplementation(({ next }) => {
       notificationsCallback = next;
       return notificationsSubscription;
     });
@@ -355,7 +356,7 @@ describe('Real-time Class Scoring Integration', () => {
 
   it('maintains data consistency during network interruptions', async () => {
     let leaderboardCallback: any;
-    const mockLeaderboardSubscribe = jest.fn().mockImplementation(({ next, error }) => {
+    const mockLeaderboardSubscribe = vi.fn().mockImplementation(({ next, error }) => {
       leaderboardCallback = next;
       // Simulate network error after setup
       setTimeout(() => {
@@ -364,7 +365,7 @@ describe('Real-time Class Scoring Integration', () => {
       return leaderboardSubscription;
     });
 
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
     mockClient.graphql.mockImplementation(({ query, variables }) => {
       if (query.includes('ListAllClassScores')) {
@@ -402,7 +403,7 @@ describe('Real-time Class Scoring Integration', () => {
 
     // Wait for network error to be triggered
     act(() => {
-      jest.advanceTimersByTime(150);
+      vi.advanceTimersByTime(150);
     });
 
     // Verify error is logged but component remains functional
@@ -424,12 +425,12 @@ describe('Real-time Class Scoring Integration', () => {
     let leaderboardCallback: any;
     let notificationsCallback: any;
 
-    const mockLeaderboardSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockLeaderboardSubscribe = vi.fn().mockImplementation(({ next }) => {
       leaderboardCallback = next;
       return leaderboardSubscription;
     });
 
-    const mockNotificationsSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockNotificationsSubscribe = vi.fn().mockImplementation(({ next }) => {
       notificationsCallback = next;
       return notificationsSubscription;
     });
@@ -509,7 +510,7 @@ describe('Real-time Class Scoring Integration', () => {
 
     // Wait for Blue ribbon achievement notification
     act(() => {
-      jest.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(1100);
     });
 
     await waitFor(() => {
@@ -518,9 +519,9 @@ describe('Real-time Class Scoring Integration', () => {
   });
 
   it('properly cleans up all subscriptions on unmount', async () => {
-    const mockLeaderboardSubscribe = jest.fn().mockReturnValue(leaderboardSubscription);
-    const mockNotificationsSubscribe = jest.fn().mockReturnValue(notificationsSubscription);
-    const mockReportsSubscribe = jest.fn().mockReturnValue(reportsSubscription);
+    const mockLeaderboardSubscribe = vi.fn().mockReturnValue(leaderboardSubscription);
+    const mockNotificationsSubscribe = vi.fn().mockReturnValue(notificationsSubscription);
+    const mockReportsSubscribe = vi.fn().mockReturnValue(reportsSubscription);
 
     let subscribeCallCount = 0;
     mockClient.graphql.mockImplementation(({ query }) => {
@@ -576,12 +577,12 @@ describe('Real-time Class Scoring Integration', () => {
 
   it('handles malformed subscription data gracefully', async () => {
     let leaderboardCallback: any;
-    const mockLeaderboardSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockLeaderboardSubscribe = vi.fn().mockImplementation(({ next }) => {
       leaderboardCallback = next;
       return leaderboardSubscription;
     });
 
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
     mockClient.graphql.mockImplementation(({ query }) => {
       if (query.includes('ListAllClassScores')) {

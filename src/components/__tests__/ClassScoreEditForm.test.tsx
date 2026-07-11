@@ -39,11 +39,11 @@ const mockFinalizedClassScore: ClassScore = {
 };
 
 describe('ClassScoreEditForm', () => {
-  const mockOnSave = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnSave = vi.fn();
+  const mockOnCancel = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders form with class score data', () => {

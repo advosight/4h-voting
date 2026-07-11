@@ -3,22 +3,24 @@ import { render, screen } from '@testing-library/react';
 import FitShowLeaderboardPage from '../FitShowLeaderboardPage';
 
 // Mock the FitShowScoreLeaderboard component
-jest.mock('../../components/FitShowScoreLeaderboard', () => {
-  return function MockFitShowScoreLeaderboard({ showTop, finalizedOnly }: { showTop: number; finalizedOnly: boolean }) {
+vi.mock('../../components/FitShowScoreLeaderboard', () => {
+  return {
+    default: function MockFitShowScoreLeaderboard({ showTop, finalizedOnly }: { showTop: number; finalizedOnly: boolean }) {
     return (
       <div data-testid="fit-show-score-leaderboard">
         Fit Show Score Leaderboard Component (showTop: {showTop}, finalizedOnly: {finalizedOnly.toString()})
       </div>
     );
+    }
   };
 });
 
 // Mock AWS Amplify
-jest.mock('aws-amplify', () => ({
+vi.mock('aws-amplify', () => ({
   API: {
-    graphql: jest.fn(),
+    graphql: vi.fn(),
   },
-  graphqlOperation: jest.fn((query) => query),
+  graphqlOperation: vi.fn((query) => query),
 }));
 
 describe('FitShowLeaderboardPage', () => {

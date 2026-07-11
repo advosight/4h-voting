@@ -12,12 +12,12 @@ describe('FitShowNetworkErrorHandler', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should render nothing when no error', () => {
@@ -39,7 +39,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should show retry button when retries are available', () => {
-    const onRetry = jest.fn();
+    const onRetry = vi.fn();
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 
@@ -67,7 +67,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should call onRetry when retry button is clicked', async () => {
-    const onRetry = jest.fn().mockResolvedValue(undefined);
+    const onRetry = vi.fn().mockResolvedValue(undefined);
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 
@@ -83,7 +83,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should show loading state during retry', async () => {
-    const onRetry = jest.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1000)));
+    const onRetry = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1000)));
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 
@@ -100,7 +100,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should call onDismiss when dismiss button is clicked', () => {
-    const onDismiss = jest.fn();
+    const onDismiss = vi.fn();
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 
@@ -128,7 +128,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should countdown and auto-retry', async () => {
-    const onRetry = jest.fn().mockResolvedValue(undefined);
+    const onRetry = vi.fn().mockResolvedValue(undefined);
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 
@@ -143,14 +143,14 @@ describe('FitShowNetworkErrorHandler', () => {
     
     // Advance timer by 1 second
     act(() => {
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
     });
     
     expect(screen.getByText('Auto-retry in 1 second...')).toBeInTheDocument();
     
     // Advance timer by another second to trigger retry
     act(() => {
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
     });
     
     await waitFor(() => {
@@ -159,7 +159,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should cancel auto-retry when manual retry is clicked', () => {
-    const onRetry = jest.fn().mockResolvedValue(undefined);
+    const onRetry = vi.fn().mockResolvedValue(undefined);
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 
@@ -213,7 +213,7 @@ describe('FitShowNetworkErrorHandler', () => {
 
   it('should provide refresh page button', () => {
     // Mock window.location.reload
-    const mockReload = jest.fn();
+    const mockReload = vi.fn();
     Object.defineProperty(window, 'location', {
       value: { reload: mockReload },
       writable: true
@@ -228,7 +228,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should handle retry failure and increment retry count', async () => {
-    const onRetry = jest.fn().mockRejectedValue(new Error('Retry failed'));
+    const onRetry = vi.fn().mockRejectedValue(new Error('Retry failed'));
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 
@@ -261,7 +261,7 @@ describe('FitShowNetworkErrorHandler', () => {
   });
 
   it('should show close button when onDismiss is provided', () => {
-    const onDismiss = jest.fn();
+    const onDismiss = vi.fn();
     render(
       <FitShowNetworkErrorHandler 
         error={mockNetworkError} 

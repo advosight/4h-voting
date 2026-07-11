@@ -10,11 +10,11 @@ describe('AppearanceScoring', () => {
     courteous: 4,
     comments: 'Good appearance overall',
     total: 12,
-    onScoreChange: jest.fn()
+    onScoreChange: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the appearance scoring section', () => {

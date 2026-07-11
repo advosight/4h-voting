@@ -2,15 +2,16 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import VotePage from '../VotePage';
+import type { Mock } from 'vitest';
 
 // Mock useParams
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useParams: () => ({ catId: 'test-cat-123' }),
 }));
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Mock navigator.onLine
 Object.defineProperty(navigator, 'onLine', {
@@ -28,8 +29,8 @@ const renderVotePage = () => {
 
 describe('VotePage Mobile Optimization', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (fetch as jest.Mock).mockClear();
+    vi.clearAllMocks();
+    (fetch as Mock).mockClear();
     navigator.onLine = true;
   });
 
@@ -64,7 +65,7 @@ describe('VotePage Mobile Optimization', () => {
 
   describe('Touch-Friendly Form Inputs', () => {
     test('shows email input with proper keyboard type after voting', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
+      (fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
       });
@@ -85,7 +86,7 @@ describe('VotePage Mobile Optimization', () => {
     });
 
     test('validates email input properly', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
+      (fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
       });
@@ -111,7 +112,7 @@ describe('VotePage Mobile Optimization', () => {
 
   describe('Loading States and Visual Feedback', () => {
     test('shows loading state during voting', async () => {
-      (fetch as jest.Mock).mockImplementation(() => 
+      (fetch as Mock).mockImplementation(() => 
         new Promise(resolve => setTimeout(() => resolve({ ok: true }), 100))
       );
 
@@ -125,7 +126,7 @@ describe('VotePage Mobile Optimization', () => {
     });
 
     test('shows loading spinner during email submission', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
+      (fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
       });
@@ -151,7 +152,7 @@ describe('VotePage Mobile Optimization', () => {
 
   describe('Network Error Handling', () => {
     test('displays network error message', async () => {
-      (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      (fetch as Mock).mockRejectedValue(new Error('Network error'));
 
       renderVotePage();
       
@@ -186,7 +187,7 @@ describe('VotePage Mobile Optimization', () => {
 
     test('shows retry mechanism with exponential backoff', async () => {
       let callCount = 0;
-      (fetch as jest.Mock).mockImplementation(() => {
+      (fetch as Mock).mockImplementation(() => {
         callCount++;
         if (callCount < 3) {
           return Promise.reject(new Error('Network error'));
@@ -229,7 +230,7 @@ describe('VotePage Mobile Optimization', () => {
 
   describe('Success Page Layout', () => {
     test('displays clear visual hierarchy on success page', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
+      (fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
       });
@@ -253,7 +254,7 @@ describe('VotePage Mobile Optimization', () => {
     });
 
     test('shows external link with proper accessibility', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
+      (fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
       });
@@ -285,7 +286,7 @@ describe('VotePage Mobile Optimization', () => {
     });
 
     test('manages focus properly', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
+      (fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
       });
@@ -305,7 +306,7 @@ describe('VotePage Mobile Optimization', () => {
     });
 
     test('provides error announcements for screen readers', async () => {
-      (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      (fetch as Mock).mockRejectedValue(new Error('Network error'));
 
       renderVotePage();
       

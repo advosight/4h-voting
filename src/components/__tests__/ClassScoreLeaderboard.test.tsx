@@ -2,13 +2,14 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { generateClient } from 'aws-amplify/api';
 import ClassScoreLeaderboard from '../ClassScoreLeaderboard';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 const mockClient = {
-  graphql: jest.fn()
+  graphql: vi.fn()
 };
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock data
 const mockClassScores = [
@@ -54,11 +55,11 @@ describe('ClassScoreLeaderboard', () => {
   let mockSubscription: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock subscription
     mockSubscription = {
-      unsubscribe: jest.fn()
+      unsubscribe: vi.fn()
     };
 
     // Mock GraphQL responses
@@ -84,7 +85,7 @@ describe('ClassScoreLeaderboard', () => {
       
       if (query.includes('OnClassScoreUpdate')) {
         return {
-          subscribe: jest.fn().mockReturnValue(mockSubscription)
+          subscribe: vi.fn().mockReturnValue(mockSubscription)
         };
       }
       
@@ -93,7 +94,7 @@ describe('ClassScoreLeaderboard', () => {
   });
 
   afterEach(() => {
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   it('renders loading state initially', () => {
@@ -167,7 +168,7 @@ describe('ClassScoreLeaderboard', () => {
   });
 
   it('sets up real-time subscription for class score updates', async () => {
-    const mockSubscribe = jest.fn().mockReturnValue(mockSubscription);
+    const mockSubscribe = vi.fn().mockReturnValue(mockSubscription);
     mockClient.graphql.mockImplementation(({ query }) => {
       if (query.includes('OnClassScoreUpdate')) {
         return { subscribe: mockSubscribe };
@@ -187,7 +188,7 @@ describe('ClassScoreLeaderboard', () => {
 
   it('handles real-time class score updates', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -245,8 +246,8 @@ describe('ClassScoreLeaderboard', () => {
   });
 
   it('handles subscription errors gracefully', async () => {
-    const mockSubscribe = jest.fn().mockReturnValue(mockSubscription);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const mockSubscribe = vi.fn().mockReturnValue(mockSubscription);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
     mockClient.graphql.mockImplementation(({ query }) => {
       if (query.includes('OnClassScoreUpdate')) {
@@ -272,7 +273,7 @@ describe('ClassScoreLeaderboard', () => {
   });
 
   it('cleans up subscription on unmount', async () => {
-    const mockSubscribe = jest.fn().mockReturnValue(mockSubscription);
+    const mockSubscribe = vi.fn().mockReturnValue(mockSubscription);
     mockClient.graphql.mockImplementation(({ query }) => {
       if (query.includes('OnClassScoreUpdate')) {
         return { subscribe: mockSubscribe };
@@ -297,7 +298,7 @@ describe('ClassScoreLeaderboard', () => {
         return Promise.reject(new Error('Network error'));
       }
       if (query.includes('OnClassScoreUpdate')) {
-        return { subscribe: jest.fn().mockReturnValue(mockSubscription) };
+        return { subscribe: vi.fn().mockReturnValue(mockSubscription) };
       }
       return Promise.resolve({ data: {} });
     });
@@ -322,7 +323,7 @@ describe('ClassScoreLeaderboard', () => {
         });
       }
       if (query.includes('OnClassScoreUpdate')) {
-        return { subscribe: jest.fn().mockReturnValue(mockSubscription) };
+        return { subscribe: vi.fn().mockReturnValue(mockSubscription) };
       }
       return Promise.resolve({ data: {} });
     });
@@ -364,7 +365,7 @@ describe('ClassScoreLeaderboard', () => {
         });
       }
       if (query.includes('OnClassScoreUpdate')) {
-        return { subscribe: jest.fn().mockReturnValue(mockSubscription) };
+        return { subscribe: vi.fn().mockReturnValue(mockSubscription) };
       }
       return Promise.resolve({ data: {} });
     });

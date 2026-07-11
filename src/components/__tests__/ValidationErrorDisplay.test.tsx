@@ -3,15 +3,15 @@ import { render, screen } from '@testing-library/react';
 import { ValidationErrorDisplay, FormField, ValidationSummary } from '../ValidationErrorDisplay';
 
 // Mock the error handling utilities
-jest.mock('../../utils/errorHandling', () => ({
-  parseError: jest.fn((error) => ({
+vi.mock('../../utils/errorHandling', () => ({
+  parseError: vi.fn((error) => ({
     error: {
       type: error?.error?.type || 'VALIDATION_ERROR',
       message: error?.error?.message || 'Validation failed',
       field: error?.error?.field
     }
   })),
-  getUserFriendlyMessage: jest.fn((parsedError) => parsedError.error.message)
+  getUserFriendlyMessage: vi.fn((parsedError) => parsedError.error.message)
 }));
 
 describe('ValidationErrorDisplay', () => {

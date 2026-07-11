@@ -5,7 +5,7 @@ import { FitShowScoreEditForm } from '../FitShowScoreEditForm';
 import { FitShowScore } from '../../types/scoring';
 
 // Mock the scoring components
-jest.mock('../AppearanceScoring', () => ({
+vi.mock('../AppearanceScoring', () => ({
   AppearanceScoring: ({ onScoreChange, onCommentsChange }: any) => (
     <div data-testid="appearance-scoring">
       <input
@@ -20,7 +20,7 @@ jest.mock('../AppearanceScoring', () => ({
   )
 }));
 
-jest.mock('../HandlingScoring', () => ({
+vi.mock('../HandlingScoring', () => ({
   HandlingScoring: ({ onScoreChange, onCommentsChange }: any) => (
     <div data-testid="handling-scoring">
       <input
@@ -35,7 +35,7 @@ jest.mock('../HandlingScoring', () => ({
   )
 }));
 
-jest.mock('../DemonstrationScoring', () => ({
+vi.mock('../DemonstrationScoring', () => ({
   DemonstrationScoring: ({ onScoreChange, onCommentsChange }: any) => (
     <div data-testid="demonstration-scoring">
       <input
@@ -50,7 +50,7 @@ jest.mock('../DemonstrationScoring', () => ({
   )
 }));
 
-jest.mock('../HealthExaminationScoring', () => ({
+vi.mock('../HealthExaminationScoring', () => ({
   HealthExaminationScoring: ({ onScoreChange, onCommentsChange }: any) => (
     <div data-testid="health-examination-scoring">
       <input
@@ -65,7 +65,7 @@ jest.mock('../HealthExaminationScoring', () => ({
   )
 }));
 
-jest.mock('../GroomingCareScoring', () => ({
+vi.mock('../GroomingCareScoring', () => ({
   GroomingCareScoring: ({ onScoreChange, onCommentsChange }: any) => (
     <div data-testid="grooming-care-scoring">
       <input
@@ -80,7 +80,7 @@ jest.mock('../GroomingCareScoring', () => ({
   )
 }));
 
-jest.mock('../KnowledgeScoring', () => ({
+vi.mock('../KnowledgeScoring', () => ({
   KnowledgeScoring: ({ onScoreChange, onCommentsChange }: any) => (
     <div data-testid="knowledge-scoring">
       <input
@@ -166,11 +166,11 @@ const mockFitShowScore: FitShowScore = {
 };
 
 describe('FitShowScoreEditForm', () => {
-  const mockOnSave = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnSave = vi.fn();
+  const mockOnCancel = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the form with participant information', () => {
@@ -385,7 +385,7 @@ describe('FitShowScoreEditForm', () => {
     const user = userEvent.setup();
     
     // Mock window.confirm
-    const mockConfirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    const mockConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     
     render(
       <FitShowScoreEditForm

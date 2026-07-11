@@ -6,22 +6,23 @@ import { generateClient } from 'aws-amplify/api';
 import FitShowScoringPage from '../pages/FitShowScoringPage';
 import FitShowScoreLeaderboard from '../components/FitShowScoreLeaderboard';
 import FitShowScoreNotifications from '../components/FitShowScoreNotifications';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 
 const mockClient = {
-  graphql: jest.fn(),
-  cancel: jest.fn(),
+  graphql: vi.fn(),
+  cancel: vi.fn(),
 };
 
 // Mock subscription
 const mockSubscription = {
-  subscribe: jest.fn(),
-  unsubscribe: jest.fn(),
+  subscribe: vi.fn(),
+  unsubscribe: vi.fn(),
 };
 
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock data
 const mockFitShowScore = {
@@ -46,7 +47,7 @@ describe('Real-time Fit and Show Scoring Integration Tests', () => {
   let subscriptionCallback: (data: any) => void;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock Amplify configuration
     Amplify.configure({
@@ -209,7 +210,7 @@ describe('Real-time Fit and Show Scoring Integration Tests', () => {
     });
 
     test('should handle subscription errors gracefully', async () => {
-      const consoleError = jest.spyOn(console, 'error').mockImplementation();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation();
       
       mockClient.graphql.mockRejectedValue(new Error('Subscription failed'));
 
@@ -235,12 +236,12 @@ describe('Real-time Fit and Show Scoring Integration Tests', () => {
       // Mock network status
       const mockNetworkStatus = {
         online: true,
-        addEventListener: jest.fn((event, callback) => {
+        addEventListener: vi.fn((event, callback) => {
           if (event === 'online') {
             reconnectCallback = callback;
           }
         }),
-        removeEventListener: jest.fn()
+        removeEventListener: vi.fn()
       };
 
       Object.defineProperty(window, 'navigator', {
@@ -405,7 +406,7 @@ describe('Real-time Fit and Show Scoring Integration Tests', () => {
     });
 
     test('should throttle excessive updates to prevent UI freezing', async () => {
-      const renderSpy = jest.spyOn(React, 'useState');
+      const renderSpy = vi.spyOn(React, 'useState');
       
       mockClient.graphql.mockResolvedValue({
         data: { listFitShowScores: { items: [] } }

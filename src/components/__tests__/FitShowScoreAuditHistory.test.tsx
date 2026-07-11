@@ -51,10 +51,10 @@ const mockAuditEntries = [
 ];
 
 describe('FitShowScoreAuditHistory', () => {
-  const mockOnLoadAuditHistory = jest.fn();
+  const mockOnLoadAuditHistory = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders loading state initially', () => {

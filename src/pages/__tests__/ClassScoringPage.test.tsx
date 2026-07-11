@@ -6,15 +6,15 @@ import { theme } from '../../theme/theme';
 import ClassScoringPage from '../ClassScoringPage';
 
 // Mock AWS Amplify
-const mockGraphql = jest.fn();
-jest.mock('aws-amplify/api', () => ({
+const mockGraphql = vi.fn();
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
     graphql: (...args: unknown[]) => mockGraphql(...args)
   })
 }));
 
 // Mock age groups
-jest.mock('../../utils/ageGroups', () => ({
+vi.mock('../../utils/ageGroups', () => ({
   CAT_AGE_GROUPS: [
     { value: 'kitten', label: 'Kitten (under 8 months)' },
     { value: 'adult', label: 'Adult (2-7 years)' }
@@ -29,21 +29,25 @@ jest.mock('../../utils/ageGroups', () => ({
 }));
 
 // Mock components
-jest.mock('../../components/ClassScoreLeaderboard', () => {
-  return function MockClassScoreLeaderboard() {
+vi.mock('../../components/ClassScoreLeaderboard', () => {
+  return {
+    default: function MockClassScoreLeaderboard() {
     return <div data-testid="class-score-leaderboard">Class Score Leaderboard</div>;
+    }
   };
 });
 
-jest.mock('../../components/ClassScoreNotifications', () => {
-  return function MockClassScoreNotifications() {
+vi.mock('../../components/ClassScoreNotifications', () => {
+  return {
+    default: function MockClassScoreNotifications() {
     return <div data-testid="class-score-notifications">Class Score Notifications</div>;
+    }
   };
 });
 
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
 }));
 
@@ -59,7 +63,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe('ClassScoringPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Setup mock responses
     mockGraphql.mockImplementation(({ query }) => {

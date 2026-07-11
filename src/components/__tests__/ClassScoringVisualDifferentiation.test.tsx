@@ -15,8 +15,8 @@ const mockCatData = {
 };
 
 // Mock functions
-const mockOnSave = jest.fn();
-const mockOnSubmit = jest.fn();
+const mockOnSave = vi.fn();
+const mockOnSubmit = vi.fn();
 
 const renderClassScoringForm = (props = {}) => {
   const defaultProps = {
@@ -37,7 +37,7 @@ const renderClassScoringForm = (props = {}) => {
 
 describe('ClassScoringForm Visual Differentiation', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Blue Theme Implementation', () => {

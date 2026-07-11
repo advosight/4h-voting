@@ -81,7 +81,7 @@ function CatCard({ cat, rank, onUpdate }: CatCardProps): JSX.Element {
   };
 
   const handleTestVote = () => {
-    window.open(`${process.env.REACT_APP_VOTING_API_ENDPOINT || 'https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/'}vote/${cat.id}`, '_blank');
+    window.open(`${import.meta.env.VITE_VOTING_API_ENDPOINT || 'https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/'}vote/${cat.id}`, '_blank');
   };
 
   const handleSave = async () => {

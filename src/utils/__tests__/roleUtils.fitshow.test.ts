@@ -1,8 +1,8 @@
 import { getCurrentUser } from 'aws-amplify/auth';
-import { 
-  getUserRole, 
-  canCageScore, 
-  canClassScore, 
+import {
+  getUserRole,
+  canCageScore,
+  canClassScore,
   canFitShowScore,
   hasRole,
   hasAnyRole,
@@ -10,14 +10,15 @@ import {
   isAdmin,
   getJudgeId
 } from '../roleUtils';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/auth');
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+vi.mock('aws-amplify/auth');
+const mockGetCurrentUser = getCurrentUser as MockedFunction<typeof getCurrentUser>;
 
 describe('Role Utils - Fit and Show Scoring Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getUserRole with permissions', () => {

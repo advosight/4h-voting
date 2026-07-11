@@ -5,16 +5,17 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/api';
 import FitShowScoringPage from '../pages/FitShowScoringPage';
 import FitShowScoreReports from '../components/FitShowScoreReports';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 
 const mockClient = {
-  graphql: jest.fn(),
-  cancel: jest.fn(),
+  graphql: vi.fn(),
+  cancel: vi.fn(),
 };
 
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock multiple judges
 const judges = [
@@ -75,7 +76,7 @@ const createMockScore = (judgeId: string, judgeName: string, totalScore: number)
 
 describe('Concurrent Fit and Show Scoring Integration Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     Amplify.configure({
       API: {
@@ -266,7 +267,7 @@ describe('Concurrent Fit and Show Scoring Integration Tests', () => {
       });
 
       const mockSubscription = {
-        subscribe: jest.fn((callback) => {
+        subscribe: vi.fn((callback) => {
           // Simulate rapid updates
           updates.forEach((score, index) => {
             setTimeout(() => {
@@ -276,7 +277,7 @@ describe('Concurrent Fit and Show Scoring Integration Tests', () => {
             }, index * 20); // 20ms intervals
           });
           
-          return { unsubscribe: jest.fn() };
+          return { unsubscribe: vi.fn() };
         })
       };
 

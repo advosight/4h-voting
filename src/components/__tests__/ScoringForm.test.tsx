@@ -3,19 +3,30 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ScoringForm from '../ScoringForm';
 import { CreateScoreInput } from '../../types/scoring';
+import {
+  calculateTotalScore as _calculateTotalScore,
+  validateCategoryScore as _validateCategoryScore,
+  validateCategoryComment as _validateCategoryComment,
+  validateCreateScoreInput as _validateCreateScoreInput
+} from '../../utils/scoringValidation';
 
 // Mock the scoring utilities
-jest.mock('../../utils/scoringValidation', () => ({
-  ...jest.requireActual('../../utils/scoringValidation'),
-  validateCreateScoreInput: jest.fn(),
-  validateCategoryScore: jest.fn(),
-  validateCategoryComment: jest.fn(),
-  calculateTotalScore: jest.fn()
+vi.mock('../../utils/scoringValidation', async () => ({
+  ...(await vi.importActual('../../utils/scoringValidation')),
+  validateCreateScoreInput: vi.fn(),
+  validateCategoryScore: vi.fn(),
+  validateCategoryComment: vi.fn(),
+  calculateTotalScore: vi.fn()
 }));
 
+const calculateTotalScore = vi.mocked(_calculateTotalScore);
+const validateCategoryScore = vi.mocked(_validateCategoryScore);
+const validateCategoryComment = vi.mocked(_validateCategoryComment);
+const validateCreateScoreInput = vi.mocked(_validateCreateScoreInput);
+
 describe('ScoringForm', () => {
-  const mockOnSave = jest.fn();
-  const mockOnSubmit = jest.fn();
+  const mockOnSave = vi.fn();
+  const mockOnSubmit = vi.fn();
   const defaultProps = {
     catId: 'test-cat-id',
     onSave: mockOnSave,
@@ -23,9 +34,8 @@ describe('ScoringForm', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Mock calculateTotalScore to return sum of scores
-    const { calculateTotalScore } = require('../../utils/scoringValidation');
     calculateTotalScore.mockImplementation((scores: any) => 
       scores.cageConditionScore + scores.catConditionScore + scores.groomingScore + scores.overallScore
     );
@@ -61,7 +71,6 @@ describe('ScoringForm', () => {
   });
 
   it('validates score ranges', async () => {
-    const { validateCategoryScore } = require('../../utils/scoringValidation');
     validateCategoryScore.mockReturnValue({
       field: 'cageConditionScore',
       message: 'cageCondition score cannot exceed 25 points'
@@ -81,7 +90,6 @@ describe('ScoringForm', () => {
   });
 
   it('validates comment character limits', async () => {
-    const { validateCategoryComment } = require('../../utils/scoringValidation');
     validateCategoryComment.mockReturnValue({
       field: 'cageConditionComments',
       message: 'cageCondition comment cannot exceed 500 characters'
@@ -117,7 +125,6 @@ describe('ScoringForm', () => {
   });
 
   it('calls onSave with correct data when Save Draft is clicked', async () => {
-    const { validateCreateScoreInput } = require('../../utils/scoringValidation');
     validateCreateScoreInput.mockReturnValue({ isValid: true, errors: [] });
 
     const user = userEvent.setup();
@@ -148,7 +155,6 @@ describe('ScoringForm', () => {
   });
 
   it('calls onSubmit with correct data when Submit Final Score is clicked', async () => {
-    const { validateCreateScoreInput } = require('../../utils/scoringValidation');
     validateCreateScoreInput.mockReturnValue({ isValid: true, errors: [] });
 
     const user = userEvent.setup();
@@ -180,7 +186,6 @@ describe('ScoringForm', () => {
   });
 
   it('prevents submission when validation fails', async () => {
-    const { validateCreateScoreInput } = require('../../utils/scoringValidation');
     validateCreateScoreInput.mockReturnValue({ 
       isValid: false, 
       errors: [{ field: 'cageConditionScore', message: 'Score is required' }] 

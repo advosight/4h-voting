@@ -3,25 +3,27 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import ScorePage from '../ScorePage';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock AWS Amplify
-const mockGraphql = jest.fn();
+const mockGraphql = vi.fn();
 
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
     graphql: (...args: unknown[]) => mockGraphql(...args),
   }),
 }));
 
-jest.mock('aws-amplify/auth', () => ({
-  getCurrentUser: jest.fn(),
+vi.mock('aws-amplify/auth', () => ({
+  getCurrentUser: vi.fn(),
 }));
 
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+const mockGetCurrentUser = getCurrentUser as MockedFunction<typeof getCurrentUser>;
 
 // Mock the ScoringForm component
-jest.mock('../../components/ScoringForm', () => {
-  return function MockScoringForm({ catId, existingScore, onSave, onSubmit, loading }: any) {
+vi.mock('../../components/ScoringForm', () => {
+  return {
+    default: function MockScoringForm({ catId, existingScore, onSave, onSubmit, loading }: any) {
     return (
       <div data-testid="scoring-form">
         <div>Cat ID: {catId}</div>
@@ -35,6 +37,7 @@ jest.mock('../../components/ScoringForm', () => {
         </button>
       </div>
     );
+    }
   };
 });
 
@@ -73,15 +76,15 @@ const mockScore = {
 
 describe('ScorePage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetCurrentUser.mockResolvedValue(mockUser as any);
     
     // Reset the mock implementation
     mockGraphql.mockImplementation((params) => {
       if (params.query && params.query.includes('subscription')) {
         return {
-          subscribe: jest.fn(() => ({
-            unsubscribe: jest.fn(),
+          subscribe: vi.fn(() => ({
+            unsubscribe: vi.fn(),
           })),
         };
       }
@@ -299,9 +302,9 @@ describe('ScorePage', () => {
     });
 
     it('should handle submit operation and navigate', async () => {
-      const mockNavigate = jest.fn();
-      jest.doMock('react-router-dom', () => ({
-        ...jest.requireActual('react-router-dom'),
+      const mockNavigate = vi.fn();
+      vi.doMock('react-router-dom', async () => ({
+        ...(await vi.importActual('react-router-dom')),
         useNavigate: () => mockNavigate,
       }));
 

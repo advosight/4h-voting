@@ -1,28 +1,29 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ClassScoringErrorBoundary, withClassScoringErrorBoundary } from '../ClassScoringErrorBoundary';
+import type { Mock } from 'vitest';
 
 // Mock the error handling utilities
-jest.mock('../../utils/errorHandling', () => ({
-  logError: jest.fn(),
-  parseError: jest.fn((error) => ({
+vi.mock('../../utils/errorHandling', () => ({
+  logError: vi.fn(),
+  parseError: vi.fn((error) => ({
     error: {
       type: 'SYSTEM_ERROR',
       message: error?.message || 'Test error message'
     }
   })),
-  getUserFriendlyMessage: jest.fn(() => 'User friendly error message')
+  getUserFriendlyMessage: vi.fn(() => 'User friendly error message')
 }));
 
 // Mock clipboard API
 Object.assign(navigator, {
   clipboard: {
-    writeText: jest.fn(() => Promise.resolve()),
+    writeText: vi.fn(() => Promise.resolve()),
   },
 });
 
 // Mock alert
-global.alert = jest.fn();
+global.alert = vi.fn();
 
 // Component that throws an error for testing
 const ThrowError: React.FC<{ shouldThrow?: boolean; errorMessage?: string }> = ({ 
@@ -38,11 +39,11 @@ const ThrowError: React.FC<{ shouldThrow?: boolean; errorMessage?: string }> = (
 describe('ClassScoringErrorBoundary', () => {
   beforeEach(() => {
     // Mock console.error to avoid noise in test output
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should render children when there is no error', () => {
@@ -110,7 +111,7 @@ describe('ClassScoringErrorBoundary', () => {
   });
 
   it('should call onError callback when error occurs', () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
     
     render(
       <ClassScoringErrorBoundary onError={onError}>
@@ -163,7 +164,7 @@ describe('ClassScoringErrorBoundary', () => {
 
   it('should reload page when Reload Page is clicked', () => {
     // Mock window.location.reload
-    const mockReload = jest.fn();
+    const mockReload = vi.fn();
     Object.defineProperty(window, 'location', {
       value: { reload: mockReload },
       writable: true
@@ -201,7 +202,7 @@ describe('ClassScoringErrorBoundary', () => {
   });
 
   it('should handle clipboard failure gracefully', async () => {
-    (navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(new Error('Clipboard failed'));
+    (navigator.clipboard.writeText as Mock).mockRejectedValueOnce(new Error('Clipboard failed'));
 
     render(
       <ClassScoringErrorBoundary>
@@ -220,7 +221,7 @@ describe('ClassScoringErrorBoundary', () => {
   });
 
   it('should log retry attempts', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     render(
       <ClassScoringErrorBoundary context="scoring">
@@ -243,8 +244,8 @@ describe('ClassScoringErrorBoundary', () => {
   });
 
   it('should log reload attempts', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    const mockReload = jest.fn();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const mockReload = vi.fn();
     Object.defineProperty(window, 'location', {
       value: { reload: mockReload },
       writable: true

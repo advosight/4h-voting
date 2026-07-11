@@ -6,14 +6,15 @@ import { AccessibilityProvider } from '../contexts/AccessibilityContext';
 import AccessibleButton from '../components/AccessibleButton';
 import AccessibleInput from '../components/AccessibleInput';
 import AccessibleModal from '../components/AccessibleModal';
-import { 
-  validateTouchTarget, 
-  manageFocus, 
+import {
+  validateTouchTarget,
+  manageFocus,
   ACCESSIBILITY_CONSTANTS,
   prefersReducedMotion,
   prefersHighContrast,
   zoomUtils
 } from '../utils/accessibility';
+import type { Mock } from 'vitest';
 
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
@@ -21,15 +22,15 @@ expect.extend(toHaveNoViolations);
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(), // deprecated
-    removeListener: jest.fn(), // deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 });
 
@@ -75,7 +76,7 @@ describe('Accessibility Utilities', () => {
 
   describe('Focus Management', () => {
     test('announces messages to screen readers', () => {
-      const spy = jest.spyOn(document.body, 'appendChild');
+      const spy = vi.spyOn(document.body, 'appendChild');
       
       manageFocus.announce('Test message', 'polite');
       
@@ -90,30 +91,30 @@ describe('Accessibility Utilities', () => {
 
   describe('Media Query Detection', () => {
     test('detects reduced motion preference', () => {
-      (window.matchMedia as jest.Mock).mockImplementation(query => ({
+      (window.matchMedia as Mock).mockImplementation(query => ({
         matches: query === '(prefers-reduced-motion: reduce)',
         media: query,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
       }));
 
       expect(prefersReducedMotion()).toBe(true);
     });
 
     test('detects high contrast preference', () => {
-      (window.matchMedia as jest.Mock).mockImplementation(query => ({
+      (window.matchMedia as Mock).mockImplementation(query => ({
         matches: query === '(prefers-contrast: high)',
         media: query,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
       }));
 
       expect(prefersHighContrast()).toBe(true);
@@ -289,7 +290,7 @@ describe('AccessibleModal Component', () => {
 
   test('traps focus within modal', async () => {
     const user = userEvent.setup();
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     render(
       <TestWrapper>
@@ -326,7 +327,7 @@ describe('AccessibleModal Component', () => {
 
   test('closes on escape key', async () => {
     const user = userEvent.setup();
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     render(
       <TestWrapper>
@@ -393,15 +394,15 @@ describe('Keyboard Navigation', () => {
 
 describe('High Contrast Mode', () => {
   test('applies high contrast styles when preferred', () => {
-    (window.matchMedia as jest.Mock).mockImplementation(query => ({
+    (window.matchMedia as Mock).mockImplementation(query => ({
       matches: query === '(prefers-contrast: high)',
       media: query,
       onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
     }));
 
     render(
@@ -422,7 +423,7 @@ describe('Zoom Support', () => {
     Object.defineProperty(window, 'innerWidth', { value: 600, writable: true });
 
     const mockElement = document.createElement('div');
-    const spy = jest.spyOn(mockElement.classList, 'add');
+    const spy = vi.spyOn(mockElement.classList, 'add');
 
     zoomUtils.adjustForZoom(mockElement);
 
@@ -434,7 +435,7 @@ describe('Zoom Support', () => {
 
 describe('Screen Reader Support', () => {
   test('provides proper live region updates', () => {
-    const spy = jest.spyOn(document.body, 'appendChild');
+    const spy = vi.spyOn(document.body, 'appendChild');
     
     manageFocus.announce('Status update', 'assertive');
     

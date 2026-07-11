@@ -3,18 +3,20 @@ import { render, screen } from '@testing-library/react';
 import FitShowReportsPage from '../FitShowReportsPage';
 
 // Mock the FitShowScoreReports component
-jest.mock('../../components/FitShowScoreReports', () => {
-  return function MockFitShowScoreReports() {
+vi.mock('../../components/FitShowScoreReports', () => {
+  return {
+    default: function MockFitShowScoreReports() {
     return <div data-testid="fit-show-score-reports">Fit Show Score Reports Component</div>;
+    }
   };
 });
 
 // Mock AWS Amplify
-jest.mock('aws-amplify', () => ({
+vi.mock('aws-amplify', () => ({
   API: {
-    graphql: jest.fn(),
+    graphql: vi.fn(),
   },
-  graphqlOperation: jest.fn((query) => query),
+  graphqlOperation: vi.fn((query) => query),
 }));
 
 describe('FitShowReportsPage', () => {

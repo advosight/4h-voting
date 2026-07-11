@@ -14,8 +14,8 @@ const originalConsoleError = console.error;
 const originalConsoleLog = console.log;
 
 beforeAll(() => {
-  console.error = jest.fn();
-  console.log = jest.fn();
+  console.error = vi.fn();
+  console.log = vi.fn();
 });
 
 afterAll(() => {
@@ -41,7 +41,7 @@ Object.defineProperty(window, 'location', {
 
 describe('parseError', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('parses GraphQL errors correctly', () => {
@@ -307,11 +307,11 @@ describe('isRetryableError', () => {
 
 describe('retryWithBackoff', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('succeeds on first attempt', async () => {
-    const fn = jest.fn().mockResolvedValue('success');
+    const fn = vi.fn().mockResolvedValue('success');
 
     const result = await retryWithBackoff(fn);
 
@@ -320,7 +320,7 @@ describe('retryWithBackoff', () => {
   });
 
   it('retries on failure and eventually succeeds', async () => {
-    const fn = jest.fn()
+    const fn = vi.fn()
       .mockRejectedValueOnce(new Error('First failure'))
       .mockResolvedValue('success');
 
@@ -332,7 +332,7 @@ describe('retryWithBackoff', () => {
 
   it('exhausts retries and throws last error', async () => {
     const error = new Error('Persistent failure');
-    const fn = jest.fn().mockRejectedValue(error);
+    const fn = vi.fn().mockRejectedValue(error);
 
     await expect(retryWithBackoff(fn, { maxRetries: 2 })).rejects.toThrow('Persistent failure');
     expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
@@ -340,14 +340,14 @@ describe('retryWithBackoff', () => {
 
   it('does not retry non-retryable errors', async () => {
     const error = { error: { type: 'VALIDATION_ERROR', message: 'Invalid' } };
-    const fn = jest.fn().mockRejectedValue(error);
+    const fn = vi.fn().mockRejectedValue(error);
 
     await expect(retryWithBackoff(fn)).rejects.toEqual(error);
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it('uses custom retry options', async () => {
-    const fn = jest.fn().mockRejectedValue(new Error('Failure'));
+    const fn = vi.fn().mockRejectedValue(new Error('Failure'));
 
     await expect(retryWithBackoff(fn, { maxRetries: 1 })).rejects.toThrow('Failure');
     expect(fn).toHaveBeenCalledTimes(2); // Initial + 1 retry
@@ -356,7 +356,7 @@ describe('retryWithBackoff', () => {
 
 describe('withRetry', () => {
   it('creates a retry wrapper function', async () => {
-    const originalFn = jest.fn().mockResolvedValue('success');
+    const originalFn = vi.fn().mockResolvedValue('success');
     const wrappedFn = withRetry(originalFn);
 
     const result = await wrappedFn('arg1', 'arg2');
@@ -366,7 +366,7 @@ describe('withRetry', () => {
   });
 
   it('passes retry options to retryWithBackoff', async () => {
-    const originalFn = jest.fn().mockRejectedValue(new Error('Failure'));
+    const originalFn = vi.fn().mockRejectedValue(new Error('Failure'));
     const wrappedFn = withRetry(originalFn, { maxRetries: 1 });
 
     await expect(wrappedFn()).rejects.toThrow('Failure');
@@ -376,8 +376,8 @@ describe('withRetry', () => {
 
 describe('handleOptimisticLockConflict', () => {
   it('returns result when no conflict occurs', async () => {
-    const operation = jest.fn().mockResolvedValue('success');
-    const onConflict = jest.fn();
+    const operation = vi.fn().mockResolvedValue('success');
+    const onConflict = vi.fn();
 
     const result = await handleOptimisticLockConflict(operation, onConflict);
 
@@ -393,8 +393,8 @@ describe('handleOptimisticLockConflict', () => {
         message: 'Lock failed'
       }
     };
-    const operation = jest.fn().mockRejectedValue(error);
-    const onConflict = jest.fn().mockResolvedValue(undefined);
+    const operation = vi.fn().mockRejectedValue(error);
+    const onConflict = vi.fn().mockResolvedValue(undefined);
 
     await expect(handleOptimisticLockConflict(operation, onConflict)).rejects.toEqual(error);
     expect(onConflict).toHaveBeenCalled();
@@ -408,8 +408,8 @@ describe('handleOptimisticLockConflict', () => {
         message: 'Other conflict'
       }
     };
-    const operation = jest.fn().mockRejectedValue(error);
-    const onConflict = jest.fn();
+    const operation = vi.fn().mockRejectedValue(error);
+    const onConflict = vi.fn();
 
     await expect(handleOptimisticLockConflict(operation, onConflict)).rejects.toEqual(error);
     expect(onConflict).not.toHaveBeenCalled();
@@ -417,8 +417,8 @@ describe('handleOptimisticLockConflict', () => {
 
   it('does not call onConflict for non-conflict errors', async () => {
     const error = new Error('Other error');
-    const operation = jest.fn().mockRejectedValue(error);
-    const onConflict = jest.fn();
+    const operation = vi.fn().mockRejectedValue(error);
+    const onConflict = vi.fn();
 
     await expect(handleOptimisticLockConflict(operation, onConflict)).rejects.toThrow('Other error');
     expect(onConflict).not.toHaveBeenCalled();
@@ -427,7 +427,7 @@ describe('handleOptimisticLockConflict', () => {
 
 describe('logError', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('logs error with context', () => {

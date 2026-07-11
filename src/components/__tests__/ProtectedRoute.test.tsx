@@ -3,28 +3,29 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { Authenticator } from '@aws-amplify/ui-react';
 import ProtectedRoute from '../ProtectedRoute';
 import * as roleUtils from '../../utils/roleUtils';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock the role utils
-jest.mock('../../utils/roleUtils', () => ({
-  getUserRole: jest.fn(),
-  hasAnyRole: jest.fn(),
+vi.mock('../../utils/roleUtils', () => ({
+  getUserRole: vi.fn(),
+  hasAnyRole: vi.fn(),
 }));
 
 // Mock the Authenticator component
-jest.mock('@aws-amplify/ui-react', () => ({
+vi.mock('@aws-amplify/ui-react', () => ({
   Authenticator: ({ children }: { children: any }) => {
     const mockUser = { userId: 'test-user', email: 'test@example.com' };
-    const mockSignOut = jest.fn();
+    const mockSignOut = vi.fn();
     return children({ user: mockUser, signOut: mockSignOut });
   },
 }));
 
-const mockGetUserRole = roleUtils.getUserRole as jest.MockedFunction<typeof roleUtils.getUserRole>;
-const mockHasAnyRole = roleUtils.hasAnyRole as jest.MockedFunction<typeof roleUtils.hasAnyRole>;
+const mockGetUserRole = roleUtils.getUserRole as MockedFunction<typeof roleUtils.getUserRole>;
+const mockHasAnyRole = roleUtils.hasAnyRole as MockedFunction<typeof roleUtils.hasAnyRole>;
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const TestComponent = () => <div>Protected Content</div>;

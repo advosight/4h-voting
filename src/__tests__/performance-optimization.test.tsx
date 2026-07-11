@@ -7,39 +7,40 @@ import usePerformanceOptimization from '../hooks/usePerformanceOptimization';
 import { ResponsiveImage } from '../components/ResponsiveImage';
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator';
 import { PerformanceMonitorButton } from '../components/PerformanceDashboard';
+import { register, performanceMonitor, offlineStorage } from '../utils/serviceWorker';
 
 // Mock the service worker utilities
-jest.mock('../utils/serviceWorker', () => ({
-  register: jest.fn(),
+vi.mock('../utils/serviceWorker', () => ({
+  register: vi.fn(),
   performanceMonitor: {
-    startTiming: jest.fn(),
-    endTiming: jest.fn(),
-    observeWebVitals: jest.fn(),
+    startTiming: vi.fn(),
+    endTiming: vi.fn(),
+    observeWebVitals: vi.fn(),
   },
   networkManager: {
     isOnline: true,
-    addListener: jest.fn(() => jest.fn()),
+    addListener: vi.fn(() => vi.fn()),
   },
   offlineStorage: {
-    storeOfflineData: jest.fn(),
-    getOfflineData: jest.fn(() => Promise.resolve([])),
-    clearOfflineData: jest.fn(),
+    storeOfflineData: vi.fn(),
+    getOfflineData: vi.fn(() => Promise.resolve([])),
+    clearOfflineData: vi.fn(),
   },
   swMessenger: {
-    getCacheStatus: jest.fn(() => Promise.resolve({})),
-    clearCache: jest.fn(),
+    getCacheStatus: vi.fn(() => Promise.resolve({})),
+    clearCache: vi.fn(),
   },
 }));
 
 // Mock mobile detection
-jest.mock('../utils/mobileDetection', () => ({
-  isMobileDevice: jest.fn(() => false),
-  isTouchDevice: jest.fn(() => false),
-  getViewportWidth: jest.fn(() => 1024),
-  isMobileViewport: jest.fn(() => false),
-  getDeviceType: jest.fn(() => 'desktop'),
-  shouldLoadMobileComponents: jest.fn(() => false),
-  getOptimalImageSize: jest.fn(() => ({ width: 1200, quality: 90 })),
+vi.mock('../utils/mobileDetection', () => ({
+  isMobileDevice: vi.fn(() => false),
+  isTouchDevice: vi.fn(() => false),
+  getViewportWidth: vi.fn(() => 1024),
+  isMobileViewport: vi.fn(() => false),
+  getDeviceType: vi.fn(() => 'desktop'),
+  shouldLoadMobileComponents: vi.fn(() => false),
+  getOptimalImageSize: vi.fn(() => ({ width: 1200, quality: 90 })),
 }));
 
 // Test component that uses performance optimization hook
@@ -77,7 +78,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe('Performance Optimization', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('usePerformanceOptimization hook', () => {
@@ -221,7 +222,6 @@ describe('Performance Optimization', () => {
 
   describe('Service Worker integration', () => {
     it('should register service worker', () => {
-      const { register } = require('../utils/serviceWorker');
       
       // Service worker registration should be called
       expect(register).toBeDefined();
@@ -231,7 +231,6 @@ describe('Performance Optimization', () => {
 
 describe('Performance Metrics', () => {
   it('should track performance timing', () => {
-    const { performanceMonitor } = require('../utils/serviceWorker');
     
     performanceMonitor.startTiming('test-metric');
     performanceMonitor.endTiming('test-metric');
@@ -241,7 +240,6 @@ describe('Performance Metrics', () => {
   });
 
   it('should observe web vitals', () => {
-    const { performanceMonitor } = require('../utils/serviceWorker');
     
     performanceMonitor.observeWebVitals();
     
@@ -251,7 +249,6 @@ describe('Performance Metrics', () => {
 
 describe('Offline functionality', () => {
   it('should store data offline', async () => {
-    const { offlineStorage } = require('../utils/serviceWorker');
     
     await offlineStorage.storeOfflineData('votes', { id: '1', vote: 'test' });
     
@@ -259,7 +256,6 @@ describe('Offline functionality', () => {
   });
 
   it('should retrieve offline data', async () => {
-    const { offlineStorage } = require('../utils/serviceWorker');
     
     await offlineStorage.getOfflineData('votes');
     
@@ -267,7 +263,6 @@ describe('Offline functionality', () => {
   });
 
   it('should clear offline data', async () => {
-    const { offlineStorage } = require('../utils/serviceWorker');
     
     await offlineStorage.clearOfflineData('votes');
     

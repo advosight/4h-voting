@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
 // Mock AWS Amplify completely to avoid subscription issues
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: jest.fn().mockResolvedValue({
+    graphql: vi.fn().mockResolvedValue({
       data: {
         listCats: {
           items: [

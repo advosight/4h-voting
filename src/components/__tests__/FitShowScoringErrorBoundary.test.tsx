@@ -14,7 +14,7 @@ describe('FitShowScoringErrorBoundary', () => {
   // Suppress console.error for these tests
   const originalError = console.error;
   beforeAll(() => {
-    console.error = jest.fn();
+    console.error = vi.fn();
   });
 
   afterAll(() => {
@@ -22,7 +22,7 @@ describe('FitShowScoringErrorBoundary', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render children when no error occurs', () => {
@@ -96,7 +96,7 @@ describe('FitShowScoringErrorBoundary', () => {
   });
 
   it('should call onError callback when provided', () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
     
     render(
       <FitShowScoringErrorBoundary onError={onError}>
@@ -151,7 +151,7 @@ describe('FitShowScoringErrorBoundary', () => {
 
   it('should reload page when Reload Page is clicked', () => {
     // Mock window.location.reload
-    const mockReload = jest.fn();
+    const mockReload = vi.fn();
     Object.defineProperty(window, 'location', {
       value: { reload: mockReload },
       writable: true
@@ -252,7 +252,7 @@ describe('FitShowScoringErrorBoundary', () => {
 
   it('should report to error tracker if available', () => {
     const mockErrorTracker = {
-      captureException: jest.fn()
+      captureException: vi.fn()
     };
 
     // Mock window.errorTracker

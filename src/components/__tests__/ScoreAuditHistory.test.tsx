@@ -38,10 +38,10 @@ const mockAuditEntries = [
 ];
 
 describe('ScoreAuditHistory', () => {
-  const mockOnLoadAuditHistory = jest.fn();
+  const mockOnLoadAuditHistory = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('loading states', () => {

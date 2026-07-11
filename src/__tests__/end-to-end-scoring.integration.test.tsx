@@ -68,17 +68,17 @@ class MockWebSocket {
 global.WebSocket = MockWebSocket;
 
 // Mock authentication and roles
-jest.mock('../utils/roleUtils', () => ({
-  getCurrentUser: jest.fn(),
-  hasRole: jest.fn(),
-  isJudge: jest.fn(),
-  isAdmin: jest.fn(),
-  requireRole: jest.fn(),
+vi.mock('../utils/roleUtils', () => ({
+  getCurrentUser: vi.fn(),
+  hasRole: vi.fn(),
+  isJudge: vi.fn(),
+  isAdmin: vi.fn(),
+  requireRole: vi.fn(),
 }));
 
 // Mock CSV export
-const mockCreateObjectURL = jest.fn(() => 'blob:mock-url');
-const mockRevokeObjectURL = jest.fn();
+const mockCreateObjectURL = vi.fn(() => 'blob:mock-url');
+const mockRevokeObjectURL = vi.fn();
 Object.defineProperty(window.URL, 'createObjectURL', { value: mockCreateObjectURL });
 Object.defineProperty(window.URL, 'revokeObjectURL', { value: mockRevokeObjectURL });
 
@@ -134,7 +134,7 @@ describe('End-to-End Scoring Integration Tests', () => {
 
   beforeEach(() => {
     mockRoleUtils = require('../utils/roleUtils');
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockCreateObjectURL.mockClear();
     mockRevokeObjectURL.mockClear();
   });

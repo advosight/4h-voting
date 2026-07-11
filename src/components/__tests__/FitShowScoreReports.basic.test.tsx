@@ -3,9 +3,9 @@ import { render } from '@testing-library/react';
 import FitShowScoreReports from '../FitShowScoreReports';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify', () => ({
+vi.mock('aws-amplify', () => ({
   API: {
-    graphql: jest.fn(() => Promise.resolve({
+    graphql: vi.fn(() => Promise.resolve({
       data: {
         listFitShowScores: {
           items: [],
@@ -14,7 +14,7 @@ jest.mock('aws-amplify', () => ({
       },
     })),
   },
-  graphqlOperation: jest.fn((query) => query),
+  graphqlOperation: vi.fn((query) => query),
 }));
 
 describe('FitShowScoreReports Basic', () => {

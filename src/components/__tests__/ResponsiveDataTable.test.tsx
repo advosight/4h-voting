@@ -5,9 +5,9 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import ResponsiveDataTable, { TableColumn } from '../ResponsiveDataTable';
 
 // Mock useMediaQuery
-const mockUseMediaQuery = jest.fn();
-jest.mock('@mui/material', () => {
-  const actual = jest.requireActual('@mui/material');
+const mockUseMediaQuery = vi.fn();
+vi.mock('@mui/material', async () => {
+  const actual = await vi.importActual('@mui/material');
   return {
     ...actual,
     useMediaQuery: () => mockUseMediaQuery(),
@@ -67,7 +67,7 @@ describe('ResponsiveDataTable', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Basic Rendering', () => {
@@ -130,7 +130,7 @@ describe('ResponsiveDataTable', () => {
 
   describe('Sorting', () => {
     it('calls onSort when sortable column header is clicked', async () => {
-      const mockOnSort = jest.fn();
+      const mockOnSort = vi.fn();
       
       renderWithTheme(
         <ResponsiveDataTable
@@ -147,7 +147,7 @@ describe('ResponsiveDataTable', () => {
     });
 
     it('toggles sort direction on repeated clicks', async () => {
-      const mockOnSort = jest.fn();
+      const mockOnSort = vi.fn();
       
       renderWithTheme(
         <ResponsiveDataTable
@@ -166,7 +166,7 @@ describe('ResponsiveDataTable', () => {
     });
 
     it('supports keyboard navigation for sorting', async () => {
-      const mockOnSort = jest.fn();
+      const mockOnSort = vi.fn();
       
       renderWithTheme(
         <ResponsiveDataTable
@@ -255,7 +255,7 @@ describe('ResponsiveDataTable', () => {
       page: 1,
       pageSize: 2,
       total: 3,
-      onPageChange: jest.fn()
+      onPageChange: vi.fn()
     };
 
     it('renders pagination controls', () => {
@@ -274,7 +274,7 @@ describe('ResponsiveDataTable', () => {
     });
 
     it('calls onPageChange when pagination buttons are clicked', () => {
-      const mockOnPageChange = jest.fn();
+      const mockOnPageChange = vi.fn();
       
       renderWithTheme(
         <ResponsiveDataTable
@@ -326,7 +326,7 @@ describe('ResponsiveDataTable', () => {
   describe('Expandable Rows', () => {
     const expandableProps = {
       expandableRows: true,
-      onRowExpand: jest.fn(() => <div>Expanded content</div>)
+      onRowExpand: vi.fn(() => <div>Expanded content</div>)
     };
 
     it('renders expand buttons in mobile card view', () => {
@@ -348,7 +348,7 @@ describe('ResponsiveDataTable', () => {
     it('expands and collapses rows in mobile view', async () => {
       mockUseMediaQuery.mockReturnValue(true); // Mobile
       
-      const mockOnRowExpand = jest.fn(() => <div>Expanded content</div>);
+      const mockOnRowExpand = vi.fn(() => <div>Expanded content</div>);
       
       renderWithTheme(
         <ResponsiveDataTable

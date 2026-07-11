@@ -2,6 +2,7 @@
 .kiro
 .vscode
 /build
+/dist
 cdk.out
 cdk.out.temp
 /coverage

@@ -1,14 +1,14 @@
 // Test utilities for mocking AWS Amplify
 export const createMockGraphqlClient = () => {
-  const mockGraphql = jest.fn();
+  const mockGraphql = vi.fn();
   
   // Default implementation that handles both queries and subscriptions
   mockGraphql.mockImplementation((params) => {
     if (params.query && params.query.includes('subscription')) {
       // Return a subscription object
       return {
-        subscribe: jest.fn(() => ({
-          unsubscribe: jest.fn(),
+        subscribe: vi.fn(() => ({
+          unsubscribe: vi.fn(),
         })),
       };
     }
@@ -31,13 +31,13 @@ export const setupAmplifyMocks = () => {
   const { mockGraphql, mockClient } = createMockGraphqlClient();
   
   // Mock AWS Amplify API
-  jest.mock('aws-amplify/api', () => ({
-    generateClient: jest.fn(() => mockClient),
+  vi.mock('aws-amplify/api', () => ({
+    generateClient: vi.fn(() => mockClient),
   }));
   
   // Mock AWS Amplify Auth
-  jest.mock('aws-amplify/auth', () => ({
-    getCurrentUser: jest.fn(),
+  vi.mock('aws-amplify/auth', () => ({
+    getCurrentUser: vi.fn(),
   }));
   
   return { mockGraphql, mockClient };

@@ -10,17 +10,18 @@ import {
   logClassScoringError,
   createClassScoringErrorResponse,
   isClassScoringError,
-  getValidationErrorSummary
+  getValidationErrorSummary,
+  ClassScoringNetworkMonitor
 } from '../classErrorHandling';
 
 // Mock the base error handling functions
-jest.mock('../errorHandling', () => ({
-  ...jest.requireActual('../errorHandling'),
-  logError: jest.fn(),
-  retryWithBackoff: jest.fn(),
-  withRetry: jest.fn((fn) => fn),
-  parseError: jest.fn((error) => ({ error: { type: 'SYSTEM_ERROR', message: error.message } })),
-  getUserFriendlyMessage: jest.fn(() => 'Base error message')
+vi.mock('../errorHandling', async () => ({
+  ...(await vi.importActual('../errorHandling')),
+  logError: vi.fn(),
+  retryWithBackoff: vi.fn(),
+  withRetry: vi.fn((fn) => fn),
+  parseError: vi.fn((error) => ({ error: { type: 'SYSTEM_ERROR', message: error.message } })),
+  getUserFriendlyMessage: vi.fn(() => 'Base error message')
 }));
 
 describe('ClassScoringValidationError', () => {
@@ -295,13 +296,13 @@ describe('getValidationErrorSummary', () => {
 
 describe('logClassScoringError', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Mock console.error
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should log class scoring error with context', () => {
@@ -332,8 +333,8 @@ describe('logClassScoringError', () => {
 
 describe('handleClassScoringOptimisticLock', () => {
   it('should execute operation successfully', async () => {
-    const operation = jest.fn().mockResolvedValue('success');
-    const onConflict = jest.fn();
+    const operation = vi.fn().mockResolvedValue('success');
+    const onConflict = vi.fn();
 
     const result = await handleClassScoringOptimisticLock(operation, onConflict);
 
@@ -351,8 +352,8 @@ describe('handleClassScoringOptimisticLock', () => {
       }
     };
     
-    const operation = jest.fn().mockRejectedValue(conflictError);
-    const onConflict = jest.fn().mockResolvedValue(undefined);
+    const operation = vi.fn().mockRejectedValue(conflictError);
+    const onConflict = vi.fn().mockResolvedValue(undefined);
 
     await expect(
       handleClassScoringOptimisticLock(operation, onConflict)
@@ -369,8 +370,8 @@ describe('handleClassScoringOptimisticLock', () => {
 
   it('should re-throw non-conflict errors', async () => {
     const otherError = new Error('Other error');
-    const operation = jest.fn().mockRejectedValue(otherError);
-    const onConflict = jest.fn();
+    const operation = vi.fn().mockRejectedValue(otherError);
+    const onConflict = vi.fn();
 
     await expect(
       handleClassScoringOptimisticLock(operation, onConflict)
@@ -382,19 +383,19 @@ describe('handleClassScoringOptimisticLock', () => {
 
 describe('retryClassScoringOperation', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+    vi.clearAllMocks();
+    vi.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
       fn();
       return 1 as any;
     });
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should succeed on first attempt', async () => {
-    const operation = jest.fn().mockResolvedValue('success');
+    const operation = vi.fn().mockResolvedValue('success');
     
     const result = await retryClassScoringOperation(operation);
     
@@ -403,7 +404,7 @@ describe('retryClassScoringOperation', () => {
   });
 
   it('should retry on retryable errors', async () => {
-    const operation = jest.fn()
+    const operation = vi.fn()
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValue('success');
     
@@ -414,10 +415,10 @@ describe('retryClassScoringOperation', () => {
   });
 
   it('should call retry callback', async () => {
-    const operation = jest.fn()
+    const operation = vi.fn()
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValue('success');
-    const onRetry = jest.fn();
+    const onRetry = vi.fn();
     
     await retryClassScoringOperation(operation, { onRetry });
     
@@ -425,8 +426,8 @@ describe('retryClassScoringOperation', () => {
   });
 
   it('should call final failure callback', async () => {
-    const operation = jest.fn().mockRejectedValue(new Error('Persistent error'));
-    const onFinalFailure = jest.fn();
+    const operation = vi.fn().mockRejectedValue(new Error('Persistent error'));
+    const onFinalFailure = vi.fn();
     
     await expect(
       retryClassScoringOperation(operation, { maxRetries: 2, onFinalFailure })
@@ -438,19 +439,19 @@ describe('retryClassScoringOperation', () => {
 
 describe('withOptimisticLockRetry', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+    vi.clearAllMocks();
+    vi.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
       fn();
       return 1 as any;
     });
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should succeed on first attempt', async () => {
-    const operation = jest.fn().mockResolvedValue('success');
+    const operation = vi.fn().mockResolvedValue('success');
     
     const result = await withOptimisticLockRetry(operation);
     
@@ -467,11 +468,11 @@ describe('withOptimisticLockRetry', () => {
       }
     };
     
-    const operation = jest.fn()
+    const operation = vi.fn()
       .mockRejectedValueOnce(conflictError)
       .mockResolvedValue('success');
     
-    const onConflict = jest.fn();
+    const onConflict = vi.fn();
     
     const result = await withOptimisticLockRetry(operation, { onConflict });
     
@@ -489,8 +490,8 @@ describe('withOptimisticLockRetry', () => {
       }
     };
     
-    const operation = jest.fn().mockRejectedValue(conflictError);
-    const onFinalConflict = jest.fn();
+    const operation = vi.fn().mockRejectedValue(conflictError);
+    const onFinalConflict = vi.fn();
     
     await expect(
       withOptimisticLockRetry(operation, { maxRetries: 2, onFinalConflict })
@@ -510,7 +511,6 @@ describe('ClassScoringNetworkMonitor', () => {
   let monitor: any;
 
   beforeEach(() => {
-    const { ClassScoringNetworkMonitor } = require('../classErrorHandling');
     monitor = new ClassScoringNetworkMonitor();
   });
 
@@ -525,7 +525,7 @@ describe('ClassScoringNetworkMonitor', () => {
   });
 
   it('should add and remove listeners', () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const removeListener = monitor.addListener(listener);
     
     expect(typeof removeListener).toBe('function');

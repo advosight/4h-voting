@@ -9,46 +9,49 @@ import {
 import { ClassScoringValidationError } from '../../utils/classErrorHandling';
 
 // Mock the class error handling utilities
-jest.mock('../../utils/classErrorHandling', () => ({
-  ClassScoringValidationError: jest.requireActual('../../utils/classErrorHandling').ClassScoringValidationError,
-  getValidationErrorSummary: jest.fn((errors) => {
-    if (errors.length === 0) return '';
-    if (errors.length === 1) return errors[0].message;
-    return `Please fix ${errors.length} validation errors`;
-  }),
-  validateClassScoringInput: jest.fn((input) => {
-    const errors = [];
-    if (input.beautyScore > 15) {
-      errors.push(new (jest.requireActual('../../utils/classErrorHandling').ClassScoringValidationError)(
-        'Beauty score must be between 0 and 15',
-        'beauty',
-        'beautyScore',
-        { minValue: 0, maxValue: 15, currentValue: input.beautyScore }
-      ));
-    }
-    if (input.personalityScore > 20) {
-      errors.push(new (jest.requireActual('../../utils/classErrorHandling').ClassScoringValidationError)(
-        'Personality score must be between 0 and 20',
-        'personality',
-        'personalityScore',
-        { minValue: 0, maxValue: 20, currentValue: input.personalityScore }
-      ));
-    }
-    return errors;
-  }),
-  validateHealthRequirements: jest.fn((input) => {
-    const errors = [];
-    if (!input.coatCleanGroomed) {
-      errors.push(new (jest.requireActual('../../utils/classErrorHandling').ClassScoringValidationError)(
-        'All health items must be evaluated',
-        'health',
-        'healthGrooming',
-        { requiredFields: ['Coat Clean & Groomed'] }
-      ));
-    }
-    return errors;
-  })
-}));
+vi.mock('../../utils/classErrorHandling', async () => {
+  const actual = await vi.importActual('../../utils/classErrorHandling');
+  return {
+    ClassScoringValidationError: actual.ClassScoringValidationError,
+    getValidationErrorSummary: vi.fn((errors) => {
+      if (errors.length === 0) return '';
+      if (errors.length === 1) return errors[0].message;
+      return `Please fix ${errors.length} validation errors`;
+    }),
+    validateClassScoringInput: vi.fn((input) => {
+      const errors = [];
+      if (input.beautyScore > 15) {
+        errors.push(new actual.ClassScoringValidationError(
+          'Beauty score must be between 0 and 15',
+          'beauty',
+          'beautyScore',
+          { minValue: 0, maxValue: 15, currentValue: input.beautyScore }
+        ));
+      }
+      if (input.personalityScore > 20) {
+        errors.push(new actual.ClassScoringValidationError(
+          'Personality score must be between 0 and 20',
+          'personality',
+          'personalityScore',
+          { minValue: 0, maxValue: 20, currentValue: input.personalityScore }
+        ));
+      }
+      return errors;
+    }),
+    validateHealthRequirements: vi.fn((input) => {
+      const errors = [];
+      if (!input.coatCleanGroomed) {
+        errors.push(new actual.ClassScoringValidationError(
+          'All health items must be evaluated',
+          'health',
+          'healthGrooming',
+          { requiredFields: ['Coat Clean & Groomed'] }
+        ));
+      }
+      return errors;
+    })
+  };
+});
 
 describe('ClassScoringValidationDisplay', () => {
   it('should render nothing when no errors', () => {

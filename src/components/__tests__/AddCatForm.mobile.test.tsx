@@ -3,16 +3,19 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from '../../theme/theme';
 import AddCatForm from '../AddCatForm';
+import { generateClient as _generateClient } from 'aws-amplify/api';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
-  generateClient: () => ({
-    graphql: jest.fn()
-  })
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => ({
+    graphql: vi.fn()
+  }))
 }));
 
+const generateClient = vi.mocked(_generateClient, { partial: true });
+
 // Mock age groups
-jest.mock('../../utils/ageGroups', () => ({
+vi.mock('../../utils/ageGroups', () => ({
   OWNER_AGE_GROUPS: [
     { value: 'junior', label: 'Junior (8-13)' },
     { value: 'senior', label: 'Senior (14-18)' }
@@ -32,22 +35,22 @@ const renderWithTheme = (component: React.ReactElement) => {
 };
 
 describe('AddCatForm Mobile Layout', () => {
-  const mockOnCatAdded = jest.fn();
+  const mockOnCatAdded = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Mock mobile viewport
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: jest.fn().mockImplementation(query => ({
+      value: vi.fn().mockImplementation(query => ({
         matches: query.includes('(max-width: 899.95px)'), // Mobile breakpoint
         media: query,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
       })),
     });
   });
@@ -97,7 +100,7 @@ describe('AddCatForm Mobile Layout', () => {
   });
 
   it('handles form submission with proper mobile feedback', async () => {
-    const mockGraphql = jest.fn().mockResolvedValue({
+    const mockGraphql = vi.fn().mockResolvedValue({
       data: {
         createCat: {
           id: 'test-id',
@@ -112,7 +115,6 @@ describe('AddCatForm Mobile Layout', () => {
     });
 
     // Mock the client
-    const { generateClient } = require('aws-amplify/api');
     generateClient.mockReturnValue({
       graphql: mockGraphql
     });

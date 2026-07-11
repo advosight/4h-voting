@@ -4,13 +4,15 @@ import { BrowserRouter } from 'react-router-dom';
 import ReportsPage from '../ReportsPage';
 
 // Mock the components
-jest.mock('../../components/ScoreReports', () => {
-  return function MockScoreReports() {
+vi.mock('../../components/ScoreReports', () => {
+  return {
+    default: function MockScoreReports() {
     return <div data-testid="cage-score-reports">Cage Score Reports Component</div>;
+    }
   };
 });
 
-jest.mock('../../components/ClassScoreReports', () => {
+vi.mock('../../components/ClassScoreReports', () => {
   return {
     ClassScoreReports: function MockClassScoreReports() {
       return <div data-testid="class-score-reports">Class Score Reports Component</div>;

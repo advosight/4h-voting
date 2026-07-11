@@ -6,16 +6,17 @@ import { generateClient } from 'aws-amplify/api';
 import FitShowScoreReports from '../components/FitShowScoreReports';
 import FitShowScoreLeaderboard from '../components/FitShowScoreLeaderboard';
 import FitShowScoringPage from '../pages/FitShowScoringPage';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 
 const mockClient = {
-  graphql: jest.fn(),
-  cancel: jest.fn(),
+  graphql: vi.fn(),
+  cancel: vi.fn(),
 };
 
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Helper to generate large datasets
 const generateMockScores = (count: number) => {
@@ -40,7 +41,7 @@ const generateMockScores = (count: number) => {
 
 describe('Fit and Show Scoring Performance Integration Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     Amplify.configure({
       API: {
@@ -55,10 +56,10 @@ describe('Fit and Show Scoring Performance Integration Tests', () => {
     // Mock performance API
     Object.defineProperty(window, 'performance', {
       value: {
-        now: jest.fn(() => Date.now()),
-        mark: jest.fn(),
-        measure: jest.fn(),
-        getEntriesByType: jest.fn(() => [])
+        now: vi.fn(() => Date.now()),
+        mark: vi.fn(),
+        measure: vi.fn(),
+        getEntriesByType: vi.fn(() => [])
       }
     });
   });
@@ -244,7 +245,7 @@ describe('Fit and Show Scoring Performance Integration Tests', () => {
 
       // Mock subscription
       const mockSubscription = {
-        subscribe: jest.fn((callback) => {
+        subscribe: vi.fn((callback) => {
           // Simulate rapid concurrent updates
           updates.forEach((score, index) => {
             setTimeout(() => {
@@ -254,7 +255,7 @@ describe('Fit and Show Scoring Performance Integration Tests', () => {
             }, index * 10); // 10ms intervals
           });
           
-          return { unsubscribe: jest.fn() };
+          return { unsubscribe: vi.fn() };
         })
       };
 
@@ -406,7 +407,7 @@ describe('Fit and Show Scoring Performance Integration Tests', () => {
     });
 
     test('should optimize re-renders with large lists', async () => {
-      const renderSpy = jest.spyOn(React, 'useState');
+      const renderSpy = vi.spyOn(React, 'useState');
       const scores = generateMockScores(200);
       
       mockClient.graphql.mockResolvedValue({

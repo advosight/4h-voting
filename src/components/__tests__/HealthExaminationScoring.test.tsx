@@ -16,11 +16,11 @@ describe('HealthExaminationScoring', () => {
     toenailsClipped: 4,
     comments: 'Good health examination technique',
     total: 17,
-    onScoreChange: jest.fn()
+    onScoreChange: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the health examination scoring section', () => {

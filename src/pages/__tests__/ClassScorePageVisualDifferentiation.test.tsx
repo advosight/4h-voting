@@ -4,44 +4,53 @@ import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import ClassScorePage from '../ClassScorePage';
 import '@testing-library/jest-dom';
+import { generateClient as _generateClient } from 'aws-amplify/api';
+import { getCurrentUser as _getCurrentUser } from 'aws-amplify/auth';
+import { isJudge as _isJudge } from '../../utils/roleUtils';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
-  generateClient: () => ({
-    graphql: jest.fn()
-  })
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => ({
+    graphql: vi.fn()
+  }))
 }));
 
-jest.mock('aws-amplify/auth', () => ({
-  getCurrentUser: jest.fn()
+vi.mock('aws-amplify/auth', () => ({
+  getCurrentUser: vi.fn()
 }));
 
 // Mock the utility functions
-jest.mock('../../utils/errorHandling', () => ({
-  parseError: jest.fn(),
-  getUserFriendlyMessage: jest.fn(),
-  logError: jest.fn(),
-  withRetry: jest.fn((fn) => fn),
-  handleOptimisticLockConflict: jest.fn((fn) => fn)
+vi.mock('../../utils/errorHandling', () => ({
+  parseError: vi.fn(),
+  getUserFriendlyMessage: vi.fn(),
+  logError: vi.fn(),
+  withRetry: vi.fn((fn) => fn),
+  handleOptimisticLockConflict: vi.fn((fn) => fn)
 }));
 
-jest.mock('../../utils/roleUtils', () => ({
-  isJudge: jest.fn(),
-  getUserRole: jest.fn()
+vi.mock('../../utils/roleUtils', () => ({
+  isJudge: vi.fn(),
+  getUserRole: vi.fn()
 }));
+
+const generateClient = vi.mocked(_generateClient, { partial: true });
+const getCurrentUser = vi.mocked(_getCurrentUser, { partial: true });
+const isJudge = vi.mocked(_isJudge);
 
 // Mock components
-jest.mock('../components/ClassScoringForm', () => {
-  return function MockClassScoringForm() {
+vi.mock('../components/ClassScoringForm', () => {
+  return {
+    default: function MockClassScoringForm() {
     return <div data-testid="class-scoring-form">Mock Type Class Scoring Form</div>;
+    }
   };
 });
 
-jest.mock('../components/ScoringErrorBoundary', () => ({
+vi.mock('../components/ScoringErrorBoundary', () => ({
   ScoringErrorBoundary: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 }));
 
-jest.mock('../components/NetworkErrorHandler', () => ({
+vi.mock('../components/NetworkErrorHandler', () => ({
   NetworkErrorHandler: () => <div data-testid="network-error-handler">Network Error Handler</div>
 }));
 
@@ -58,18 +67,17 @@ const renderClassScorePage = () => {
 };
 
 // Mock useParams to return test data
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useParams: () => ({ catId: '1' }),
-  useNavigate: () => jest.fn()
+  useNavigate: () => vi.fn()
 }));
 
 describe('ClassScorePage Visual Differentiation', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock successful authentication
-    const { getCurrentUser } = require('aws-amplify/auth');
     getCurrentUser.mockResolvedValue({
       userId: 'judge1',
       username: 'testjudge',
@@ -77,7 +85,6 @@ describe('ClassScorePage Visual Differentiation', () => {
     });
 
     // Mock judge role check
-    const { isJudge } = require('../../utils/roleUtils');
     isJudge.mockResolvedValue(true);
   });
 
@@ -158,7 +165,6 @@ describe('ClassScorePage Visual Differentiation', () => {
 
     test('should display loading state with class scoring specific styling', async () => {
       // Mock loading state by not resolving the auth promise immediately
-      const { getCurrentUser } = require('aws-amplify/auth');
       getCurrentUser.mockImplementation(() => new Promise(() => {})); // Never resolves
       
       renderClassScorePage();
@@ -171,7 +177,6 @@ describe('ClassScorePage Visual Differentiation', () => {
 
   describe('Error States with Blue Theme', () => {
     test('should display authentication error with class scoring styling', async () => {
-      const { getCurrentUser } = require('aws-amplify/auth');
       getCurrentUser.mockRejectedValue(new Error('Authentication failed'));
       
       renderClassScorePage();
@@ -183,7 +188,6 @@ describe('ClassScorePage Visual Differentiation', () => {
     });
 
     test('should display permission error with class scoring styling', async () => {
-      const { isJudge } = require('../../utils/roleUtils');
       isJudge.mockResolvedValue(false);
       
       renderClassScorePage();
@@ -194,9 +198,8 @@ describe('ClassScorePage Visual Differentiation', () => {
     });
 
     test('should display cat not found error with class scoring styling', async () => {
-      const { generateClient } = require('aws-amplify/api');
       const mockClient = {
-        graphql: jest.fn().mockResolvedValue({
+        graphql: vi.fn().mockResolvedValue({
           data: { getCat: null }
         })
       };
@@ -212,7 +215,6 @@ describe('ClassScorePage Visual Differentiation', () => {
 
   describe('Return Button Styling', () => {
     test('should display return button with blue theme styling', async () => {
-      const { getCurrentUser } = require('aws-amplify/auth');
       getCurrentUser.mockRejectedValue(new Error('Authentication failed'));
       
       renderClassScorePage();
@@ -227,7 +229,6 @@ describe('ClassScorePage Visual Differentiation', () => {
 
   describe('Loading State Visual Differentiation', () => {
     test('should display class scoring specific loading message', async () => {
-      const { getCurrentUser } = require('aws-amplify/auth');
       getCurrentUser.mockImplementation(() => new Promise(() => {})); // Never resolves
       
       renderClassScorePage();
@@ -239,7 +240,6 @@ describe('ClassScorePage Visual Differentiation', () => {
     });
 
     test('should display trophy icon in loading state', async () => {
-      const { getCurrentUser } = require('aws-amplify/auth');
       getCurrentUser.mockImplementation(() => new Promise(() => {})); // Never resolves
       
       renderClassScorePage();
@@ -323,7 +323,6 @@ describe('ClassScorePage Visual Differentiation', () => {
 
   describe('Color Scheme Consistency', () => {
     test('should maintain blue color scheme throughout error states', async () => {
-      const { getCurrentUser } = require('aws-amplify/auth');
       getCurrentUser.mockRejectedValue(new Error('Authentication failed'));
       
       renderClassScorePage();

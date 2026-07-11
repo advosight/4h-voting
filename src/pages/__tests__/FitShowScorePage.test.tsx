@@ -6,9 +6,9 @@ import { theme } from '../../theme/theme';
 import FitShowScorePage from '../FitShowScorePage';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: jest.fn().mockResolvedValue({
+    graphql: vi.fn().mockResolvedValue({
       data: {
         getCat: {
           id: 'cat-123',
@@ -23,8 +23,8 @@ jest.mock('aws-amplify/api', () => ({
   })
 }));
 
-jest.mock('aws-amplify/auth', () => ({
-  getCurrentUser: jest.fn().mockResolvedValue({
+vi.mock('aws-amplify/auth', () => ({
+  getCurrentUser: vi.fn().mockResolvedValue({
     signInDetails: {
       loginId: 'judge@example.com'
     }
@@ -32,15 +32,15 @@ jest.mock('aws-amplify/auth', () => ({
 }));
 
 // Mock navigation
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
   useParams: () => ({ catId: 'cat-123' }),
 }));
 
 // Mock components
-jest.mock('../../components/FitShowScoringForm', () => ({
+vi.mock('../../components/FitShowScoringForm', () => ({
   FitShowScoringForm: ({ catId, participantName, onSubmit }: any) => (
     <div data-testid="fit-show-scoring-form">
       <div>Cat ID: {catId}</div>
@@ -50,11 +50,11 @@ jest.mock('../../components/FitShowScoringForm', () => ({
   )
 }));
 
-jest.mock('../../components/FitShowScoringErrorBoundary', () => ({
+vi.mock('../../components/FitShowScoringErrorBoundary', () => ({
   FitShowScoringErrorBoundary: ({ children }: any) => <div>{children}</div>
 }));
 
-jest.mock('../../components/FitShowNetworkErrorHandler', () => ({
+vi.mock('../../components/FitShowNetworkErrorHandler', () => ({
   FitShowNetworkErrorHandler: ({ children }: any) => <div>{children}</div>
 }));
 
@@ -70,7 +70,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe('FitShowScorePage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders loading state initially', () => {

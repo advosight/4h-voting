@@ -9,11 +9,11 @@ describe('HandlingScoring', () => {
     pickupCarrying: 3,
     comments: 'Good handling technique',
     total: 10,
-    onScoreChange: jest.fn()
+    onScoreChange: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the handling scoring section', () => {

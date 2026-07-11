@@ -4,20 +4,22 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ScorePage from '../ScorePage';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: jest.fn()
+    graphql: vi.fn()
   })
 }));
 
-jest.mock('aws-amplify/auth', () => ({
-  getCurrentUser: jest.fn()
+vi.mock('aws-amplify/auth', () => ({
+  getCurrentUser: vi.fn()
 }));
 
 // Mock the ScoringForm component
-jest.mock('../../components/ScoringForm', () => {
-  return function MockScoringForm() {
+vi.mock('../../components/ScoringForm', () => {
+  return {
+    default: function MockScoringForm() {
     return <div data-testid="scoring-form">Scoring Form</div>;
+    }
   };
 });
 

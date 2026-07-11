@@ -3,34 +3,34 @@
 // This file is imported by integration tests to set up common configuration
 // It should not contain any test cases itself
 
-// Extend Jest timeout for integration tests
-if (typeof jest !== 'undefined') {
-  jest.setTimeout(30000);
+// Extend test timeout for integration tests
+if (typeof vi !== 'undefined') {
+  vi.setConfig({ testTimeout: 30000 });
 }
 
 // Mock environment variables
-process.env.REACT_APP_GRAPHQL_ENDPOINT = 'https://test-api.example.com/graphql';
-process.env.REACT_APP_API_KEY = 'test-api-key';
-process.env.REACT_APP_REGION = 'us-east-1';
+vi.stubEnv('VITE_GRAPHQL_ENDPOINT', 'https://test-api.example.com/graphql');
+vi.stubEnv('VITE_API_KEY', 'test-api-key');
+vi.stubEnv('VITE_REGION', 'us-east-1');
 
 // Global test setup
 beforeAll(() => {
   // Mock console methods to reduce noise in test output
-  jest.spyOn(console, 'warn').mockImplementation(() => {});
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
   
   // Mock window.matchMedia for responsive components
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: jest.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation(query => ({
       matches: false,
       media: query,
       onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
     })),
   });
 

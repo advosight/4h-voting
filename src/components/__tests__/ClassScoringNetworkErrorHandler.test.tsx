@@ -5,30 +5,37 @@ import {
   ClassScoringNetworkErrorHandler,
   useClassScoringNetworkErrorHandler
 } from '../ClassScoringNetworkErrorHandler';
+import {
+  retryWithBackoff as _retryWithBackoff,
+  logClassScoringError as _logClassScoringError
+} from '../../utils/classErrorHandling';
 
 // Mock the class error handling utilities
-jest.mock('../../utils/classErrorHandling', () => ({
-  retryWithBackoff: jest.fn(),
-  parseError: jest.fn((error) => ({
+vi.mock('../../utils/classErrorHandling', () => ({
+  retryWithBackoff: vi.fn(),
+  parseError: vi.fn((error) => ({
     error: {
       type: 'NETWORK_ERROR',
       message: error?.message || 'Network error occurred'
     }
   })),
-  isRetryableError: jest.fn(() => true),
-  logClassScoringError: jest.fn(),
-  getClassScoringUserFriendlyMessage: jest.fn(() => 'User friendly network error message'),
-  isClassScoringError: jest.fn(() => true)
+  isRetryableError: vi.fn(() => true),
+  logClassScoringError: vi.fn(),
+  getClassScoringUserFriendlyMessage: vi.fn(() => 'User friendly network error message'),
+  isClassScoringError: vi.fn(() => true)
 }));
+
+const retryWithBackoff = vi.mocked(_retryWithBackoff);
+const logClassScoringError = vi.mocked(_logClassScoringError);
 
 const mockError = new Error('Network connection failed');
 
 describe('ClassScoringNetworkErrorHandler', () => {
-  const mockOnRetry = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnRetry = vi.fn();
+  const mockOnCancel = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Mock navigator.onLine
     Object.defineProperty(navigator, 'onLine', {
       writable: true,
@@ -143,8 +150,7 @@ describe('ClassScoringNetworkErrorHandler', () => {
   });
 
   it('should call onRetry when retry button clicked', async () => {
-    const { retryWithBackoff } = require('../../utils/classErrorHandling');
-    retryWithBackoff.mockResolvedValue(undefined);
+        retryWithBackoff.mockResolvedValue(undefined);
 
     render(
       <ClassScoringNetworkErrorHandler
@@ -195,7 +201,7 @@ describe('ClassScoringNetworkErrorHandler', () => {
   });
 
   it('should reload page when reload button clicked', () => {
-    const mockReload = jest.fn();
+    const mockReload = vi.fn();
     Object.defineProperty(window, 'location', {
       value: { reload: mockReload },
       writable: true
@@ -230,8 +236,7 @@ describe('ClassScoringNetworkErrorHandler', () => {
   });
 
   it('should disable retry button when retrying', async () => {
-    const { retryWithBackoff } = require('../../utils/classErrorHandling');
-    retryWithBackoff.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+        retryWithBackoff.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
 
     render(
       <ClassScoringNetworkErrorHandler
@@ -248,8 +253,7 @@ describe('ClassScoringNetworkErrorHandler', () => {
   });
 
   it('should log error with class scoring context', () => {
-    const { logClassScoringError } = require('../../utils/classErrorHandling');
-
+    
     render(
       <ClassScoringNetworkErrorHandler
         error={mockError}
@@ -315,8 +319,7 @@ describe('useClassScoringNetworkErrorHandler', () => {
   });
 
   it('should handle network error', () => {
-    const { logClassScoringError } = require('../../utils/classErrorHandling');
-    const { result } = renderHook(() =>
+        const { result } = renderHook(() =>
       useClassScoringNetworkErrorHandler('scoring', 'cat123', 'judge456')
     );
 
@@ -355,7 +358,7 @@ describe('useClassScoringNetworkErrorHandler', () => {
   });
 
   it('should retry operation successfully', async () => {
-    const mockOperation = jest.fn().mockResolvedValue(undefined);
+    const mockOperation = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useClassScoringNetworkErrorHandler()
     );
@@ -377,7 +380,7 @@ describe('useClassScoringNetworkErrorHandler', () => {
 
   it('should handle retry operation failure', async () => {
     const retryError = new Error('Retry failed');
-    const mockOperation = jest.fn().mockRejectedValue(retryError);
+    const mockOperation = vi.fn().mockRejectedValue(retryError);
     const { result } = renderHook(() =>
       useClassScoringNetworkErrorHandler()
     );
@@ -392,7 +395,7 @@ describe('useClassScoringNetworkErrorHandler', () => {
 
   it('should set isRetrying during operation', async () => {
     let resolveOperation: () => void;
-    const mockOperation = jest.fn(() => new Promise<void>(resolve => {
+    const mockOperation = vi.fn(() => new Promise<void>(resolve => {
       resolveOperation = resolve;
     }));
 

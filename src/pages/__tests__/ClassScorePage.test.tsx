@@ -1,18 +1,20 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useParams as _useParams } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import ClassScorePage from '../ClassScorePage';
 import * as amplifyApi from 'aws-amplify/api';
 import * as amplifyAuth from 'aws-amplify/auth';
 import * as roleUtils from '../../utils/roleUtils';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock dependencies
-jest.mock('aws-amplify/api');
-jest.mock('aws-amplify/auth');
-jest.mock('../../utils/roleUtils');
-jest.mock('../../components/ClassScoringForm', () => {
-  return function MockClassScoringForm({ catData, onSave, onSubmit, loading, hasPermission }: any) {
+vi.mock('aws-amplify/api');
+vi.mock('aws-amplify/auth');
+vi.mock('../../utils/roleUtils');
+vi.mock('../../components/ClassScoringForm', () => {
+  return {
+    default: function MockClassScoringForm({ catData, onSave, onSubmit, loading, hasPermission }: any) {
     return (
       <div data-testid="class-scoring-form">
         <div>Cat: {catData?.name}</div>
@@ -22,20 +24,23 @@ jest.mock('../../components/ClassScoringForm', () => {
         <button onClick={() => onSubmit({ beautyScore: 10 })}>Submit</button>
       </div>
     );
+    }
   };
 });
 
 // Mock react-router-dom useParams and useNavigate
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
+  useParams: vi.fn(),
   useNavigate: () => mockNavigate,
 }));
 
-const mockGenerateClient = amplifyApi.generateClient as jest.MockedFunction<typeof amplifyApi.generateClient>;
-const mockGetCurrentUser = amplifyAuth.getCurrentUser as jest.MockedFunction<typeof amplifyAuth.getCurrentUser>;
-const mockIsJudge = roleUtils.isJudge as jest.MockedFunction<typeof roleUtils.isJudge>;
+const useParams = vi.mocked(_useParams, { partial: true });
+
+const mockGenerateClient = amplifyApi.generateClient as MockedFunction<typeof amplifyApi.generateClient>;
+const mockGetCurrentUser = amplifyAuth.getCurrentUser as MockedFunction<typeof amplifyAuth.getCurrentUser>;
+const mockIsJudge = roleUtils.isJudge as MockedFunction<typeof roleUtils.isJudge>;
 
 const theme = createTheme();
 
@@ -51,7 +56,7 @@ const renderWithProviders = (component: React.ReactElement, initialEntries = ['/
 
 describe('ClassScorePage', () => {
   const mockClient = {
-    graphql: jest.fn(),
+    graphql: vi.fn(),
   };
 
   const mockCat = {
@@ -86,14 +91,13 @@ describe('ClassScorePage', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockNavigate.mockClear();
     mockGenerateClient.mockReturnValue(mockClient as any);
     mockGetCurrentUser.mockResolvedValue(mockUser as any);
     mockIsJudge.mockResolvedValue(true);
     
     // Mock useParams to return default values
-    const { useParams } = require('react-router-dom');
     useParams.mockReturnValue({ catId: '1' });
   });
 
@@ -169,7 +173,6 @@ describe('ClassScorePage', () => {
 
   describe('Cat Data Fetching by Cage Number', () => {
     it('should fetch cat data by cage number successfully', async () => {
-      const { useParams } = require('react-router-dom');
       useParams.mockReturnValue({ cageNumber: '5' });
       
       mockClient.graphql
@@ -193,7 +196,6 @@ describe('ClassScorePage', () => {
     });
 
     it('should show error when cage number is invalid', async () => {
-      const { useParams } = require('react-router-dom');
       useParams.mockReturnValue({ cageNumber: 'invalid' });
 
       renderWithProviders(<ClassScorePage />, ['/class-score/cage/invalid']);
@@ -204,7 +206,6 @@ describe('ClassScorePage', () => {
     });
 
     it('should show error when cage number is not found', async () => {
-      const { useParams } = require('react-router-dom');
       useParams.mockReturnValue({ cageNumber: '999' });
       
       mockClient.graphql.mockResolvedValue({
@@ -391,7 +392,6 @@ describe('ClassScorePage', () => {
     });
 
     it('should show error when no cat ID or cage number provided', async () => {
-      const { useParams } = require('react-router-dom');
       useParams.mockReturnValue({});
 
       renderWithProviders(<ClassScorePage />, ['/class-score']);

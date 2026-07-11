@@ -6,9 +6,9 @@ import { theme } from '../../theme/theme';
 import CageScoringPage from '../CageScoringPage';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: jest.fn().mockResolvedValue({
+    graphql: vi.fn().mockResolvedValue({
       data: {
         listCats: {
           items: [
@@ -38,22 +38,26 @@ jest.mock('aws-amplify/api', () => ({
 }));
 
 // Mock navigation
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
 }));
 
 // Mock components
-jest.mock('../../components/ScoreLeaderboard', () => {
-  return function MockScoreLeaderboard() {
+vi.mock('../../components/ScoreLeaderboard', () => {
+  return {
+    default: function MockScoreLeaderboard() {
     return <div data-testid="score-leaderboard">Score Leaderboard</div>;
+    }
   };
 });
 
-jest.mock('../../components/ScoreNotifications', () => {
-  return function MockScoreNotifications() {
+vi.mock('../../components/ScoreNotifications', () => {
+  return {
+    default: function MockScoreNotifications() {
     return <div data-testid="score-notifications">Score Notifications</div>;
+    }
   };
 });
 
@@ -69,7 +73,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe('CageScoringPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders cage scoring page with correct title', async () => {

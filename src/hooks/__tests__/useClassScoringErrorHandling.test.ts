@@ -1,29 +1,31 @@
 import { renderHook, act } from '@testing-library/react';
 import { useClassScoringErrorHandling } from '../useClassScoringErrorHandling';
 import * as classErrorHandling from '../../utils/classErrorHandling';
+import { parseError } from '../../utils/errorHandling';
+import type { Mock } from 'vitest';
 
 // Mock the class error handling utilities
-jest.mock('../../utils/classErrorHandling', () => ({
-  ...jest.requireActual('../../utils/classErrorHandling'),
-  logClassScoringError: jest.fn(),
-  retryClassScoringOperation: jest.fn(),
-  withOptimisticLockRetry: jest.fn(),
+vi.mock('../../utils/classErrorHandling', async () => ({
+  ...(await vi.importActual('../../utils/classErrorHandling')),
+  logClassScoringError: vi.fn(),
+  retryClassScoringOperation: vi.fn(),
+  withOptimisticLockRetry: vi.fn(),
   classScoringNetworkMonitor: {
-    addListener: jest.fn(() => jest.fn()),
-    getIsOnline: jest.fn(() => true),
-    waitForConnection: jest.fn(() => Promise.resolve(true))
+    addListener: vi.fn(() => vi.fn()),
+    getIsOnline: vi.fn(() => true),
+    waitForConnection: vi.fn(() => Promise.resolve(true))
   }
 }));
 
 // Mock the base error handling utilities
-jest.mock('../../utils/errorHandling', () => ({
-  parseError: jest.fn((error) => ({
+vi.mock('../../utils/errorHandling', () => ({
+  parseError: vi.fn((error) => ({
     error: {
       type: error.type || 'SYSTEM_ERROR',
       message: error.message || 'Test error'
     }
   })),
-  isRetryableError: jest.fn(() => true)
+  isRetryableError: vi.fn(() => true)
 }));
 
 describe('useClassScoringErrorHandling', () => {
@@ -34,7 +36,7 @@ describe('useClassScoringErrorHandling', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should initialize with no error state', () => {
@@ -93,7 +95,7 @@ describe('useClassScoringErrorHandling', () => {
     const networkError = { type: 'NETWORK_ERROR', message: 'Network failed' };
 
     // Mock parseError to return network error
-    (require('../../utils/errorHandling').parseError as jest.Mock).mockReturnValue({
+    (parseError as Mock).mockReturnValue({
       error: networkError
     });
 
@@ -111,7 +113,7 @@ describe('useClassScoringErrorHandling', () => {
     const validationError = { type: 'VALIDATION_ERROR', message: 'Invalid input' };
 
     // Mock parseError to return validation error
-    (require('../../utils/errorHandling').parseError as jest.Mock).mockReturnValue({
+    (parseError as Mock).mockReturnValue({
       error: validationError
     });
 
@@ -129,7 +131,7 @@ describe('useClassScoringErrorHandling', () => {
     const conflictError = { type: 'CONFLICT', message: 'Optimistic lock failed' };
 
     // Mock parseError to return conflict error
-    (require('../../utils/errorHandling').parseError as jest.Mock).mockReturnValue({
+    (parseError as Mock).mockReturnValue({
       error: conflictError
     });
 
@@ -144,10 +146,10 @@ describe('useClassScoringErrorHandling', () => {
 
   it('should retry operations successfully', async () => {
     const { result } = renderHook(() => useClassScoringErrorHandling(defaultOptions));
-    const mockOperation = jest.fn().mockResolvedValue(undefined);
+    const mockOperation = vi.fn().mockResolvedValue(undefined);
     
     // Mock successful retry
-    (classErrorHandling.retryClassScoringOperation as jest.Mock).mockResolvedValue(undefined);
+    (classErrorHandling.retryClassScoringOperation as Mock).mockResolvedValue(undefined);
 
     // Set up error state first
     act(() => {
@@ -173,11 +175,11 @@ describe('useClassScoringErrorHandling', () => {
 
   it('should handle retry failures', async () => {
     const { result } = renderHook(() => useClassScoringErrorHandling(defaultOptions));
-    const mockOperation = jest.fn();
+    const mockOperation = vi.fn();
     const retryError = new Error('Retry failed');
     
     // Mock failed retry
-    (classErrorHandling.retryClassScoringOperation as jest.Mock).mockRejectedValue(retryError);
+    (classErrorHandling.retryClassScoringOperation as Mock).mockRejectedValue(retryError);
 
     // Set up error state first
     act(() => {
@@ -194,10 +196,10 @@ describe('useClassScoringErrorHandling', () => {
 
   it('should handle optimistic lock retries', async () => {
     const { result } = renderHook(() => useClassScoringErrorHandling(defaultOptions));
-    const mockOperation = jest.fn().mockResolvedValue(undefined);
+    const mockOperation = vi.fn().mockResolvedValue(undefined);
     
     // Mock successful optimistic lock retry
-    (classErrorHandling.withOptimisticLockRetry as jest.Mock).mockResolvedValue(undefined);
+    (classErrorHandling.withOptimisticLockRetry as Mock).mockResolvedValue(undefined);
 
     await act(async () => {
       await result.current.retryWithOptimisticLock(mockOperation);
@@ -218,7 +220,7 @@ describe('useClassScoringErrorHandling', () => {
 
   it('should execute operations with error handling', async () => {
     const { result } = renderHook(() => useClassScoringErrorHandling(defaultOptions));
-    const mockOperation = jest.fn().mockResolvedValue(undefined);
+    const mockOperation = vi.fn().mockResolvedValue(undefined);
 
     await act(async () => {
       await result.current.executeWithErrorHandling(mockOperation);
@@ -231,7 +233,7 @@ describe('useClassScoringErrorHandling', () => {
   it('should handle operation failures in executeWithErrorHandling', async () => {
     const { result } = renderHook(() => useClassScoringErrorHandling(defaultOptions));
     const operationError = new Error('Operation failed');
-    const mockOperation = jest.fn().mockRejectedValue(operationError);
+    const mockOperation = vi.fn().mockRejectedValue(operationError);
 
     await act(async () => {
       await result.current.executeWithErrorHandling(mockOperation);
@@ -249,7 +251,7 @@ describe('useClassScoringErrorHandling', () => {
 
     // Validation error - low severity
     const validationError = { type: 'VALIDATION_ERROR', message: 'Invalid input' };
-    (require('../../utils/errorHandling').parseError as jest.Mock).mockReturnValue({
+    (parseError as Mock).mockReturnValue({
       error: validationError
     });
 
@@ -261,7 +263,7 @@ describe('useClassScoringErrorHandling', () => {
 
     // Network error while online - medium severity
     const networkError = { type: 'NETWORK_ERROR', message: 'Network failed' };
-    (require('../../utils/errorHandling').parseError as jest.Mock).mockReturnValue({
+    (parseError as Mock).mockReturnValue({
       error: networkError
     });
 
@@ -280,7 +282,7 @@ describe('useClassScoringErrorHandling', () => {
 
     // Network error - show retry button
     const networkError = { type: 'NETWORK_ERROR', message: 'Network failed' };
-    (require('../../utils/errorHandling').parseError as jest.Mock).mockReturnValue({
+    (parseError as Mock).mockReturnValue({
       error: networkError
     });
 
@@ -292,7 +294,7 @@ describe('useClassScoringErrorHandling', () => {
 
     // Validation error - no retry button
     const validationError = { type: 'VALIDATION_ERROR', message: 'Invalid input' };
-    (require('../../utils/errorHandling').parseError as jest.Mock).mockReturnValue({
+    (parseError as Mock).mockReturnValue({
       error: validationError
     });
 
@@ -324,7 +326,7 @@ describe('useClassScoringErrorHandling', () => {
   });
 
   it('should call custom error handler', () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
     const { result } = renderHook(() => 
       useClassScoringErrorHandling({ ...defaultOptions, onError })
     );
@@ -338,14 +340,14 @@ describe('useClassScoringErrorHandling', () => {
   });
 
   it('should call retry success callback', async () => {
-    const onRetrySuccess = jest.fn();
+    const onRetrySuccess = vi.fn();
     const { result } = renderHook(() => 
       useClassScoringErrorHandling({ ...defaultOptions, onRetrySuccess })
     );
-    const mockOperation = jest.fn().mockResolvedValue(undefined);
+    const mockOperation = vi.fn().mockResolvedValue(undefined);
     
     // Mock successful retry
-    (classErrorHandling.retryClassScoringOperation as jest.Mock).mockResolvedValue(undefined);
+    (classErrorHandling.retryClassScoringOperation as Mock).mockResolvedValue(undefined);
 
     // Set up error state first
     act(() => {
@@ -360,15 +362,15 @@ describe('useClassScoringErrorHandling', () => {
   });
 
   it('should call retry failure callback', async () => {
-    const onRetryFailure = jest.fn();
+    const onRetryFailure = vi.fn();
     const { result } = renderHook(() => 
       useClassScoringErrorHandling({ ...defaultOptions, onRetryFailure })
     );
-    const mockOperation = jest.fn();
+    const mockOperation = vi.fn();
     const retryError = new Error('Retry failed');
     
     // Mock failed retry
-    (classErrorHandling.retryClassScoringOperation as jest.Mock).mockRejectedValue(retryError);
+    (classErrorHandling.retryClassScoringOperation as Mock).mockRejectedValue(retryError);
 
     // Set up error state first
     act(() => {

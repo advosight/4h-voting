@@ -4,7 +4,7 @@ import { FitShowScore } from '../../types/scoring';
 describe('FitShowErrorHandler', () => {
   beforeEach(() => {
     FitShowErrorHandler.clearErrorLog();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('logError', () => {
@@ -115,7 +115,7 @@ describe('FitShowErrorHandler', () => {
 
   describe('withRetry', () => {
     it('should succeed on first attempt', async () => {
-      const operation = jest.fn().mockResolvedValue('success');
+      const operation = vi.fn().mockResolvedValue('success');
       
       const result = await FitShowErrorHandler.withRetry(
         operation,
@@ -129,7 +129,7 @@ describe('FitShowErrorHandler', () => {
     });
 
     it('should retry on failure and eventually succeed', async () => {
-      const operation = jest.fn()
+      const operation = vi.fn()
         .mockRejectedValueOnce(new Error('Attempt 1 failed'))
         .mockRejectedValueOnce(new Error('Attempt 2 failed'))
         .mockResolvedValue('success');
@@ -146,7 +146,7 @@ describe('FitShowErrorHandler', () => {
     });
 
     it('should throw network error after max retries', async () => {
-      const operation = jest.fn().mockRejectedValue(new Error('Always fails'));
+      const operation = vi.fn().mockRejectedValue(new Error('Always fails'));
 
       await expect(
         FitShowErrorHandler.withRetry(operation, 'testOperation', 2, 10)
@@ -160,7 +160,7 @@ describe('FitShowErrorHandler', () => {
     });
 
     it('should use exponential backoff', async () => {
-      const operation = jest.fn()
+      const operation = vi.fn()
         .mockRejectedValueOnce(new Error('Fail 1'))
         .mockRejectedValueOnce(new Error('Fail 2'))
         .mockResolvedValue('success');
@@ -459,7 +459,7 @@ describe('FitShowErrorHandler', () => {
 
   describe('handleAsyncOperation', () => {
     it('should return success result for successful operation', async () => {
-      const operation = jest.fn().mockResolvedValue('success data');
+      const operation = vi.fn().mockResolvedValue('success data');
       
       const result = await FitShowErrorHandler.handleAsyncOperation(
         operation,
@@ -473,7 +473,7 @@ describe('FitShowErrorHandler', () => {
     });
 
     it('should return error result for failed operation', async () => {
-      const operation = jest.fn().mockRejectedValue(new Error('Operation failed'));
+      const operation = vi.fn().mockRejectedValue(new Error('Operation failed'));
       
       const result = await FitShowErrorHandler.handleAsyncOperation(
         operation,
@@ -496,7 +496,7 @@ describe('FitShowErrorHandler', () => {
         'testOperation',
         'NETWORK_ERROR'
       );
-      const operation = jest.fn().mockRejectedValue(networkError);
+      const operation = vi.fn().mockRejectedValue(networkError);
       
       const result = await FitShowErrorHandler.handleAsyncOperation(
         operation,

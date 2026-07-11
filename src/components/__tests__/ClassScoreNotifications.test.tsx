@@ -2,13 +2,14 @@ import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { generateClient } from 'aws-amplify/api';
 import ClassScoreNotifications from '../ClassScoreNotifications';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
+vi.mock('aws-amplify/api');
 const mockClient = {
-  graphql: jest.fn()
+  graphql: vi.fn()
 };
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock data
 const mockCat = {
@@ -33,12 +34,12 @@ describe('ClassScoreNotifications', () => {
   let mockSubscription: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
     
     // Mock subscription
     mockSubscription = {
-      unsubscribe: jest.fn()
+      unsubscribe: vi.fn()
     };
 
     // Mock GraphQL responses
@@ -53,7 +54,7 @@ describe('ClassScoreNotifications', () => {
       
       if (query.includes('OnClassScoreUpdate')) {
         return {
-          subscribe: jest.fn().mockReturnValue(mockSubscription)
+          subscribe: vi.fn().mockReturnValue(mockSubscription)
         };
       }
       
@@ -62,11 +63,11 @@ describe('ClassScoreNotifications', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('sets up real-time subscription for class score updates', async () => {
-    const mockSubscribe = jest.fn().mockReturnValue(mockSubscription);
+    const mockSubscribe = vi.fn().mockReturnValue(mockSubscription);
     mockClient.graphql.mockImplementation(({ query }) => {
       if (query.includes('OnClassScoreUpdate')) {
         return { subscribe: mockSubscribe };
@@ -86,7 +87,7 @@ describe('ClassScoreNotifications', () => {
 
   it('displays new class score notification', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -122,7 +123,7 @@ describe('ClassScoreNotifications', () => {
 
   it('displays finalized class score notification', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -158,7 +159,7 @@ describe('ClassScoreNotifications', () => {
 
   it('displays ribbon achievement notification for Blue ribbon', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -190,7 +191,7 @@ describe('ClassScoreNotifications', () => {
 
     // Wait for the ribbon notification (appears after 1 second delay)
     act(() => {
-      jest.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(1100);
     });
 
     await waitFor(() => {
@@ -200,7 +201,7 @@ describe('ClassScoreNotifications', () => {
 
   it('filters notifications when showOnlyFinalized is true', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -227,7 +228,7 @@ describe('ClassScoreNotifications', () => {
 
   it('auto-hides notifications after delay', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -258,7 +259,7 @@ describe('ClassScoreNotifications', () => {
 
     // Fast-forward time to trigger auto-hide
     act(() => {
-      jest.advanceTimersByTime(3100);
+      vi.advanceTimersByTime(3100);
     });
 
     // Notification should be hidden
@@ -269,7 +270,7 @@ describe('ClassScoreNotifications', () => {
 
   it('allows manual dismissal of notifications', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -310,7 +311,7 @@ describe('ClassScoreNotifications', () => {
 
   it('clears all notifications', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -351,8 +352,8 @@ describe('ClassScoreNotifications', () => {
   });
 
   it('handles subscription errors gracefully', async () => {
-    const mockSubscribe = jest.fn().mockReturnValue(mockSubscription);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const mockSubscribe = vi.fn().mockReturnValue(mockSubscription);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
     mockClient.graphql.mockImplementation(({ query }) => {
       if (query.includes('OnClassScoreUpdate')) {
@@ -378,7 +379,7 @@ describe('ClassScoreNotifications', () => {
   });
 
   it('cleans up subscription on unmount', async () => {
-    const mockSubscribe = jest.fn().mockReturnValue(mockSubscription);
+    const mockSubscribe = vi.fn().mockReturnValue(mockSubscription);
     mockClient.graphql.mockImplementation(({ query }) => {
       if (query.includes('OnClassScoreUpdate')) {
         return { subscribe: mockSubscribe };
@@ -399,7 +400,7 @@ describe('ClassScoreNotifications', () => {
 
   it('displays different notification icons for different types', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });
@@ -447,7 +448,7 @@ describe('ClassScoreNotifications', () => {
 
   it('respects maxNotifications limit', async () => {
     let subscriptionCallback: any;
-    const mockSubscribe = jest.fn().mockImplementation(({ next }) => {
+    const mockSubscribe = vi.fn().mockImplementation(({ next }) => {
       subscriptionCallback = next;
       return mockSubscription;
     });

@@ -2,9 +2,10 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ParticipantFitShowScoreView } from '../ParticipantFitShowScoreView';
 import { FitShowScore } from '../../types/scoring';
+import type { Mock } from 'vitest';
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 const mockFitShowScore: FitShowScore = {
   id: 'test-score-1',
@@ -86,11 +87,11 @@ const mockMultipleScores: FitShowScore[] = [
 
 describe('ParticipantFitShowScoreView', () => {
   beforeEach(() => {
-    (fetch as jest.Mock).mockClear();
+    (fetch as Mock).mockClear();
   });
 
   it('displays loading state initially', () => {
-    (fetch as jest.Mock).mockImplementation(() => new Promise(() => {})); // Never resolves
+    (fetch as Mock).mockImplementation(() => new Promise(() => {})); // Never resolves
     
     render(<ParticipantFitShowScoreView catId="cat-1" />);
     
@@ -98,7 +99,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('displays no scores message when no finalized scores exist', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => []
     });
@@ -113,7 +114,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('displays error message when fetch fails', async () => {
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+    (fetch as Mock).mockRejectedValueOnce(new Error('Network error'));
 
     render(<ParticipantFitShowScoreView catId="cat-1" />);
 
@@ -125,7 +126,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('displays single score correctly', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [mockFitShowScore]
     });
@@ -142,7 +143,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('displays multiple scores with statistics', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockMultipleScores
     });
@@ -166,7 +167,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('shows "View All Scores" button when multiple scores exist', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockMultipleScores
     });
@@ -179,7 +180,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('toggles between showing latest and all scores', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockMultipleScores
     });
@@ -203,7 +204,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('displays performance ranking information', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [mockFitShowScore]
     });
@@ -219,7 +220,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('displays performance insights', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [mockFitShowScore]
     });
@@ -234,7 +235,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('displays help text about fit and show scoring', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [mockFitShowScore]
     });
@@ -254,7 +255,7 @@ describe('ParticipantFitShowScoreView', () => {
       { ...mockFitShowScore, id: 'unfinalized', isFinalized: false }
     ];
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => scoresWithUnfinalized
     });
@@ -271,7 +272,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('retries fetch when try again button is clicked', async () => {
-    (fetch as jest.Mock)
+    (fetch as Mock)
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValueOnce({
         ok: true,
@@ -292,7 +293,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('uses participant name in header when provided', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [mockFitShowScore]
     });
@@ -305,7 +306,7 @@ describe('ParticipantFitShowScoreView', () => {
   });
 
   it('uses generic text when no participant name provided', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [mockFitShowScore]
     });

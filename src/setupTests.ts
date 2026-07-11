@@ -1,12 +1,15 @@
-// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// jest-dom adds custom matchers for asserting on DOM nodes.
 // allows you to do things like:
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
-// CRA's bundled jsdom test environment doesn't provide TextEncoder/TextDecoder,
-// which react-router v7 requires at import time.
-import { TextEncoder, TextDecoder } from 'util';
+// Vitest's jsdom test environment doesn't provide TextEncoder/TextDecoder,
+// which react-router v7 requires at import time. Use the "node:" specifier
+// so this resolves to Node's real util module, not the "util" npm package
+// (a browser polyfill pulled in transitively) which node_modules resolution
+// would otherwise shadow it with.
+import { TextEncoder, TextDecoder } from 'node:util';
 global.TextEncoder = TextEncoder;
 // @ts-expect-error - Node's TextDecoder type is slightly stricter than the DOM lib's
 global.TextDecoder = TextDecoder;
@@ -58,8 +61,8 @@ Object.defineProperty(navigator, 'connection', {
   writable: true,
   value: {
     effectiveType: '4g',
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn()
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn()
   }
 });
 

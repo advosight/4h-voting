@@ -2,16 +2,17 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { API } from 'aws-amplify';
 import FitShowScoreReports from '../FitShowScoreReports';
+import type { Mocked, Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify', () => ({
+vi.mock('aws-amplify', () => ({
   API: {
-    graphql: jest.fn(),
+    graphql: vi.fn(),
   },
-  graphqlOperation: jest.fn((query) => query),
+  graphqlOperation: vi.fn((query) => query),
 }));
 
-const mockAPI = API as jest.Mocked<typeof API>;
+const mockAPI = API as Mocked<typeof API>;
 
 const mockFitShowScores = [
   {
@@ -64,7 +65,7 @@ const mockFitShowScores = [
 
 describe('FitShowScoreReports', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Clean up any existing DOM elements
     document.body.innerHTML = '';
   });
@@ -306,10 +307,10 @@ describe('FitShowScoreReports', () => {
     });
 
     // Mock URL.createObjectURL and document methods
-    const mockCreateObjectURL = jest.fn(() => 'mock-url');
-    const mockClick = jest.fn();
-    const mockAppendChild = jest.fn();
-    const mockRemoveChild = jest.fn();
+    const mockCreateObjectURL = vi.fn(() => 'mock-url');
+    const mockClick = vi.fn();
+    const mockAppendChild = vi.fn();
+    const mockRemoveChild = vi.fn();
 
     const originalCreateObjectURL = URL.createObjectURL;
     const originalCreateElement = document.createElement;
@@ -322,12 +323,12 @@ describe('FitShowScoreReports', () => {
     });
 
     const mockLink = {
-      setAttribute: jest.fn(),
+      setAttribute: vi.fn(),
       click: mockClick,
       style: { visibility: '' },
     };
 
-    document.createElement = jest.fn().mockReturnValue(mockLink);
+    document.createElement = vi.fn().mockReturnValue(mockLink);
     document.body.appendChild = mockAppendChild;
     document.body.removeChild = mockRemoveChild;
 

@@ -5,16 +5,16 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import EnhancedScoreReports from '../EnhancedScoreReports';
 
 // Mock AWS Amplify
-const mockGraphQL = jest.fn();
-jest.mock('aws-amplify/api', () => ({
+const mockGraphQL = vi.fn();
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
     graphql: mockGraphQL
   })
 }));
 
 // Mock useMediaQuery
-jest.mock('@mui/material', () => {
-  const actual = jest.requireActual('@mui/material');
+vi.mock('@mui/material', async () => {
+  const actual = await vi.importActual('@mui/material');
   return {
     ...actual,
     useMediaQuery: () => false, // Default to desktop
@@ -105,7 +105,7 @@ describe('EnhancedScoreReports', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Loading and Data Display', () => {

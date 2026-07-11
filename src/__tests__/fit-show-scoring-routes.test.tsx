@@ -4,99 +4,121 @@ import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from '../theme/theme';
 import App from '../App';
-
-// Mock CSS imports
-jest.mock('@aws-amplify/ui-react/styles.css', () => ({}), { virtual: true });
+import { getCurrentUser as _getCurrentUser } from 'aws-amplify/auth';
+import { isJudge as _isJudge, getUserRole as _getUserRole, hasRole as _hasRole } from '../utils/roleUtils';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(() => ({
-    graphql: jest.fn()
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => ({
+    graphql: vi.fn()
   }))
 }));
 
-jest.mock('aws-amplify/auth', () => ({
-  getCurrentUser: jest.fn(),
-  signOut: jest.fn()
+vi.mock('aws-amplify/auth', () => ({
+  getCurrentUser: vi.fn(),
+  signOut: vi.fn()
 }));
 
 // Mock utility functions
-jest.mock('../utils/errorHandling', () => ({
-  parseError: jest.fn(),
-  getUserFriendlyMessage: jest.fn(),
-  logError: jest.fn(),
-  withRetry: jest.fn((fn) => fn),
-  handleOptimisticLockConflict: jest.fn((fn) => fn())
+vi.mock('../utils/errorHandling', () => ({
+  parseError: vi.fn(),
+  getUserFriendlyMessage: vi.fn(),
+  logError: vi.fn(),
+  withRetry: vi.fn((fn) => fn),
+  handleOptimisticLockConflict: vi.fn((fn) => fn())
 }));
 
-jest.mock('../utils/roleUtils', () => ({
-  isJudge: jest.fn(),
-  getUserRole: jest.fn(),
-  hasRole: jest.fn()
+vi.mock('../utils/roleUtils', () => ({
+  isJudge: vi.fn(),
+  getUserRole: vi.fn(),
+  hasRole: vi.fn()
 }));
+
+const getCurrentUser = vi.mocked(_getCurrentUser, { partial: true });
+const isJudge = vi.mocked(_isJudge);
+const getUserRole = vi.mocked(_getUserRole);
+const hasRole = vi.mocked(_hasRole);
 
 // Mock all page components to avoid complex rendering
-jest.mock('../pages/FitShowScoringPage', () => {
-  return function MockFitShowScoringPage() {
+vi.mock('../pages/FitShowScoringPage', () => {
+  return {
+    default: function MockFitShowScoringPage() {
     return <div data-testid="fit-show-scoring-page">Fit & Show Scoring Page</div>;
+    }
   };
 });
 
-jest.mock('../pages/VotePage', () => {
-  return function MockVotePage() {
+vi.mock('../pages/VotePage', () => {
+  return {
+    default: function MockVotePage() {
     return <div data-testid="vote-page">Vote Page</div>;
+    }
   };
 });
 
-jest.mock('../pages/TVModePage', () => {
-  return function MockTVModePage() {
+vi.mock('../pages/TVModePage', () => {
+  return {
+    default: function MockTVModePage() {
     return <div data-testid="tv-mode-page">TV Mode Page</div>;
+    }
   };
 });
 
-jest.mock('../pages/ScorePage', () => {
-  return function MockScorePage() {
+vi.mock('../pages/ScorePage', () => {
+  return {
+    default: function MockScorePage() {
     return <div data-testid="score-page">Score Page</div>;
+    }
   };
 });
 
-jest.mock('../pages/ClassScorePage', () => {
-  return function MockClassScorePage() {
+vi.mock('../pages/ClassScorePage', () => {
+  return {
+    default: function MockClassScorePage() {
     return <div data-testid="class-score-page">Class Score Page</div>;
+    }
   };
 });
 
-jest.mock('../pages/ParticipantScorePage', () => {
-  return function MockParticipantScorePage() {
+vi.mock('../pages/ParticipantScorePage', () => {
+  return {
+    default: function MockParticipantScorePage() {
     return <div data-testid="participant-score-page">Participant Score Page</div>;
+    }
   };
 });
 
-jest.mock('../pages/ParticipantClassScorePage', () => {
-  return function MockParticipantClassScorePage() {
+vi.mock('../pages/ParticipantClassScorePage', () => {
+  return {
+    default: function MockParticipantClassScorePage() {
     return <div data-testid="participant-class-score-page">Participant Class Score Page</div>;
+    }
   };
 });
 
 // Mock ProtectedRoute to always allow access for testing
-jest.mock('../components/ProtectedRoute', () => {
-  return function MockProtectedRoute({ children }: any) {
+vi.mock('../components/ProtectedRoute', () => {
+  return {
+    default: function MockProtectedRoute({ children }: any) {
     return <div data-testid="protected-route">{children}</div>;
+    }
   };
 });
 
 // Mock Authenticator
-jest.mock('@aws-amplify/ui-react', () => ({
+vi.mock('@aws-amplify/ui-react', () => ({
   Authenticator: ({ children }: any) => {
-    const mockSignOut = jest.fn();
+    const mockSignOut = vi.fn();
     return children({ signOut: mockSignOut });
   }
 }));
 
 // Mock AppLayout
-jest.mock('../components/AppLayout', () => {
-  return function MockAppLayout() {
+vi.mock('../components/AppLayout', () => {
+  return {
+    default: function MockAppLayout() {
     return <div data-testid="app-layout">App Layout</div>;
+    }
   };
 });
 
@@ -120,11 +142,8 @@ describe('Fit & Show Scoring Routes', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    
-    const { getCurrentUser } = require('aws-amplify/auth');
-    const { isJudge, getUserRole, hasRole } = require('../utils/roleUtils');
-    
+    vi.clearAllMocks();
+
     getCurrentUser.mockResolvedValue(mockCurrentUser);
     isJudge.mockResolvedValue(true);
     getUserRole.mockResolvedValue('judge');

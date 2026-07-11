@@ -5,16 +5,16 @@ import '@testing-library/jest-dom';
 import ParticipantClassScoreView from '../ParticipantClassScorePage';
 
 // Mock AWS Amplify completely
-jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(() => ({
-    graphql: jest.fn(() => Promise.resolve({ data: {} }))
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => ({
+    graphql: vi.fn(() => Promise.resolve({ data: {} }))
   }))
 }));
 
 // Mock react-router-dom
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
   useParams: () => ({ catId: undefined }) // Test missing catId case
 }));

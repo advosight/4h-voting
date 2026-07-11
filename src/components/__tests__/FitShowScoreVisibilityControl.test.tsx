@@ -213,7 +213,7 @@ describe('FitShowScoreVisibilityControl', () => {
     });
 
     it('calls onFinalize when finalize is confirmed', async () => {
-      const mockOnFinalize = jest.fn().mockResolvedValue(undefined);
+      const mockOnFinalize = vi.fn().mockResolvedValue(undefined);
       const unfinalized = { ...mockFitShowScore, isFinalized: false };
       
       render(
@@ -233,7 +233,7 @@ describe('FitShowScoreVisibilityControl', () => {
     });
 
     it('calls onUnfinalize when unfinalize is confirmed', async () => {
-      const mockOnUnfinalize = jest.fn().mockResolvedValue(undefined);
+      const mockOnUnfinalize = vi.fn().mockResolvedValue(undefined);
       
       render(
         <FitShowScoreVisibilityControl 
@@ -270,7 +270,7 @@ describe('FitShowScoreVisibilityControl', () => {
     });
 
     it('shows processing state during finalization', async () => {
-      const mockOnFinalize = jest.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const mockOnFinalize = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
       const unfinalized = { ...mockFitShowScore, isFinalized: false };
       
       render(
@@ -292,7 +292,7 @@ describe('FitShowScoreVisibilityControl', () => {
     });
 
     it('disables buttons during processing', async () => {
-      const mockOnFinalize = jest.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const mockOnFinalize = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
       const unfinalized = { ...mockFitShowScore, isFinalized: false };
       
       render(
@@ -321,8 +321,8 @@ describe('FitShowScoreVisibilityControl', () => {
     });
 
     it('handles errors during finalization gracefully', async () => {
-      const mockOnFinalize = jest.fn().mockRejectedValue(new Error('Network error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const mockOnFinalize = vi.fn().mockRejectedValue(new Error('Network error'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const unfinalized = { ...mockFitShowScore, isFinalized: false };
       
       render(

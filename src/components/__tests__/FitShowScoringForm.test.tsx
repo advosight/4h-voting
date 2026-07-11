@@ -3,21 +3,22 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FitShowScoringForm } from '../FitShowScoringForm';
 import { FitShowScore } from '../../types/scoring';
+import type { Mocked, Mock } from 'vitest';
 
 // Mock AWS Amplify v6
-const mockGraphql = jest.fn();
-jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(() => ({
-    graphql: jest.fn()
+const mockGraphql = vi.fn();
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => ({
+    graphql: vi.fn()
   }))
 }));
 
 // Get the mocked client
 import { generateClient } from 'aws-amplify/api';
-const mockClient = generateClient() as jest.Mocked<ReturnType<typeof generateClient>>;
+const mockClient = generateClient() as Mocked<ReturnType<typeof generateClient>>;
 
 // Mock the sub-components
-jest.mock('../AppearanceScoring', () => ({
+vi.mock('../AppearanceScoring', () => ({
   AppearanceScoring: ({ onScoreChange, total }: any) => (
     <div data-testid="appearance-scoring">
       <span data-testid="appearance-total">{total}</span>
@@ -26,7 +27,7 @@ jest.mock('../AppearanceScoring', () => ({
   )
 }));
 
-jest.mock('../HandlingScoring', () => ({
+vi.mock('../HandlingScoring', () => ({
   HandlingScoring: ({ onScoreChange, total }: any) => (
     <div data-testid="handling-scoring">
       <span data-testid="handling-total">{total}</span>
@@ -35,7 +36,7 @@ jest.mock('../HandlingScoring', () => ({
   )
 }));
 
-jest.mock('../DemonstrationScoring', () => ({
+vi.mock('../DemonstrationScoring', () => ({
   DemonstrationScoring: ({ onScoreChange, total }: any) => (
     <div data-testid="demonstration-scoring">
       <span data-testid="demonstration-total">{total}</span>
@@ -43,7 +44,7 @@ jest.mock('../DemonstrationScoring', () => ({
   )
 }));
 
-jest.mock('../HealthExaminationScoring', () => ({
+vi.mock('../HealthExaminationScoring', () => ({
   HealthExaminationScoring: ({ onScoreChange, total }: any) => (
     <div data-testid="health-examination-scoring">
       <span data-testid="health-examination-total">{total}</span>
@@ -51,7 +52,7 @@ jest.mock('../HealthExaminationScoring', () => ({
   )
 }));
 
-jest.mock('../GroomingCareScoring', () => ({
+vi.mock('../GroomingCareScoring', () => ({
   GroomingCareScoring: ({ onScoreChange, total }: any) => (
     <div data-testid="grooming-care-scoring">
       <span data-testid="grooming-care-total">{total}</span>
@@ -59,7 +60,7 @@ jest.mock('../GroomingCareScoring', () => ({
   )
 }));
 
-jest.mock('../KnowledgeScoring', () => ({
+vi.mock('../KnowledgeScoring', () => ({
   KnowledgeScoring: ({ onScoreChange, total }: any) => (
     <div data-testid="knowledge-scoring">
       <span data-testid="knowledge-total">{total}</span>
@@ -67,7 +68,7 @@ jest.mock('../KnowledgeScoring', () => ({
   )
 }));
 
-jest.mock('../ValidationErrorDisplay', () => ({
+vi.mock('../ValidationErrorDisplay', () => ({
   ValidationSummary: ({ errors }: any) => (
     <div data-testid="validation-errors">
       {errors.map((error: any, index: number) => (
@@ -86,7 +87,7 @@ describe('FitShowScoringForm', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const mockExistingScore: FitShowScore = {
@@ -139,7 +140,7 @@ describe('FitShowScoringForm', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the form with participant information', () => {
@@ -218,7 +219,7 @@ describe('FitShowScoringForm', () => {
   });
 
   it('calls onError when form submission fails', async () => {
-    const mockOnError = jest.fn();
+    const mockOnError = vi.fn();
     
     render(
       <FitShowScoringForm 
@@ -238,7 +239,7 @@ describe('FitShowScoringForm', () => {
   });
 
   it('calls onError when validation fails', async () => {
-    const mockOnError = jest.fn();
+    const mockOnError = vi.fn();
     render(
       <FitShowScoringForm 
         {...defaultProps} 

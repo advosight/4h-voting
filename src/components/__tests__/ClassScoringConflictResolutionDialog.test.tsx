@@ -1,11 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ClassScoringConflictResolutionDialog } from '../ClassScoringConflictResolutionDialog';
+import { logClassScoringError as _logClassScoringError } from '../../utils/classErrorHandling';
 
 // Mock the class error handling utilities
-jest.mock('../../utils/classErrorHandling', () => ({
-  logClassScoringError: jest.fn()
+vi.mock('../../utils/classErrorHandling', () => ({
+  logClassScoringError: vi.fn()
 }));
+
+const logClassScoringError = vi.mocked(_logClassScoringError);
 
 const mockCurrentScore = {
   id: 'score123',
@@ -51,12 +54,12 @@ const mockServerScore = {
 };
 
 describe('ClassScoringConflictResolutionDialog', () => {
-  const mockOnClose = jest.fn();
-  const mockOnResolve = jest.fn();
-  const mockOnMerge = jest.fn();
+  const mockOnClose = vi.fn();
+  const mockOnResolve = vi.fn();
+  const mockOnMerge = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should not render when not open', () => {
@@ -354,8 +357,7 @@ describe('ClassScoringConflictResolutionDialog', () => {
   });
 
   it('should log error when dialog opens', () => {
-    const { logClassScoringError } = require('../../utils/classErrorHandling');
-
+    
     render(
       <ClassScoringConflictResolutionDialog
         isOpen={true}
@@ -378,8 +380,7 @@ describe('ClassScoringConflictResolutionDialog', () => {
   });
 
   it('should handle resolution error', async () => {
-    const { logClassScoringError } = require('../../utils/classErrorHandling');
-    const resolutionError = new Error('Resolution failed');
+        const resolutionError = new Error('Resolution failed');
     mockOnResolve.mockRejectedValue(resolutionError);
 
     render(

@@ -3,27 +3,27 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { NetworkErrorHandler } from '../NetworkErrorHandler';
 
 // Mock the error handling utilities
-jest.mock('../../utils/errorHandling', () => ({
-  parseError: jest.fn((error) => ({
+vi.mock('../../utils/errorHandling', () => ({
+  parseError: vi.fn((error) => ({
     error: {
       type: error.type || 'NETWORK_ERROR',
       message: error.message || 'Network error occurred',
       code: error.code || 'NETWORK_ERROR'
     }
   })),
-  getUserFriendlyMessage: jest.fn((parsedError) => parsedError.error.message),
-  isRetryableError: jest.fn((parsedError) => 
+  getUserFriendlyMessage: vi.fn((parsedError) => parsedError.error.message),
+  isRetryableError: vi.fn((parsedError) => 
     ['NETWORK_ERROR', 'TIMEOUT_ERROR', 'SYSTEM_ERROR'].includes(parsedError.error.type)
   ),
-  retryWithBackoff: jest.fn()
+  retryWithBackoff: vi.fn()
 }));
 
-const mockOnRetry = jest.fn();
-const mockOnCancel = jest.fn();
+const mockOnRetry = vi.fn();
+const mockOnCancel = vi.fn();
 
 describe('NetworkErrorHandler', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Mock navigator.onLine
     Object.defineProperty(navigator, 'onLine', {
       writable: true,
@@ -181,7 +181,7 @@ describe('NetworkErrorHandler', () => {
 
   it('shows loading state during retry', async () => {
     const error = { type: 'NETWORK_ERROR', message: 'Connection failed' };
-    const slowRetry = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const slowRetry = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
 
     render(
       <NetworkErrorHandler

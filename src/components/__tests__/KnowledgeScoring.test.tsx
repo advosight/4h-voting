@@ -11,11 +11,11 @@ describe('KnowledgeScoring', () => {
     fourHKnowledge: 2,
     comments: 'Good knowledge base',
     total: 9,
-    onScoreChange: jest.fn()
+    onScoreChange: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the knowledge scoring section', () => {

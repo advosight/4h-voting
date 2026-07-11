@@ -1,21 +1,24 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import ScoreReports from '../ScoreReports';
+import { generateClient as _generateClient } from 'aws-amplify/api';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(() => ({
-    graphql: jest.fn()
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => ({
+    graphql: vi.fn()
   }))
 }));
 
+const generateClient = vi.mocked(_generateClient, { partial: true });
+
 describe('ScoreReports Component', () => {
-  const { generateClient } = require('aws-amplify/api');
-  let mockGraphql: jest.Mock;
+  let mockGraphql: Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockGraphql = jest.fn();
+    vi.clearAllMocks();
+    mockGraphql = vi.fn();
     generateClient.mockReturnValue({ graphql: mockGraphql });
   });
 

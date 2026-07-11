@@ -33,11 +33,11 @@ const mockFinalizedScore = {
 };
 
 describe('ScoreEditForm', () => {
-  const mockOnUpdate = jest.fn();
-  const mockOnFinalize = jest.fn();
+  const mockOnUpdate = vi.fn();
+  const mockOnFinalize = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('rendering', () => {

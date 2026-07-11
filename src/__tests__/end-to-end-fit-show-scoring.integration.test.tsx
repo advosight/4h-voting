@@ -6,17 +6,18 @@ import { generateClient } from 'aws-amplify/api';
 import FitShowScoringPage from '../pages/FitShowScoringPage';
 import ParticipantFitShowScoreView from '../components/ParticipantFitShowScoreView';
 import FitShowScoreReports from '../components/FitShowScoreReports';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
-jest.mock('aws-amplify/auth');
+vi.mock('aws-amplify/api');
+vi.mock('aws-amplify/auth');
 
 const mockClient = {
-  graphql: jest.fn(),
-  cancel: jest.fn(),
+  graphql: vi.fn(),
+  cancel: vi.fn(),
 };
 
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock data
 const mockCat = {
@@ -87,7 +88,7 @@ const mockFitShowScore = {
 
 describe('End-to-End Fit and Show Scoring Integration Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock Amplify configuration
     Amplify.configure({

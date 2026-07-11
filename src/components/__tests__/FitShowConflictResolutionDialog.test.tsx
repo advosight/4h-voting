@@ -70,13 +70,13 @@ describe('FitShowConflictResolutionDialog', () => {
 
   const mockProps = {
     conflict: mockConflict,
-    onResolve: jest.fn(),
-    onCancel: jest.fn(),
+    onResolve: vi.fn(),
+    onCancel: vi.fn(),
     isOpen: true
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render nothing when not open', () => {

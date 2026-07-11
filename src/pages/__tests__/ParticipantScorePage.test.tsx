@@ -4,19 +4,21 @@ import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { generateClient } from 'aws-amplify/api';
 import ParticipantScorePage from '../ParticipantScorePage';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock AWS Amplify
-const mockGraphql = jest.fn();
+const mockGraphql = vi.fn();
 
-jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(),
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(),
 }));
 
-const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+const mockGenerateClient = generateClient as MockedFunction<typeof generateClient>;
 
 // Mock the ParticipantScoreView component
-jest.mock('../../components/ParticipantScoreView', () => {
-  return function MockParticipantScoreView({ catId, scores, cat, allScores, loading, error }: any) {
+vi.mock('../../components/ParticipantScoreView', () => {
+  return {
+    default: function MockParticipantScoreView({ catId, scores, cat, allScores, loading, error }: any) {
     if (loading) return <div>Loading scores...</div>;
     if (error) return <div>Error: {error}</div>;
     return (
@@ -26,13 +28,14 @@ jest.mock('../../components/ParticipantScoreView', () => {
         <div>All Scores: {allScores?.length || 0}</div>
       </div>
     );
+    }
   };
 });
 
 // Mock react-router-dom hooks
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
   useParams: () => ({ catId: 'test-cat-id' })
 }));
@@ -47,14 +50,14 @@ mockGenerateClient.mockReturnValue(mockClient as any);
 
 describe('ParticipantScorePage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Reset the mock implementation
     mockGraphql.mockImplementation((params) => {
       if (params.query && params.query.includes('subscription')) {
         return {
-          subscribe: jest.fn(() => ({
-            unsubscribe: jest.fn(),
+          subscribe: vi.fn(() => ({
+            unsubscribe: vi.fn(),
           })),
         };
       }
@@ -179,7 +182,7 @@ describe('ParticipantScorePage', () => {
       .mockRejectedValueOnce(new Error('Failed to fetch all scores'));
 
     // Mock console.warn to avoid test output noise
-    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
 
     render(
       <MemoryRouter>
@@ -281,18 +284,18 @@ describe('ParticipantScorePage', () => {
 // Test with missing catId parameter
 describe('ParticipantScorePage without catId', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
-  it('handles missing catId parameter', () => {
+  it('handles missing catId parameter', async () => {
     // Mock useParams to return undefined catId
-    jest.doMock('react-router-dom', () => ({
-      ...jest.requireActual('react-router-dom'),
+    vi.doMock('react-router-dom', async () => ({
+      ...(await vi.importActual('react-router-dom')),
       useNavigate: () => mockNavigate,
       useParams: () => ({ catId: undefined })
     }));
 
-    const ParticipantScorePageWithoutId = require('../ParticipantScorePage').default;
+    const ParticipantScorePageWithoutId = (await import('../ParticipantScorePage')).default;
 
     render(
       <MemoryRouter>

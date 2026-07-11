@@ -1,39 +1,39 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { generateClient } from 'aws-amplify/api';
+import { getCurrentUser } from 'aws-amplify/auth';
 import { BrowserRouter } from 'react-router-dom';
 import HomePage from '../pages/HomePage';
 import ParticipantScorePage from '../pages/ParticipantScorePage';
 
 // Mock AWS Amplify
-const mockGraphql = jest.fn();
+const mockGraphql = vi.fn();
 const mockClient = {
   graphql: mockGraphql,
 };
 
-jest.mock('aws-amplify/api', () => ({
-  generateClient: jest.fn(() => mockClient),
+vi.mock('aws-amplify/api', () => ({
+  generateClient: vi.fn(() => mockClient),
 }));
-jest.mock('aws-amplify/auth');
+vi.mock('aws-amplify/auth');
 
 // Mock auth
-const mockAuth = require('aws-amplify/auth');
-mockAuth.getCurrentUser.mockResolvedValue({
+vi.mocked(getCurrentUser).mockResolvedValue({
   userId: 'test-user',
   username: 'test@example.com'
-});
+} as any);
 
 // Mock subscription
 const mockSubscription = {
-  subscribe: jest.fn(),
-  unsubscribe: jest.fn(),
+  subscribe: vi.fn(),
+  unsubscribe: vi.fn(),
 };
 
 describe('Real-time Scoring Integration', () => {
   let subscriptionCallbacks: { [key: string]: any } = {};
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     subscriptionCallbacks = {};
     
     mockGraphql.mockImplementation((params) => {
@@ -41,7 +41,7 @@ describe('Real-time Scoring Integration', () => {
         return {
           subscribe: ({ next }: any) => {
             subscriptionCallbacks.scoreUpdate = next;
-            return { unsubscribe: jest.fn() };
+            return { unsubscribe: vi.fn() };
           }
         };
       }
@@ -49,7 +49,7 @@ describe('Real-time Scoring Integration', () => {
         return {
           subscribe: ({ next }: any) => {
             subscriptionCallbacks.voteUpdate = next;
-            return { unsubscribe: jest.fn() };
+            return { unsubscribe: vi.fn() };
           }
         };
       }
@@ -57,7 +57,7 @@ describe('Real-time Scoring Integration', () => {
         return {
           subscribe: ({ next }: any) => {
             subscriptionCallbacks.emailAdded = next;
-            return { unsubscribe: jest.fn() };
+            return { unsubscribe: vi.fn() };
           }
         };
       }
@@ -65,7 +65,7 @@ describe('Real-time Scoring Integration', () => {
         return {
           subscribe: ({ next }: any) => {
             subscriptionCallbacks.votingStatusChange = next;
-            return { unsubscribe: jest.fn() };
+            return { unsubscribe: vi.fn() };
           }
         };
       }
@@ -271,10 +271,10 @@ describe('Real-time Scoring Integration', () => {
 
   it('updates participant score view in real-time', async () => {
     // Mock useParams
-    jest.doMock('react-router-dom', () => ({
-      ...jest.requireActual('react-router-dom'),
+    vi.doMock('react-router-dom', async () => ({
+      ...(await vi.importActual('react-router-dom')),
       useParams: () => ({ catId: 'cat1' }),
-      useNavigate: () => jest.fn(),
+      useNavigate: () => vi.fn(),
     }));
 
     const ParticipantScorePageWithRouter = () => (

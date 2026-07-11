@@ -12,25 +12,26 @@ import ClassScoreReports from '../components/ClassScoreReports';
 import ParticipantClassScoreView from '../components/ParticipantClassScoreView';
 import ClassScoreLeaderboard from '../components/ClassScoreLeaderboard';
 import './integration-test.config';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
-jest.mock('aws-amplify/auth');
+vi.mock('aws-amplify/api');
+vi.mock('aws-amplify/auth');
 
 const mockClient = {
-  graphql: jest.fn()
+  graphql: vi.fn()
 };
-(generateClient as jest.Mock).mockReturnValue(mockClient);
-(getCurrentUser as jest.Mock).mockResolvedValue({
+(generateClient as Mock).mockReturnValue(mockClient);
+(getCurrentUser as Mock).mockResolvedValue({
   signInDetails: { loginId: 'judge@example.com' },
   username: 'judge1'
 });
 
 // Mock Authenticator
-jest.mock('@aws-amplify/ui-react', () => ({
+vi.mock('@aws-amplify/ui-react', () => ({
   Authenticator: ({ children }: { children: any }) => {
     const mockUser = { signInDetails: { loginId: 'judge@example.com' } };
-    const mockSignOut = jest.fn();
+    const mockSignOut = vi.fn();
     return children({ user: mockUser, signOut: mockSignOut });
   }
 }));
@@ -93,7 +94,7 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
   let mockSubscriptions: { [key: string]: any } = {};
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     subscriptionCallbacks = {};
     mockSubscriptions = {};
     
@@ -188,10 +189,10 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
       // Handle subscriptions
       if (query.includes('OnClassScoreUpdate')) {
         const subscriptionId = `subscription-${Date.now()}`;
-        mockSubscriptions[subscriptionId] = { unsubscribe: jest.fn() };
+        mockSubscriptions[subscriptionId] = { unsubscribe: vi.fn() };
         
         return {
-          subscribe: jest.fn().mockImplementation(({ next, error }) => {
+          subscribe: vi.fn().mockImplementation(({ next, error }) => {
             subscriptionCallbacks.onClassScoreUpdate = next;
             return mockSubscriptions[subscriptionId];
           })
@@ -485,7 +486,7 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
       });
 
       // Now simulate judge-2 accessing the same cat
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'judge2@example.com' },
         username: 'judge2'
       });
@@ -741,7 +742,7 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
       const user = userEvent.setup();
       
       // Mock admin user
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'admin@example.com' },
         username: 'admin'
       });
@@ -925,7 +926,7 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
   describe('Role-Based Access Control', () => {
     it('enforces judge-only access to type class scoring interface', async () => {
       // Mock participant user
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'participant@example.com' },
         username: 'participant'
       });
@@ -950,7 +951,7 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
 
     it('allows admin access to all type class scoring features', async () => {
       // Mock admin user
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'admin@example.com' },
         username: 'admin'
       });
@@ -974,7 +975,7 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
       const user = userEvent.setup();
       
       // Mock participant user
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'alice@example.com' },
         username: 'alice'
       });
@@ -1054,9 +1055,9 @@ describe('Type Class Scoring Workflow Integration Tests', () => {
         }
         if (query.includes('OnClassScoreUpdate')) {
           return {
-            subscribe: jest.fn().mockImplementation(({ next }) => {
+            subscribe: vi.fn().mockImplementation(({ next }) => {
               subscriptionCallbacks.onClassScoreUpdate = next;
-              return { unsubscribe: jest.fn() };
+              return { unsubscribe: vi.fn() };
             })
           };
         }

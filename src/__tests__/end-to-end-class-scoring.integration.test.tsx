@@ -8,21 +8,22 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { theme } from '../theme/theme';
 import App from '../App';
 import './integration-test.config';
+import type { Mock } from 'vitest';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api');
-jest.mock('aws-amplify/auth');
+vi.mock('aws-amplify/api');
+vi.mock('aws-amplify/auth');
 
 const mockClient = {
-  graphql: jest.fn()
+  graphql: vi.fn()
 };
-(generateClient as jest.Mock).mockReturnValue(mockClient);
+(generateClient as Mock).mockReturnValue(mockClient);
 
 // Mock Authenticator
-jest.mock('@aws-amplify/ui-react', () => ({
+vi.mock('@aws-amplify/ui-react', () => ({
   Authenticator: ({ children }: { children: any }) => {
     const mockUser = { signInDetails: { loginId: 'judge@example.com' } };
-    const mockSignOut = jest.fn();
+    const mockSignOut = vi.fn();
     return children({ user: mockUser, signOut: mockSignOut });
   }
 }));
@@ -54,12 +55,12 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
   let mockSubscriptions: { [key: string]: any } = {};
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     subscriptionCallbacks = {};
     mockSubscriptions = {};
     
     // Default judge user
-    (getCurrentUser as jest.Mock).mockResolvedValue({
+    (getCurrentUser as Mock).mockResolvedValue({
       signInDetails: { loginId: 'judge@example.com' },
       username: 'judge1'
     });
@@ -155,10 +156,10 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
       // Handle subscriptions
       if (query.includes('OnClassScoreUpdate')) {
         const subscriptionId = `subscription-${Date.now()}`;
-        mockSubscriptions[subscriptionId] = { unsubscribe: jest.fn() };
+        mockSubscriptions[subscriptionId] = { unsubscribe: vi.fn() };
         
         return {
-          subscribe: jest.fn().mockImplementation(({ next, error }) => {
+          subscribe: vi.fn().mockImplementation(({ next, error }) => {
             subscriptionCallbacks.onClassScoreUpdate = next;
             return mockSubscriptions[subscriptionId];
           })
@@ -381,9 +382,9 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
         }
         if (query.includes('OnClassScoreUpdate')) {
           return {
-            subscribe: jest.fn().mockImplementation(({ next }) => {
+            subscribe: vi.fn().mockImplementation(({ next }) => {
               subscriptionCallbacks.onClassScoreUpdate = next;
-              return { unsubscribe: jest.fn() };
+              return { unsubscribe: vi.fn() };
             })
           };
         }
@@ -605,7 +606,7 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
       });
 
       // Now simulate judge-2 accessing the same cat
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'judge2@example.com' },
         username: 'judge2'
       });
@@ -718,7 +719,7 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
       const user = userEvent.setup();
       
       // Mock admin user
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'admin@example.com' },
         username: 'admin'
       });
@@ -816,7 +817,7 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
       const user = userEvent.setup();
       
       // Mock admin user
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'admin@example.com' },
         username: 'admin'
       });
@@ -886,15 +887,15 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
       });
 
       // Mock CSV download
-      const mockCreateObjectURL = jest.fn(() => 'blob:mock-url');
-      const mockRevokeObjectURL = jest.fn();
+      const mockCreateObjectURL = vi.fn(() => 'blob:mock-url');
+      const mockRevokeObjectURL = vi.fn();
       global.URL.createObjectURL = mockCreateObjectURL;
       global.URL.revokeObjectURL = mockRevokeObjectURL;
 
       // Mock link click for download
-      const mockClick = jest.fn();
+      const mockClick = vi.fn();
       const mockLink = { click: mockClick, href: '', download: '' };
-      jest.spyOn(document, 'createElement').mockImplementation((tagName) => {
+      vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
         if (tagName === 'a') {
           return mockLink as any;
         }
@@ -988,7 +989,7 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
       const user = userEvent.setup();
       
       // Mock admin user to see all components
-      (getCurrentUser as jest.Mock).mockResolvedValue({
+      (getCurrentUser as Mock).mockResolvedValue({
         signInDetails: { loginId: 'admin@example.com' },
         username: 'admin'
       });
@@ -1005,9 +1006,9 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
         }
         if (query.includes('OnClassScoreUpdate')) {
           return {
-            subscribe: jest.fn().mockImplementation(({ next }) => {
+            subscribe: vi.fn().mockImplementation(({ next }) => {
               subscriptionCallbacks.onClassScoreUpdate = next;
-              return { unsubscribe: jest.fn() };
+              return { unsubscribe: vi.fn() };
             })
           };
         }
@@ -1298,7 +1299,7 @@ describe('End-to-End Type Class Scoring Integration Tests', () => {
         return Promise.reject(new Error('System unavailable'));
       });
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       render(
         <ThemeProvider theme={theme}>

@@ -10,11 +10,11 @@ describe('GroomingCareScoring', () => {
     catHealthCare: 2,
     comments: 'Good grooming and care knowledge',
     total: 10,
-    onScoreChange: jest.fn()
+    onScoreChange: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the grooming care scoring section', () => {

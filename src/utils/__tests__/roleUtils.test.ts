@@ -1,16 +1,17 @@
 import { getUserRole, hasRole, hasAnyRole, isJudge, isAdmin, getJudgeId } from '../roleUtils';
 import { getCurrentUser } from 'aws-amplify/auth';
+import type { MockedFunction, Mock } from 'vitest';
 
 // Mock aws-amplify/auth
-jest.mock('aws-amplify/auth', () => ({
-  getCurrentUser: jest.fn(),
+vi.mock('aws-amplify/auth', () => ({
+  getCurrentUser: vi.fn(),
 }));
 
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+const mockGetCurrentUser = getCurrentUser as MockedFunction<typeof getCurrentUser>;
 
 describe('roleUtils', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getUserRole', () => {

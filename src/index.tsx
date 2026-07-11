@@ -45,25 +45,25 @@ console.error = (...args: any[]) => {
 
 // Debug environment variables
 console.log('Environment variables:', {
-  userPoolId: process.env.REACT_APP_USER_POOL_ID,
-  userPoolClientId: process.env.REACT_APP_USER_POOL_CLIENT_ID,
-  region: process.env.REACT_APP_REGION,
-  graphqlEndpoint: process.env.REACT_APP_GRAPHQL_ENDPOINT
+  userPoolId: import.meta.env.VITE_USER_POOL_ID,
+  userPoolClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID,
+  region: import.meta.env.VITE_REGION,
+  graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT
 });
 
 // Configure Amplify
 const amplifyConfig = {
   Auth: {
     Cognito: {
-      userPoolId: process.env.REACT_APP_USER_POOL_ID || 'us-west-2_DzMg0jeNu',
-      userPoolClientId: process.env.REACT_APP_USER_POOL_CLIENT_ID || '22jf76754spju4t791ekj3t89c',
-      region: process.env.REACT_APP_REGION || 'us-west-2'
+      userPoolId: import.meta.env.VITE_USER_POOL_ID || 'us-west-2_DzMg0jeNu',
+      userPoolClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID || '22jf76754spju4t791ekj3t89c',
+      region: import.meta.env.VITE_REGION || 'us-west-2'
     }
   },
   API: {
     GraphQL: {
-      endpoint: process.env.REACT_APP_GRAPHQL_ENDPOINT || 'https://rk6mmqdxprfkrf4rub6rptmmsu.appsync-api.us-west-2.amazonaws.com/graphql',
-      region: process.env.REACT_APP_REGION || 'us-west-2',
+      endpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'https://rk6mmqdxprfkrf4rub6rptmmsu.appsync-api.us-west-2.amazonaws.com/graphql',
+      region: import.meta.env.VITE_REGION || 'us-west-2',
       defaultAuthMode: 'userPool' as const
     }
   }

@@ -6,9 +6,9 @@ import { theme } from '../../theme/theme';
 import DashboardPage from '../DashboardPage';
 
 // Mock AWS Amplify
-jest.mock('aws-amplify/api', () => ({
+vi.mock('aws-amplify/api', () => ({
   generateClient: () => ({
-    graphql: jest.fn().mockResolvedValue({
+    graphql: vi.fn().mockResolvedValue({
       data: {
         listCats: { items: [] },
         listEmails: { items: [] },
@@ -19,19 +19,23 @@ jest.mock('aws-amplify/api', () => ({
 }));
 
 // Mock components
-jest.mock('../../components/AddCatForm', () => {
-  return function MockAddCatForm({ onCatAdded }: { onCatAdded: () => void }) {
+vi.mock('../../components/AddCatForm', () => {
+  return {
+    default: function MockAddCatForm({ onCatAdded }: { onCatAdded: () => void }) {
     return (
       <div data-testid="add-cat-form">
         <button onClick={onCatAdded}>Mock Add Cat</button>
       </div>
     );
+    }
   };
 });
 
-jest.mock('../../components/CatCard', () => {
-  return function MockCatCard() {
+vi.mock('../../components/CatCard', () => {
+  return {
+    default: function MockCatCard() {
     return <div data-testid="cat-card">Mock Cat Card</div>;
+    }
   };
 });
 
@@ -50,15 +54,15 @@ describe('DashboardPage Mobile Layout', () => {
     // Mock mobile viewport
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: jest.fn().mockImplementation(query => ({
+      value: vi.fn().mockImplementation(query => ({
         matches: query.includes('(max-width: 899.95px)'), // Mobile breakpoint
         media: query,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
       })),
     });
   });

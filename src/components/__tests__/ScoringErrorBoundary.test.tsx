@@ -5,7 +5,7 @@ import { ScoringErrorBoundary, withScoringErrorBoundary } from '../ScoringErrorB
 // Mock console.error to avoid noise in tests
 const originalError = console.error;
 beforeAll(() => {
-  console.error = jest.fn();
+  console.error = vi.fn();
 });
 
 afterAll(() => {
@@ -22,7 +22,7 @@ const ThrowError: React.FC<{ shouldThrow?: boolean }> = ({ shouldThrow = true })
 
 describe('ScoringErrorBoundary', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders children when there is no error', () => {
@@ -60,7 +60,7 @@ describe('ScoringErrorBoundary', () => {
   });
 
   it('calls onError callback when error occurs', () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     render(
       <ScoringErrorBoundary onError={onError}>
@@ -101,7 +101,7 @@ describe('ScoringErrorBoundary', () => {
 
   it('allows page reload', () => {
     // Mock window.location.reload
-    const mockReload = jest.fn();
+    const mockReload = vi.fn();
     Object.defineProperty(window, 'location', {
       value: { reload: mockReload },
       writable: true

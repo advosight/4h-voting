@@ -11,11 +11,11 @@ describe('DemonstrationScoring', () => {
     showingCoatTexture: 3,
     comments: 'Good demonstration skills',
     total: 12,
-    onScoreChange: jest.fn()
+    onScoreChange: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders the demonstration scoring section', () => {

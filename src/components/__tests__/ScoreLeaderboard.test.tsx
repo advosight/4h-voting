@@ -4,9 +4,9 @@ import React from 'react';
 describe('ScoreLeaderboard', () => {
   it('can be imported without errors', () => {
     // Mock AWS Amplify to prevent import errors
-    jest.doMock('aws-amplify/api', () => ({
-      generateClient: jest.fn(() => ({
-        graphql: jest.fn(() => Promise.resolve({ data: { listAllScores: { items: [] } } })),
+    vi.doMock('aws-amplify/api', () => ({
+      generateClient: vi.fn(() => ({
+        graphql: vi.fn(() => Promise.resolve({ data: { listAllScores: { items: [] } } })),
       })),
     }));
 
@@ -20,9 +20,9 @@ describe('ScoreLeaderboard', () => {
   });
 
   it('component exists and is a function', async () => {
-    jest.doMock('aws-amplify/api', () => ({
-      generateClient: jest.fn(() => ({
-        graphql: jest.fn(() => Promise.resolve({ data: { listAllScores: { items: [] } } })),
+    vi.doMock('aws-amplify/api', () => ({
+      generateClient: vi.fn(() => ({
+        graphql: vi.fn(() => Promise.resolve({ data: { listAllScores: { items: [] } } })),
       })),
     }));
 
