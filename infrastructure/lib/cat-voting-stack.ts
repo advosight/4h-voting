@@ -576,7 +576,7 @@ export class CatVotingStack extends cdk.Stack {
 
     // Deploy website
     new s3deploy.BucketDeployment(this, 'WebsiteDeployment', {
-      sources: [s3deploy.Source.asset('../build')],
+      sources: [s3deploy.Source.asset('../dist')],
       destinationBucket: websiteBucket,
       distribution,
       distributionPaths: ['/*'],
