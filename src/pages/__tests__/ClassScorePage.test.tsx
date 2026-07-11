@@ -293,8 +293,8 @@ describe('ClassScorePage', () => {
       renderWithProviders(<ClassScorePage />, '/class-score/1');
 
       await waitFor(() => {
-        expect(screen.getByText('Scoring Dashboard')).toBeInTheDocument();
-        expect(screen.getByText('Type Class Scoring')).toBeInTheDocument();
+        expect(screen.getByText('Class Scoring')).toBeInTheDocument();
+        expect(screen.getByText('Individual Scoring')).toBeInTheDocument();
       });
     });
   });
@@ -403,13 +403,13 @@ describe('ClassScorePage', () => {
   });
 
   describe('Navigation', () => {
-    it('should provide navigation back to scoring dashboard', async () => {
+    it('should provide navigation back to class scoring', async () => {
       mockClient.graphql.mockRejectedValue(new Error('Test error'));
 
       renderWithProviders(<ClassScorePage />, '/class-score/1');
 
       await waitFor(() => {
-        const backButton = screen.getByText('Return to Scoring Dashboard');
+        const backButton = screen.getByText('Return to Class Scoring');
         expect(backButton).toBeInTheDocument();
       });
     });

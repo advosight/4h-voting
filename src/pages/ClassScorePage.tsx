@@ -391,8 +391,8 @@ const ClassScorePage: React.FC = () => {
         }
       );
 
-      // Navigate back to scoring dashboard with success message
-      navigate('/scoring', { 
+      // Navigate back to the class scoring list with success message
+      navigate('/class-scoring', {
         state: { 
           message: `Class score submitted successfully for ${cat?.name}!` 
         }
@@ -469,7 +469,7 @@ const ClassScorePage: React.FC = () => {
                 </Typography>
                 <Button 
                   variant="contained"
-                  onClick={() => navigate('/scoring')}
+                  onClick={() => navigate('/class-scoring')}
                   startIcon={<ArrowBackIcon />}
                   sx={{ 
                     backgroundColor: '#1976d2',
@@ -478,7 +478,7 @@ const ClassScorePage: React.FC = () => {
                     fontSize: '1rem'
                   }}
                 >
-                  Return to Scoring Dashboard
+                  Return to Class Scoring
                 </Button>
               </CardContent>
             </Card>
@@ -511,7 +511,7 @@ const ClassScorePage: React.FC = () => {
                 </Typography>
                 <Button 
                   variant="contained"
-                  onClick={() => navigate('/scoring')}
+                  onClick={() => navigate('/class-scoring')}
                   startIcon={<ArrowBackIcon />}
                   sx={{ 
                     backgroundColor: '#1976d2',
@@ -520,7 +520,7 @@ const ClassScorePage: React.FC = () => {
                     fontSize: '1rem'
                   }}
                 >
-                  Return to Scoring Dashboard
+                  Return to Class Scoring
                 </Button>
               </CardContent>
             </Card>
@@ -555,7 +555,7 @@ const ClassScorePage: React.FC = () => {
               <Link
                 component="button"
                 variant="body1"
-                onClick={() => navigate('/scoring')}
+                onClick={() => navigate('/class-scoring')}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -570,10 +570,10 @@ const ClassScorePage: React.FC = () => {
                 }}
               >
                 <TrophyIcon sx={{ mr: 1 }} />
-                Scoring Dashboard
+                Class Scoring
               </Link>
               <Typography color="text.primary" sx={{ fontWeight: 600 }}>
-                Type Class Scoring
+                Individual Scoring
               </Typography>
             </Breadcrumbs>
           </Box>

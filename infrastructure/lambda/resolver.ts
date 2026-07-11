@@ -79,6 +79,7 @@ async function listCats() {
     ownerAgeGroup: item.ownerAgeGroup || null,
     catAgeGroup: item.catAgeGroup || null,
     peoplesChoiceGroup: item.peoplesChoiceGroup ? parseInt(item.peoplesChoiceGroup) : null,
+    breedCategory: item.breedCategory || null,
   })).filter(cat => cat.name && cat.owner);
 
   console.log(`Returning ${cats.length} filtered cats:`, cats.map(c => ({ id: c.id, name: c.name, owner: c.owner })));
@@ -103,6 +104,7 @@ async function getCat(id: string) {
     ownerAgeGroup: result.Item.ownerAgeGroup || null,
     catAgeGroup: result.Item.catAgeGroup || null,
     peoplesChoiceGroup: result.Item.peoplesChoiceGroup ? parseInt(result.Item.peoplesChoiceGroup) : null,
+    breedCategory: result.Item.breedCategory || null,
   };
 }
 
@@ -129,12 +131,13 @@ async function getCatByCage(cageNumber: number) {
     ownerAgeGroup: item.ownerAgeGroup || null,
     catAgeGroup: item.catAgeGroup || null,
     peoplesChoiceGroup: item.peoplesChoiceGroup ? parseInt(item.peoplesChoiceGroup) : null,
+    breedCategory: item.breedCategory || null,
   };
 }
 
-async function createCat(input: { name: string; owner: string; votes: number; cageNumber?: number; ownerAgeGroup?: string; catAgeGroup?: string; peoplesChoiceGroup?: number }) {
+async function createCat(input: { name: string; owner: string; votes: number; cageNumber?: number; ownerAgeGroup?: string; catAgeGroup?: string; peoplesChoiceGroup?: number; breedCategory?: string }) {
   const id = randomUUID();
-  
+
   await docClient.send(new PutCommand({
     TableName: process.env.TABLE_NAME,
     Item: {
@@ -147,6 +150,7 @@ async function createCat(input: { name: string; owner: string; votes: number; ca
       ownerAgeGroup: input.ownerAgeGroup,
       catAgeGroup: input.catAgeGroup,
       peoplesChoiceGroup: input.peoplesChoiceGroup,
+      breedCategory: input.breedCategory,
     },
   }));
 
@@ -159,10 +163,11 @@ async function createCat(input: { name: string; owner: string; votes: number; ca
     ownerAgeGroup: input.ownerAgeGroup,
     catAgeGroup: input.catAgeGroup,
     peoplesChoiceGroup: input.peoplesChoiceGroup,
+    breedCategory: input.breedCategory,
   };
 }
 
-async function updateCat(id: string, input: { name?: string; owner?: string; cageNumber?: number; votes?: number; ownerAgeGroup?: string; catAgeGroup?: string; peoplesChoiceGroup?: number }) {
+async function updateCat(id: string, input: { name?: string; owner?: string; cageNumber?: number; votes?: number; ownerAgeGroup?: string; catAgeGroup?: string; peoplesChoiceGroup?: number; breedCategory?: string }) {
   const result = await docClient.send(new GetCommand({
     TableName: process.env.TABLE_NAME,
     Key: { PK: `CAT#${id}`, SK: 'METADATA' },
@@ -189,6 +194,7 @@ async function updateCat(id: string, input: { name?: string; owner?: string; cag
     ownerAgeGroup: updatedItem.ownerAgeGroup,
     catAgeGroup: updatedItem.catAgeGroup,
     peoplesChoiceGroup: updatedItem.peoplesChoiceGroup,
+    breedCategory: updatedItem.breedCategory,
   };
 }
 
@@ -214,6 +220,7 @@ async function updateVotes(id: string, votes: number) {
     ownerAgeGroup: item?.ownerAgeGroup,
     catAgeGroup: item?.catAgeGroup,
     peoplesChoiceGroup: item?.peoplesChoiceGroup ? parseInt(item.peoplesChoiceGroup) : null,
+    breedCategory: item?.breedCategory,
   };
 }
 

@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import { OWNER_AGE_GROUPS, CAT_AGE_GROUPS, getOwnerAgeGroupLabel, getCatAgeGroupLabel } from '../utils/ageGroups';
+import { BREED_CATEGORIES, getBreedCategoryLabel } from '../utils/breedCategories';
 
 const client = generateClient();
 
@@ -43,6 +44,7 @@ const updateCat = `
       ownerAgeGroup
       catAgeGroup
       peoplesChoiceGroup
+      breedCategory
     }
   }
 `;
@@ -76,6 +78,7 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
   const [ownerAgeGroup, setOwnerAgeGroup] = useState<string>(cat.ownerAgeGroup || '');
   const [catAgeGroup, setCatAgeGroup] = useState<string>(cat.catAgeGroup || '');
   const [peoplesChoiceGroup, setPeoplesChoiceGroup] = useState<string>(cat.peoplesChoiceGroup?.toString() || '');
+  const [breedCategory, setBreedCategory] = useState<string>(cat.breedCategory || '');
 
   const handleGenerateSign = () => {
     navigate(`/sign/${cat.id}`);
@@ -98,7 +101,8 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
             votes: votes,
             ownerAgeGroup,
             catAgeGroup,
-            peoplesChoiceGroup: peoplesChoiceGroup ? parseInt(peoplesChoiceGroup) : null
+            peoplesChoiceGroup: peoplesChoiceGroup ? parseInt(peoplesChoiceGroup) : null,
+            breedCategory
           }
         }
       });
@@ -174,6 +178,11 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
               {cat.peoplesChoiceGroup && (
                 <Typography variant="caption" color="text.secondary" display="block">
                   People's Choice: Group {cat.peoplesChoiceGroup}
+                </Typography>
+              )}
+              {cat.breedCategory && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Breed: {getBreedCategoryLabel(cat.breedCategory)}
                 </Typography>
               )}
             </Box>
@@ -320,6 +329,24 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
                 <MenuItem value="2">Group 2</MenuItem>
                 <MenuItem value="3">Group 3</MenuItem>
                 <MenuItem value="4">Group 4</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Breed Category</InputLabel>
+              <Select
+                value={breedCategory}
+                label="Breed Category"
+                onChange={(e) => setBreedCategory(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {BREED_CATEGORIES.map((category) => (
+                  <MenuItem key={category.value} value={category.value}>
+                    {category.label}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>

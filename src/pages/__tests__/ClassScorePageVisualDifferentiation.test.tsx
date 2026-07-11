@@ -147,8 +147,8 @@ describe('ClassScorePage Visual Differentiation', () => {
       renderClassScorePage();
       
       await waitFor(() => {
-        expect(screen.getByText('Scoring Dashboard')).toBeInTheDocument();
-        expect(screen.getByText('Type Class Scoring')).toBeInTheDocument();
+        expect(screen.getByText('Class Scoring')).toBeInTheDocument();
+        expect(screen.getByText('Individual Scoring')).toBeInTheDocument();
       });
     });
   });
@@ -220,7 +220,7 @@ describe('ClassScorePage Visual Differentiation', () => {
       renderClassScorePage();
       
       await waitFor(() => {
-        const returnButton = screen.getByText('Return to Scoring Dashboard');
+        const returnButton = screen.getByText('Return to Class Scoring');
         expect(returnButton).toBeInTheDocument();
         expect(returnButton.closest('button')).toBeInTheDocument();
       });

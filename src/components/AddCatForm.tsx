@@ -19,6 +19,7 @@ import {
 import { Add as AddIcon, Pets as PetsIcon } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import { OWNER_AGE_GROUPS, CAT_AGE_GROUPS } from '../utils/ageGroups';
+import { BREED_CATEGORIES } from '../utils/breedCategories';
 
 const client = generateClient();
 
@@ -33,6 +34,7 @@ const createCat = `
       ownerAgeGroup
       catAgeGroup
       peoplesChoiceGroup
+      breedCategory
     }
   }
 `;
@@ -60,6 +62,7 @@ function AddCatForm({ onCatAdded }) {
   const [ownerAgeGroup, setOwnerAgeGroup] = useState('');
   const [catAgeGroup, setCatAgeGroup] = useState('');
   const [peoplesChoiceGroup, setPeoplesChoiceGroup] = useState('');
+  const [breedCategory, setBreedCategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [existingCageNumbers, setExistingCageNumbers] = useState(new Set());
   
@@ -86,7 +89,7 @@ function AddCatForm({ onCatAdded }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !owner.trim() || !cageNumber.trim() || !ownerAgeGroup || !catAgeGroup || !peoplesChoiceGroup) {
+    if (!name.trim() || !owner.trim() || !cageNumber.trim() || !ownerAgeGroup || !catAgeGroup || !peoplesChoiceGroup || !breedCategory) {
       alert('Please fill in all required fields');
       return;
     }
@@ -114,17 +117,19 @@ function AddCatForm({ onCatAdded }) {
             votes: 0,
             ownerAgeGroup,
             catAgeGroup,
-            peoplesChoiceGroup: parseInt(peoplesChoiceGroup)
+            peoplesChoiceGroup: parseInt(peoplesChoiceGroup),
+            breedCategory
           }
         }
       });
-      
+
       setName('');
       setOwner('');
       setCageNumber('');
       setOwnerAgeGroup('');
       setCatAgeGroup('');
       setPeoplesChoiceGroup('');
+      setBreedCategory('');
       // Update the existing cage numbers set
       setExistingCageNumbers(prev => new Set([...prev, cageNum]));
       onCatAdded();
@@ -238,7 +243,23 @@ function AddCatForm({ onCatAdded }) {
                 <MenuItem value="4">Group 4</MenuItem>
               </Select>
             </FormControl>
-            
+
+            <FormControl fullWidth required size="small">
+              <InputLabel>Breed Category</InputLabel>
+              <Select
+                value={breedCategory}
+                label="Breed Category"
+                onChange={(e) => setBreedCategory(e.target.value)}
+                sx={{ minHeight: 44 }}
+              >
+                {BREED_CATEGORIES.map((category) => (
+                  <MenuItem key={category.value} value={category.value}>
+                    {category.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <Button
               type="submit"
               variant="contained"
@@ -355,7 +376,24 @@ function AddCatForm({ onCatAdded }) {
                 </Select>
               </FormControl>
             </Grid>
-            
+
+            <Grid size={{xs: 12, sm: 3}}>
+              <FormControl fullWidth required>
+                <InputLabel>Breed Category</InputLabel>
+                <Select
+                  value={breedCategory}
+                  label="Breed Category"
+                  onChange={(e) => setBreedCategory(e.target.value)}
+                >
+                  {BREED_CATEGORIES.map((category) => (
+                    <MenuItem key={category.value} value={category.value}>
+                      {category.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
             <Grid size={{xs: 12}}>
               <Button
                 type="submit"

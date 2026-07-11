@@ -37,6 +37,7 @@ import { generateClient } from 'aws-amplify/api';
 import ClassScoreLeaderboard from '../components/ClassScoreLeaderboard';
 import ClassScoreNotifications from '../components/ClassScoreNotifications';
 import { CAT_AGE_GROUPS, getCatAgeGroupLabel } from '../utils/ageGroups';
+import { BREED_CATEGORIES, getBreedCategoryLabel } from '../utils/breedCategories';
 
 const client = generateClient();
 
@@ -51,6 +52,7 @@ const listCats = `
         cageNumber
         ownerAgeGroup
         catAgeGroup
+        breedCategory
       }
     }
   }
@@ -97,6 +99,7 @@ function ClassScoringPage(): JSX.Element {
   const [classScores, setClassScores] = useState<any[]>([]);
   const [filteredCats, setFilteredCats] = useState<any[]>([]);
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('all');
+  const [selectedBreedCategory, setSelectedBreedCategory] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(false);
   const [catsLoading, setCatsLoading] = useState<boolean>(true);
   
@@ -111,7 +114,7 @@ function ClassScoringPage(): JSX.Element {
 
   useEffect(() => {
     filterCats();
-  }, [cats, selectedAgeGroup]);
+  }, [cats, selectedAgeGroup, selectedBreedCategory]);
 
   const fetchCats = async () => {
     try {
@@ -157,14 +160,13 @@ function ClassScoringPage(): JSX.Element {
   };
 
   const filterCats = () => {
-    console.log('Filtering cats. Total cats:', cats.length, 'Selected age group:', selectedAgeGroup);
-    if (selectedAgeGroup === 'all') {
-      setFilteredCats(cats);
-    } else {
-      const filtered = cats.filter(cat => cat.catAgeGroup === selectedAgeGroup);
-      console.log('Filtered cats:', filtered.length);
-      setFilteredCats(filtered);
-    }
+    console.log('Filtering cats. Total cats:', cats.length, 'Selected age group:', selectedAgeGroup, 'Selected breed category:', selectedBreedCategory);
+    const filtered = cats.filter(cat =>
+      (selectedAgeGroup === 'all' || cat.catAgeGroup === selectedAgeGroup) &&
+      (selectedBreedCategory === 'all' || cat.breedCategory === selectedBreedCategory)
+    );
+    console.log('Filtered cats:', filtered.length);
+    setFilteredCats(filtered);
   };
 
   const getCatClassScore = (catId: string) => {
@@ -173,6 +175,10 @@ function ClassScoringPage(): JSX.Element {
 
   const handleAgeGroupChange = (event: any) => {
     setSelectedAgeGroup(event.target.value);
+  };
+
+  const handleBreedCategoryChange = (event: any) => {
+    setSelectedBreedCategory(event.target.value);
   };
 
   return (
@@ -246,27 +252,51 @@ function ClassScoringPage(): JSX.Element {
             Registered Cats & Scores
           </Typography>
           
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel id="class-age-group-filter-label">Filter by Cat Age Group</InputLabel>
-            <Select
-              labelId="class-age-group-filter-label"
-              value={selectedAgeGroup}
-              label="Filter by Cat Age Group"
-              onChange={handleAgeGroupChange}
-              startAdornment={
-                <InputAdornment position="start">
-                  <FilterIcon />
-                </InputAdornment>
-              }
-            >
-              <MenuItem value="all">All Age Groups</MenuItem>
-              {CAT_AGE_GROUPS.map((group) => (
-                <MenuItem key={group.value} value={group.value}>
-                  {group.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel id="class-age-group-filter-label">Filter by Cat Age Group</InputLabel>
+              <Select
+                labelId="class-age-group-filter-label"
+                value={selectedAgeGroup}
+                label="Filter by Cat Age Group"
+                onChange={handleAgeGroupChange}
+                startAdornment={
+                  <InputAdornment position="start">
+                    <FilterIcon />
+                  </InputAdornment>
+                }
+              >
+                <MenuItem value="all">All Age Groups</MenuItem>
+                {CAT_AGE_GROUPS.map((group) => (
+                  <MenuItem key={group.value} value={group.value}>
+                    {group.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel id="class-breed-category-filter-label">Filter by Breed Category</InputLabel>
+              <Select
+                labelId="class-breed-category-filter-label"
+                value={selectedBreedCategory}
+                label="Filter by Breed Category"
+                onChange={handleBreedCategoryChange}
+                startAdornment={
+                  <InputAdornment position="start">
+                    <FilterIcon />
+                  </InputAdornment>
+                }
+              >
+                <MenuItem value="all">All Breed Categories</MenuItem>
+                {BREED_CATEGORIES.map((category) => (
+                  <MenuItem key={category.value} value={category.value}>
+                    {category.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         </Box>
 
         {/* Simple cats list for debugging */}
@@ -287,16 +317,17 @@ function ClassScoringPage(): JSX.Element {
             <Table size={isMobile ? "small" : "medium"}>
               <TableHead>
                 <TableRow>
+                  <TableCell align="center"><strong>Actions</strong></TableCell>
                   <TableCell><strong>Cage #</strong></TableCell>
                   <TableCell><strong>Cat Name</strong></TableCell>
                   <TableCell><strong>Owner</strong></TableCell>
                   <TableCell><strong>Age Group</strong></TableCell>
+                  <TableCell><strong>Breed Category</strong></TableCell>
                   <TableCell align="center"><strong>Beauty</strong></TableCell>
                   <TableCell align="center"><strong>Personality</strong></TableCell>
                   <TableCell align="center"><strong>Health</strong></TableCell>
                   <TableCell align="center"><strong>Total</strong></TableCell>
                   <TableCell align="center"><strong>Ribbon</strong></TableCell>
-                  <TableCell align="center"><strong>Actions</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -311,6 +342,20 @@ function ClassScoringPage(): JSX.Element {
                       }}
                       onClick={() => navigate(`/class-score/${cat.id}`)}
                     >
+                      <TableCell align="center">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/class-score/${cat.id}`);
+                          }}
+                          sx={{ minWidth: 'auto', px: 2 }}
+                        >
+                          Score
+                        </Button>
+                      </TableCell>
                       <TableCell>{cat.cageNumber}</TableCell>
                       <TableCell>
                         <Typography variant="body2" fontWeight="medium">
@@ -319,17 +364,29 @@ function ClassScoringPage(): JSX.Element {
                       </TableCell>
                       <TableCell>{cat.owner}</TableCell>
                       <TableCell>
-                        <Chip 
-                          label={getCatAgeGroupLabel(cat.catAgeGroup)} 
-                          size="small" 
+                        <Chip
+                          label={getCatAgeGroupLabel(cat.catAgeGroup)}
+                          size="small"
                           color="primary"
                           variant="outlined"
                         />
                       </TableCell>
+                      <TableCell>
+                        {cat.breedCategory ? (
+                          <Chip
+                            label={getBreedCategoryLabel(cat.breedCategory)}
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">-</Typography>
+                        )}
+                      </TableCell>
                       <TableCell align="center">
                         {classScore ? (
-                          <Chip 
-                            label={classScore.beautyScore} 
+                          <Chip
+                            label={classScore.beautyScore}
                             size="small" 
                             color={classScore.beautyScore >= 80 ? "success" : classScore.beautyScore >= 60 ? "warning" : "default"}
                           />
@@ -387,20 +444,6 @@ function ClassScoringPage(): JSX.Element {
                           <Typography variant="body2" color="text.secondary">Not Scored</Typography>
                         )}
                       </TableCell>
-                      <TableCell align="center">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/class-score/${cat.id}`);
-                          }}
-                          sx={{ minWidth: 'auto', px: 2 }}
-                        >
-                          Score
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -412,9 +455,9 @@ function ClassScoringPage(): JSX.Element {
         {filteredCats.length === 0 && !loading && !catsLoading && (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body2" color="text.secondary">
-              {cats.length === 0 
+              {cats.length === 0
                 ? "No cats registered yet. Please add cats to the system first."
-                : "No cats found for the selected age group."
+                : "No cats found for the selected age group and breed category."
               }
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>

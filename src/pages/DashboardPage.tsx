@@ -48,6 +48,7 @@ const listCats = `
         cageNumber
         ownerAgeGroup
         catAgeGroup
+        breedCategory
       }
     }
   }
@@ -366,7 +367,14 @@ function DashboardPage(): JSX.Element {
             <Button
               variant="contained"
               color="primary"
-              onClick={() => window.location.href = '/scoring'}
+              onClick={() => {
+                const destination = userInfo?.permissions?.cageScoring
+                  ? '/cage-scoring'
+                  : userInfo?.permissions?.classScoring
+                  ? '/class-scoring'
+                  : '/fit-show-scoring';
+                window.location.href = destination;
+              }}
               size="small"
               sx={{ minHeight: 44 }}
             >

@@ -7,6 +7,7 @@ type Cat {
   ownerAgeGroup: String @aws_api_key @aws_cognito_user_pools
   catAgeGroup: String @aws_api_key @aws_cognito_user_pools
   peoplesChoiceGroup: Int @aws_api_key @aws_cognito_user_pools
+  breedCategory: String @aws_api_key @aws_cognito_user_pools
 }
 
 type CatConnection {
@@ -21,6 +22,7 @@ input CreateCatInput {
   ownerAgeGroup: String
   catAgeGroup: String
   peoplesChoiceGroup: Int
+  breedCategory: String
 }
 
 input UpdateCatInput {
@@ -31,6 +33,7 @@ input UpdateCatInput {
   ownerAgeGroup: String
   catAgeGroup: String
   peoplesChoiceGroup: Int
+  breedCategory: String
 }
 
 scalar AWSJSON
