@@ -227,15 +227,16 @@ async function sendInviteEmail(record: InvitationRecord): Promise<void> {
     day: 'numeric',
   });
   const greeting = record.name ? `Hi ${record.name},` : 'Hi there,';
+  const invitedByLabel = record.invitedBy || 'A 4H Cat Show admin';
 
   const textBody = `${greeting}\n\n` +
-    `${record.invitedBy} has invited you to join the 4H Cat Show as a ${roleLabel}.\n\n` +
+    `${invitedByLabel} has invited you to join the 4H Cat Show as a ${roleLabel}.\n\n` +
     `Set up your account here:\n${acceptUrl}\n\n` +
     `This invitation expires on ${expiresLabel}.\n\n` +
     `If you weren't expecting this invitation, you can safely ignore this email.`;
 
   const safeName = record.name ? escapeHtml(record.name) : '';
-  const safeInvitedBy = escapeHtml(record.invitedBy);
+  const safeInvitedBy = escapeHtml(invitedByLabel);
   const safeGreeting = safeName ? `Hi ${safeName},` : 'Hi there,';
 
   const htmlBody = `
@@ -310,6 +311,21 @@ async function inviteUser(event: AppSyncResolverEvent<{ input: InviteUserInput }
   const normalizedEmail = email.trim().toLowerCase();
   const isAdmin = role === 'admin';
 
+  // The AppSync identity claims don't reliably carry an email (e.g. Cognito access
+  // tokens never include one), so look up the inviting admin's email directly rather
+  // than trusting userContext.email, which can be undefined.
+  const inviterResult = await cognitoClient.send(new AdminGetUserCommand({
+    UserPoolId: USER_POOL_ID,
+    Username: userContext!.userId,
+  }));
+  const inviterAttributes = inviterResult.UserAttributes?.reduce((acc, attr) => {
+    if (attr.Name && attr.Value) {
+      acc[attr.Name] = attr.Value;
+    }
+    return acc;
+  }, {} as Record<string, string>) || {};
+  const invitedByEmail = inviterAttributes.email || userContext!.email;
+
   const now = new Date();
   const expiresAt = new Date(now.getTime() + INVITATION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
@@ -325,7 +341,7 @@ async function inviteUser(event: AppSyncResolverEvent<{ input: InviteUserInput }
     fitShowScoring: isAdmin || (fitShowScoring ?? true),
     token: randomUUID(),
     status: 'pending',
-    invitedBy: userContext!.email,
+    invitedBy: invitedByEmail,
     createdAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
   };
