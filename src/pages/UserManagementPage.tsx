@@ -20,7 +20,7 @@ function UserManagementPage(): JSX.Element {
         Invite judges and admins by email, and manage existing accounts and permissions.
       </Typography>
       
-      <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
+      <Paper elevation={2} sx={{ p: 3, mt: 3, maxWidth: '95vw' }}>
         <JudgeManagement />
       </Paper>
     </Box>
