@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
 import * as cdk from 'aws-cdk-lib';
 import { CatVotingStack } from '../lib/cat-voting-stack';
 import { GitHubOidcStack } from '../lib/github-oidc-stack';
+
+// Load the frontend's .env.local (repo root, one level up from infrastructure/)
+// so deploy-time settings like SES_FROM_EMAIL can be set in one place. A
+// missing file is a no-op -- real shell/CI env vars still take precedence
+// since dotenv.config() by default won't override already-set variables.
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
 
 const app = new cdk.App();
 
@@ -19,6 +27,7 @@ const stage = app.node.tryGetContext('stage') ?? 'development';
 new CatVotingStack(app, 'CatVotingStack', {
   env,
   stage,
+  sesFromEmail: process.env.SES_FROM_EMAIL,
 });
 
 // One-time CI/CD IAM setup for GitHub Actions OIDC deploys. Not gated by

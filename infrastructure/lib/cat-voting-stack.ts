@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -5,6 +6,7 @@ import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as appsync from 'aws-cdk-lib/aws-appsync';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
@@ -20,6 +22,8 @@ import { Construct } from 'constructs';
 export interface CatVotingStackProps extends cdk.StackProps {
   /** Deployment stage. Only 'production' provisions the 4hcats.advosight.com domain. */
   stage?: string;
+  /** Verified SES sender identity for invite emails. Defaults to noreply@advosight.com. */
+  sesFromEmail?: string;
 }
 
 const PRODUCTION_DOMAIN_NAME = '4hcats.advosight.com';
@@ -53,8 +57,43 @@ export class CatVotingStack extends cdk.Stack {
         judgeId: new cognito.StringAttribute({
           mutable: true,
         }),
+        // Added alongside the invite-by-email feature: these were referenced by
+        // mapUserToJudgeAccount/roleValidation.ts but never actually declared on
+        // the pool, so setting them previously would have failed at runtime.
+        cageScoring: new cognito.BooleanAttribute({
+          mutable: true,
+        }),
+        classScoring: new cognito.BooleanAttribute({
+          mutable: true,
+        }),
+        fitShowScoring: new cognito.BooleanAttribute({
+          mutable: true,
+        }),
       },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // Real Cognito groups for admin/judge. roleValidation.ts (server) and
+    // roleUtils.ts (client) already treat cognito:groups as the source of
+    // truth for role ahead of the custom:role attribute -- these groups make
+    // that live instead of dormant, and are what invited users are placed
+    // into automatically after accepting their invite.
+    //
+    // The 'admin' group already exists on the live pool (created 2025-08-30,
+    // outside of CDK, and already has the real admin account as a member) --
+    // CloudFormation can't "create" a group AWS already has, so it's
+    // deliberately left unmanaged here. Only 'judge' (which doesn't exist
+    // yet) is CDK-managed.
+    new cognito.CfnUserPoolGroup(this, 'AdminGroup', {
+      userPoolId: userPool.userPoolId,
+      groupName: 'admin',
+      description: 'Admin access',
+    });
+
+    new cognito.CfnUserPoolGroup(this, 'JudgeGroup', {
+      userPoolId: userPool.userPoolId,
+      groupName: 'judge',
+      description: 'Judge scoring access',
     });
 
     const userPoolClient = new cognito.UserPoolClient(this, 'CatVotingUserPoolClient', {
@@ -69,7 +108,10 @@ export class CatVotingStack extends cdk.Stack {
     // AppSync API
     const graphqlApi = new appsync.GraphqlApi(this, 'CatVotingApi', {
       name: 'cat-voting-api',
-      schema: appsync.SchemaFile.fromAsset('lib/schema.graphql'),
+      // Resolved from this file's own location, not process.cwd() -- the root
+      // cdk.json runs this same app without cd-ing into infrastructure/ first,
+      // so a bare relative path only worked when deploying from that directory.
+      schema: appsync.SchemaFile.fromAsset(path.join(__dirname, 'schema.graphql')),
       authorizationConfig: {
         defaultAuthorization: {
           authorizationType: appsync.AuthorizationType.USER_POOL,
@@ -88,7 +130,7 @@ export class CatVotingStack extends cdk.Stack {
 
     // Lambda Functions
     const voteFunction = new nodejs.NodejsFunction(this, 'VoteFunction', {
-      entry: 'lambda/vote.ts',
+      entry: path.join(__dirname, '..', 'lambda', 'vote.ts'),
       runtime: lambda.Runtime.NODEJS_LATEST,
       timeout: cdk.Duration.seconds(30),
       environment: {
@@ -99,7 +141,7 @@ export class CatVotingStack extends cdk.Stack {
     });
 
     const resolverFunction = new nodejs.NodejsFunction(this, 'ResolverFunction', {
-      entry: 'lambda/resolver.ts',
+      entry: path.join(__dirname, '..', 'lambda', 'resolver.ts'),
       runtime: lambda.Runtime.NODEJS_LATEST,
       timeout: cdk.Duration.seconds(30),
       environment: {
@@ -108,7 +150,7 @@ export class CatVotingStack extends cdk.Stack {
     });
 
     const scoreResolverFunction = new nodejs.NodejsFunction(this, 'ScoreResolverFunction', {
-      entry: 'lambda/scoreResolver.ts',
+      entry: path.join(__dirname, '..', 'lambda', 'scoreResolver.ts'),
       runtime: lambda.Runtime.NODEJS_LATEST,
       timeout: cdk.Duration.seconds(30),
       environment: {
@@ -116,17 +158,47 @@ export class CatVotingStack extends cdk.Stack {
       },
     });
 
+    const SES_FROM_EMAIL = props?.sesFromEmail || 'noreply@advosight.com';
+
     const userManagementResolverFunction = new nodejs.NodejsFunction(this, 'UserManagementResolverFunction', {
-      entry: 'lambda/userManagementResolver.ts',
+      entry: path.join(__dirname, '..', 'lambda', 'userManagementResolver.ts'),
       runtime: lambda.Runtime.NODEJS_LATEST,
       timeout: cdk.Duration.seconds(30),
       environment: {
         USER_POOL_ID: userPool.userPoolId,
+        TABLE_NAME: table.tableName,
+        SES_FROM_EMAIL,
       },
     });
 
+    // Cognito Lambda triggers backing the invite-by-email self-service signup flow.
+    const preSignUpFunction = new nodejs.NodejsFunction(this, 'PreSignUpFunction', {
+      entry: path.join(__dirname, '..', 'lambda', 'preSignUpTrigger.ts'),
+      runtime: lambda.Runtime.NODEJS_LATEST,
+      timeout: cdk.Duration.seconds(10),
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+    });
+
+    const postConfirmationFunction = new nodejs.NodejsFunction(this, 'PostConfirmationFunction', {
+      entry: path.join(__dirname, '..', 'lambda', 'postConfirmationTrigger.ts'),
+      runtime: lambda.Runtime.NODEJS_LATEST,
+      timeout: cdk.Duration.seconds(10),
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+      // Deliberately no USER_POOL_ID env var: Cognito trigger events already
+      // carry event.userPoolId at runtime, and referencing userPool.userPoolId
+      // here would create the same UserPool <-> Function CFN dependency cycle
+      // as the IAM policy did above.
+    });
+
+    userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUpFunction);
+    userPool.addTrigger(cognito.UserPoolOperation.POST_CONFIRMATION, postConfirmationFunction);
+
     const classScoreResolverFunction = new nodejs.NodejsFunction(this, 'ClassScoreResolverFunction', {
-      entry: 'lambda/classScoreResolver.ts',
+      entry: path.join(__dirname, '..', 'lambda', 'classScoreResolver.ts'),
       runtime: lambda.Runtime.NODEJS_LATEST,
       timeout: cdk.Duration.seconds(30),
       environment: {
@@ -135,7 +207,7 @@ export class CatVotingStack extends cdk.Stack {
     });
 
     const fitShowScoreResolverFunction = new nodejs.NodejsFunction(this, 'FitShowScoreResolverFunction', {
-      entry: 'lambda/fitShowScoreResolver.ts',
+      entry: path.join(__dirname, '..', 'lambda', 'fitShowScoreResolver.ts'),
       runtime: lambda.Runtime.NODEJS_LATEST,
       timeout: cdk.Duration.seconds(30),
       environment: {
@@ -148,15 +220,36 @@ export class CatVotingStack extends cdk.Stack {
     table.grantReadWriteData(scoreResolverFunction);
     table.grantReadWriteData(classScoreResolverFunction);
     table.grantReadWriteData(fitShowScoreResolverFunction);
+    table.grantReadWriteData(userManagementResolverFunction);
+    table.grantReadWriteData(preSignUpFunction);
+    table.grantReadWriteData(postConfirmationFunction);
 
     // Grant Cognito permissions to user management function
-    userPool.grant(userManagementResolverFunction, 
-      'cognito-idp:AdminCreateUser',
-      'cognito-idp:AdminSetUserAttributes', 
+    userPool.grant(userManagementResolverFunction,
+      'cognito-idp:AdminSetUserAttributes',
       'cognito-idp:ListUsers',
       'cognito-idp:AdminGetUser',
       'cognito-idp:AdminUpdateUserAttributes'
     );
+
+    // The PostConfirmation trigger applies the invited role/permissions and
+    // adds the new user to their Cognito group right after self-service signup.
+    // Scoped to '*' rather than userPool.userPoolArn: this function is itself
+    // invoked BY the user pool (as a Lambda trigger), so a policy referencing
+    // the pool's ARN would create a CloudFormation dependency cycle
+    // (UserPool -> Function -> Role Policy -> UserPool).
+    postConfirmationFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminUpdateUserAttributes', 'cognito-idp:AdminAddUserToGroup'],
+      resources: ['*'],
+    }));
+
+    // The noreply@advosight.com SES identity is already verified in this
+    // account; scope the send permission to it directly rather than
+    // re-declaring the identity as a CDK resource.
+    userManagementResolverFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+      resources: [`arn:aws:ses:${this.region}:${this.account}:identity/${SES_FROM_EMAIL}`],
+    }));
 
     // API Gateway for voting
     const api = new apigateway.RestApi(this, 'VotingApi', {
@@ -380,11 +473,6 @@ export class CatVotingStack extends cdk.Stack {
     });
 
     // User Management Resolvers
-    userManagementDataSource.createResolver('createJudgeAccountResolver', {
-      typeName: 'Mutation',
-      fieldName: 'createJudgeAccount',
-    });
-
     userManagementDataSource.createResolver('updateUserRoleResolver', {
       typeName: 'Mutation',
       fieldName: 'updateUserRole',
@@ -398,6 +486,32 @@ export class CatVotingStack extends cdk.Stack {
     userManagementDataSource.createResolver('getJudgeAccountResolver', {
       typeName: 'Query',
       fieldName: 'getJudgeAccount',
+    });
+
+    // Invitation Resolvers
+    userManagementDataSource.createResolver('inviteUserResolver', {
+      typeName: 'Mutation',
+      fieldName: 'inviteUser',
+    });
+
+    userManagementDataSource.createResolver('resendInvitationResolver', {
+      typeName: 'Mutation',
+      fieldName: 'resendInvitation',
+    });
+
+    userManagementDataSource.createResolver('revokeInvitationResolver', {
+      typeName: 'Mutation',
+      fieldName: 'revokeInvitation',
+    });
+
+    userManagementDataSource.createResolver('listInvitationsResolver', {
+      typeName: 'Query',
+      fieldName: 'listInvitations',
+    });
+
+    userManagementDataSource.createResolver('validateInvitationResolver', {
+      typeName: 'Query',
+      fieldName: 'validateInvitation',
     });
 
     // Class Score Resolvers
@@ -574,9 +688,19 @@ export class CatVotingStack extends cdk.Stack {
       });
     }
 
+    // Invite emails link back to whichever URL actually serves the app; only
+    // known once the distribution (and, in production, the vanity domain)
+    // are defined above.
+    userManagementResolverFunction.addEnvironment(
+      'APP_BASE_URL',
+      isProduction ? `https://${PRODUCTION_DOMAIN_NAME}` : `https://${distribution.distributionDomainName}`
+    );
+
     // Deploy website
     new s3deploy.BucketDeployment(this, 'WebsiteDeployment', {
-      sources: [s3deploy.Source.asset('../dist')],
+      // Resolved from this file's location for the same reason as the
+      // schema.graphql path above -- '../dist' only worked from infrastructure/.
+      sources: [s3deploy.Source.asset(path.join(__dirname, '..', '..', 'dist'))],
       destinationBucket: websiteBucket,
       distribution,
       distributionPaths: ['/*'],
@@ -596,6 +720,13 @@ export class CatVotingStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'GraphQLEndpoint', {
       value: graphqlApi.graphqlUrl,
       exportName: 'CatVotingGraphQLEndpoint',
+    });
+
+    // Needed by the frontend to call the public, API-key-only validateInvitation
+    // query from the unauthenticated accept-invite page.
+    new cdk.CfnOutput(this, 'GraphQLApiKey', {
+      value: graphqlApi.apiKey!,
+      exportName: 'CatVotingGraphQLApiKey',
     });
 
     new cdk.CfnOutput(this, 'VotingApiEndpoint', {

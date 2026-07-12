@@ -93,8 +93,6 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
     leaderboards: true,
   });
   const [bottomNavValue, setBottomNavValue] = useState<string>('');
-  const [touchStartX, setTouchStartX] = useState<number>(0);
-  const [touchStartY, setTouchStartY] = useState<number>(0);
 
   const handleDrawerToggle = useCallback(() => {
     setMobileOpen(!mobileOpen);
@@ -136,35 +134,6 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
     }
   }, [navigate]);
 
-  // Gesture handling for drawer
-  const handleTouchStart = useCallback((event: React.TouchEvent) => {
-    setTouchStartX(event.touches[0].clientX);
-    setTouchStartY(event.touches[0].clientY);
-  }, []);
-
-  const handleTouchEnd = useCallback((event: React.TouchEvent) => {
-    if (!touchStartX || !touchStartY) return;
-
-    const touchEndX = event.changedTouches[0].clientX;
-    const touchEndY = event.changedTouches[0].clientY;
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-
-    // Only handle horizontal swipes (ignore vertical scrolling)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-      if (deltaX > 0 && touchStartX < 50 && !mobileOpen) {
-        // Swipe right from left edge to open drawer
-        handleDrawerOpen();
-      } else if (deltaX < 0 && mobileOpen) {
-        // Swipe left to close drawer
-        handleDrawerClose();
-      }
-    }
-
-    setTouchStartX(0);
-    setTouchStartY(0);
-  }, [touchStartX, touchStartY, mobileOpen, handleDrawerOpen, handleDrawerClose]);
-
   // Update bottom nav value when location changes
   useEffect(() => {
     setBottomNavValue(location.pathname);
@@ -180,8 +149,12 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
       root.style.setProperty(property, value);
     });
 
-    // Close mobile drawer when switching to desktop
-    if (!isMobile && mobileOpen) {
+    // Close mobile drawer when switching to desktop. Uses legacyIsMobile (matching
+    // the theme.breakpoints.down('md') used by the drawer's own `sx` display rules)
+    // rather than the ResponsiveContext isMobile (768px threshold), since that's a
+    // narrower breakpoint than the drawer's 900px visibility cutoff -- using it here
+    // force-closed the drawer immediately after opening for any width in [768, 900).
+    if (!legacyIsMobile && mobileOpen) {
       setMobileOpen(false);
     }
 
@@ -190,7 +163,7 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
       const orientationMessage = `Screen orientation changed to ${orientation}`;
       announceToScreenReader(orientationMessage);
     }
-  }, [getCSSVariables, isMobile, mobileOpen, orientation, config.announceOrientationChanges, announceToScreenReader]);
+  }, [getCSSVariables, legacyIsMobile, mobileOpen, orientation, config.announceOrientationChanges, announceToScreenReader]);
 
   // Handle smooth transitions during orientation changes
   useEffect(() => {
@@ -597,10 +570,8 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
   );
 
   return (
-    <Box 
+    <Box
       sx={{ display: 'flex', height: '100vh' }}
-      onTouchStart={isMobile ? handleTouchStart : undefined}
-      onTouchEnd={isMobile ? handleTouchEnd : undefined}
     >
       {/* Enhanced AppBar with mobile optimizations */}
       <AppBar
@@ -708,15 +679,18 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            // Above the AppBar's zIndex.drawer + 1, since this is a modal overlay
+            // on mobile and must cover the fixed AppBar, not sit behind it.
+            zIndex: theme.zIndex.modal,
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
               maxWidth: '85vw', // Prevent drawer from taking full width on small screens
             },
           }}
-          swipeAreaWidth={20}
           disableBackdropTransition={!iOS}
-          disableDiscovery={iOS}
+          disableDiscovery
+          disableSwipeToOpen
         >
           {drawer}
         </SwipeableDrawer>

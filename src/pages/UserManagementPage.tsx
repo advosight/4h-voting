@@ -17,7 +17,7 @@ function UserManagementPage(): JSX.Element {
         User Management
       </Typography>
       <Typography variant="body1" color="text.secondary" gutterBottom>
-        Manage judge accounts and user permissions.
+        Invite judges and admins by email, and manage existing accounts and permissions.
       </Typography>
       
       <Paper elevation={2} sx={{ p: 3, mt: 3 }}>

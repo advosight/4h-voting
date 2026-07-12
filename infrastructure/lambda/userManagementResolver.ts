@@ -1,29 +1,82 @@
 import { AppSyncResolverEvent } from 'aws-lambda';
-import { 
-  CognitoIdentityProviderClient, 
-  AdminCreateUserCommand,
+import {
+  CognitoIdentityProviderClient,
   AdminUpdateUserAttributesCommand,
   ListUsersCommand,
   AdminGetUserCommand,
   UserType
 } from '@aws-sdk/client-cognito-identity-provider';
-import { 
-  getUserContext, 
-  requireRole, 
-  UserContext 
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { randomUUID } from 'crypto';
+import {
+  getUserContext,
+  requireRole,
+  UserContext
 } from './roleValidation';
 
 const cognitoClient = new CognitoIdentityProviderClient({});
 const USER_POOL_ID = process.env.USER_POOL_ID!;
 
-interface CreateJudgeInput {
+const ddbClient = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(ddbClient);
+const TABLE_NAME = process.env.TABLE_NAME!;
+
+const sesClient = new SESClient({});
+const SES_FROM_EMAIL = process.env.SES_FROM_EMAIL!;
+const APP_BASE_URL = process.env.APP_BASE_URL!;
+
+const INVITATION_TTL_DAYS = 7;
+
+type InviteRole = 'judge' | 'admin';
+
+interface InviteUserInput {
   email: string;
-  name: string;
-  temporaryPassword: string;
-  judgeId?: string;
+  name?: string;
+  role: string;
   cageScoring?: boolean;
   classScoring?: boolean;
   fitShowScoring?: boolean;
+}
+
+interface InvitationRecord {
+  PK: string;
+  SK: string;
+  email: string;
+  name?: string;
+  role: InviteRole;
+  judgeId?: string;
+  cageScoring: boolean;
+  classScoring: boolean;
+  fitShowScoring: boolean;
+  token: string;
+  status: 'pending' | 'accepted';
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+interface Invitation {
+  email: string;
+  name?: string;
+  role: string;
+  judgeId?: string;
+  cageScoring: boolean;
+  classScoring: boolean;
+  fitShowScoring: boolean;
+  status: string;
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+interface InvitationValidation {
+  valid: boolean;
+  email?: string;
+  name?: string;
+  role?: string;
+  reason?: string;
 }
 
 interface JudgeAccount {
@@ -96,8 +149,16 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
 
   try {
     switch (fieldName) {
-      case 'createJudgeAccount':
-        return await createJudgeAccount(event);
+      case 'inviteUser':
+        return await inviteUser(event);
+      case 'resendInvitation':
+        return await resendInvitation(event);
+      case 'revokeInvitation':
+        return await revokeInvitation(event);
+      case 'listInvitations':
+        return await listInvitations(event);
+      case 'validateInvitation':
+        return await validateInvitation(event);
       case 'updateUserRole':
         return await updateUserRole(event);
       case 'listJudgeAccounts':
@@ -113,71 +174,267 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
   }
 };
 
+function invitationPK(email: string): string {
+  return `INVITE#${email.trim().toLowerCase()}`;
+}
+
+function toInvitation(record: InvitationRecord): Invitation {
+  return {
+    email: record.email,
+    name: record.name,
+    role: record.role,
+    judgeId: record.judgeId,
+    cageScoring: record.cageScoring,
+    classScoring: record.classScoring,
+    fitShowScoring: record.fitShowScoring,
+    status: record.status,
+    invitedBy: record.invitedBy,
+    createdAt: record.createdAt,
+    expiresAt: record.expiresAt,
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function sendInviteEmail(record: InvitationRecord): Promise<void> {
+  const roleLabel = record.role === 'admin' ? 'Admin' : 'Judge';
+  const acceptUrl = `${APP_BASE_URL}/accept-invite?email=${encodeURIComponent(record.email)}&token=${encodeURIComponent(record.token)}`;
+  const expiresLabel = new Date(record.expiresAt).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const greeting = record.name ? `Hi ${record.name},` : 'Hi there,';
+
+  const textBody = `${greeting}\n\n` +
+    `${record.invitedBy} has invited you to join the 4H Cat Show as a ${roleLabel}.\n\n` +
+    `Set up your account here:\n${acceptUrl}\n\n` +
+    `This invitation expires on ${expiresLabel}.\n\n` +
+    `If you weren't expecting this invitation, you can safely ignore this email.`;
+
+  const safeName = record.name ? escapeHtml(record.name) : '';
+  const safeInvitedBy = escapeHtml(record.invitedBy);
+  const safeGreeting = safeName ? `Hi ${safeName},` : 'Hi there,';
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+  <body style="margin:0; padding:0; background-color:#f5f5f5; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; max-width:480px; width:100%;">
+            <tr>
+              <td style="background-color:#1976d2; padding:24px 32px;">
+                <span style="color:#ffffff; font-size:20px; font-weight:500;">4H Cat Show</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;">
+                <p style="margin:0 0 16px; font-size:16px; color:#212121;">${safeGreeting}</p>
+                <p style="margin:0 0 24px; font-size:16px; line-height:1.5; color:#212121;">
+                  <strong>${safeInvitedBy}</strong> has invited you to join the 4H Cat Show as a <strong>${roleLabel}</strong>.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="border-radius:8px; background-color:#1976d2;">
+                      <a href="${acceptUrl}" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:500; color:#ffffff; text-decoration:none; border-radius:8px;">
+                        Set up your account
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:24px 0 0; font-size:13px; color:#757575;">
+                  This invitation expires on ${expiresLabel}.
+                </p>
+                <p style="margin:16px 0 0; font-size:13px; color:#757575;">
+                  If you weren't expecting this invitation, you can safely ignore this email.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  await sesClient.send(new SendEmailCommand({
+    Source: SES_FROM_EMAIL,
+    Destination: { ToAddresses: [record.email] },
+    Message: {
+      Subject: { Data: `You're invited to join the 4H Cat Show as a ${roleLabel}` },
+      Body: {
+        Text: { Data: textBody },
+        Html: { Data: htmlBody },
+      },
+    },
+  }));
+}
+
 /**
- * Create a new judge account in Cognito
+ * Invite a new judge or admin by email
  */
-async function createJudgeAccount(event: AppSyncResolverEvent<{ input: CreateJudgeInput }>): Promise<JudgeAccount> {
+async function inviteUser(event: AppSyncResolverEvent<{ input: InviteUserInput }>): Promise<Invitation> {
   const userContext = getUserContext(event);
   requireRole(userContext, 'admin');
 
-  const { email, name, temporaryPassword, judgeId, cageScoring, classScoring, fitShowScoring } = event.arguments.input;
+  const { email, name, role, cageScoring, classScoring, fitShowScoring } = event.arguments.input;
 
-  // Generate judge ID if not provided
-  const finalJudgeId = judgeId || generateJudgeId();
-
-  // Default each permission to granted unless the admin explicitly unchecked it
-  const finalCageScoring = cageScoring ?? true;
-  const finalClassScoring = classScoring ?? true;
-  const finalFitShowScoring = fitShowScoring ?? true;
-
-  try {
-    // Create user in Cognito
-    const createUserCommand = new AdminCreateUserCommand({
-      UserPoolId: USER_POOL_ID,
-      Username: email,
-      UserAttributes: [
-        { Name: 'email', Value: email },
-        { Name: 'name', Value: name },
-        { Name: 'custom:role', Value: 'judge' },
-        { Name: 'custom:judgeId', Value: finalJudgeId },
-        { Name: 'custom:cageScoring', Value: finalCageScoring ? 'true' : 'false' },
-        { Name: 'custom:classScoring', Value: finalClassScoring ? 'true' : 'false' },
-        { Name: 'custom:fitShowScoring', Value: finalFitShowScoring ? 'true' : 'false' },
-        { Name: 'email_verified', Value: 'true' },
-      ],
-      TemporaryPassword: temporaryPassword,
-      MessageAction: 'SUPPRESS', // Don't send welcome email
-    });
-
-    const result = await cognitoClient.send(createUserCommand);
-
-    if (!result.User?.Username) {
-      throw new Error('Failed to create user');
-    }
-
-    return {
-      userId: result.User.Username,
-      email,
-      name,
-      judgeId: finalJudgeId,
-      role: 'judge',
-      createdAt: new Date().toISOString(),
-      isActive: true,
-      cageScoring: finalCageScoring,
-      classScoring: finalClassScoring,
-      fitShowScoring: finalFitShowScoring,
-    };
-
-  } catch (error) {
-    console.error('Error creating judge account:', error);
-    if (error instanceof Error) {
-      if (error.message.includes('UsernameExistsException')) {
-        throw new Error('A user with this email already exists');
-      }
-      throw new Error(`Failed to create judge account: ${error.message}`);
-    }
-    throw new Error('Failed to create judge account');
+  if (!['judge', 'admin'].includes(role)) {
+    throw new Error('Invalid role. Must be judge or admin');
   }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const isAdmin = role === 'admin';
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + INVITATION_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+  const record: InvitationRecord = {
+    PK: invitationPK(normalizedEmail),
+    SK: 'METADATA',
+    email: normalizedEmail,
+    name,
+    role: role as InviteRole,
+    judgeId: isAdmin ? undefined : generateJudgeId(),
+    cageScoring: isAdmin || (cageScoring ?? true),
+    classScoring: isAdmin || (classScoring ?? true),
+    fitShowScoring: isAdmin || (fitShowScoring ?? true),
+    token: randomUUID(),
+    status: 'pending',
+    invitedBy: userContext!.email,
+    createdAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  };
+
+  await docClient.send(new PutCommand({
+    TableName: TABLE_NAME,
+    Item: record,
+  }));
+
+  await sendInviteEmail(record);
+
+  return toInvitation(record);
+}
+
+/**
+ * Resend an existing pending invitation, rotating its token and extending its expiry
+ */
+async function resendInvitation(event: AppSyncResolverEvent<{ email: string }>): Promise<Invitation> {
+  const userContext = getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const normalizedEmail = event.arguments.email.trim().toLowerCase();
+
+  const existing = await docClient.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: { PK: invitationPK(normalizedEmail), SK: 'METADATA' },
+  }));
+
+  if (!existing.Item) {
+    throw new Error('No pending invitation found for this email');
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + INVITATION_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+  const record: InvitationRecord = {
+    ...(existing.Item as InvitationRecord),
+    token: randomUUID(),
+    status: 'pending',
+    expiresAt: expiresAt.toISOString(),
+  };
+
+  await docClient.send(new PutCommand({
+    TableName: TABLE_NAME,
+    Item: record,
+  }));
+
+  await sendInviteEmail(record);
+
+  return toInvitation(record);
+}
+
+/**
+ * Revoke a pending invitation
+ */
+async function revokeInvitation(event: AppSyncResolverEvent<{ email: string }>): Promise<boolean> {
+  const userContext = getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const normalizedEmail = event.arguments.email.trim().toLowerCase();
+
+  await docClient.send(new DeleteCommand({
+    TableName: TABLE_NAME,
+    Key: { PK: invitationPK(normalizedEmail), SK: 'METADATA' },
+  }));
+
+  return true;
+}
+
+/**
+ * List all pending invitations
+ */
+async function listInvitations(event: AppSyncResolverEvent<{}>): Promise<{ items: Invitation[] }> {
+  const userContext = getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const result = await docClient.send(new ScanCommand({
+    TableName: TABLE_NAME,
+    FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND #status = :status',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: {
+      ':pk': 'INVITE#',
+      ':sk': 'METADATA',
+      ':status': 'pending',
+    },
+  }));
+
+  const items = ((result.Items || []) as InvitationRecord[]).map(toInvitation);
+
+  return { items };
+}
+
+/**
+ * Validate an invitation token before allowing self-service signup.
+ * Public (API key) - called from the unauthenticated accept-invite page.
+ */
+async function validateInvitation(event: AppSyncResolverEvent<{ email: string; token: string }>): Promise<InvitationValidation> {
+  const { email, token } = event.arguments;
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const result = await docClient.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: { PK: invitationPK(normalizedEmail), SK: 'METADATA' },
+  }));
+
+  const record = result.Item as InvitationRecord | undefined;
+
+  if (!record) {
+    return { valid: false, reason: 'No invitation found for this email.' };
+  }
+
+  if (record.status !== 'pending') {
+    return { valid: false, reason: 'This invitation has already been used.' };
+  }
+
+  if (record.token !== token) {
+    return { valid: false, reason: 'Invalid invitation link.' };
+  }
+
+  if (new Date(record.expiresAt).getTime() < Date.now()) {
+    return { valid: false, reason: 'This invitation has expired. Please ask an admin to resend it.' };
+  }
+
+  return { valid: true, email: record.email, name: record.name, role: record.role };
 }
 
 /**
@@ -248,9 +505,10 @@ async function listJudgeAccounts(event: AppSyncResolverEvent<{}>): Promise<{ ite
   requireRole(userContext, 'admin');
 
   try {
+    // Cognito's ListUsers Filter only supports a single attribute expression
+    // (no "or"), so role filtering happens in mapUserToJudgeAccount instead.
     const listCommand = new ListUsersCommand({
       UserPoolId: USER_POOL_ID,
-      Filter: 'custom:role = "judge" or custom:role = "admin"',
     });
 
     const result = await cognitoClient.send(listCommand);

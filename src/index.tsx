@@ -64,7 +64,8 @@ const amplifyConfig = {
     GraphQL: {
       endpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'https://rk6mmqdxprfkrf4rub6rptmmsu.appsync-api.us-west-2.amazonaws.com/graphql',
       region: import.meta.env.VITE_REGION || 'us-west-2',
-      defaultAuthMode: 'userPool' as const
+      defaultAuthMode: 'userPool' as const,
+      apiKey: import.meta.env.VITE_GRAPHQL_API_KEY
     }
   }
 };

@@ -24,6 +24,7 @@
     "aws-cdk": "^2.1130.0",
     "aws-sdk-client-mock": "^4.1.0",
     "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.1",

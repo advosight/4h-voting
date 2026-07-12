@@ -33,7 +33,7 @@ function UserDebugInfo(): JSX.Element {
   }
 
   return (
-    <Box sx={{ position: 'fixed', top: 10, right: 10, zIndex: 9999 }}>
+    <Box sx={{ position: 'fixed', bottom: 80, right: 10, zIndex: 9999 }}>
       <Button
         variant="outlined"
         size="small"

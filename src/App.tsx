@@ -34,6 +34,7 @@ const FitShowLeaderboardPage = React.lazy(() => import('./pages/FitShowLeaderboa
 const EmailReportsPage = React.lazy(() => import('./pages/EmailReportsPage'));
 const ParticipantScorePage = React.lazy(() => import('./pages/ParticipantScorePage'));
 const ParticipantClassScorePage = React.lazy(() => import('./pages/ParticipantClassScorePage'));
+const AcceptInvitePage = React.lazy(() => import('./pages/AcceptInvitePage'));
 
 // Loading fallback component
 const LoadingFallback: React.FC = () => (
@@ -108,6 +109,7 @@ function App(): JSX.Element {
                 <Route path="/tv-mode" element={<TVModePage />} />
                 <Route path="/participant-score/:participantId" element={<ParticipantScorePage />} />
                 <Route path="/participant-class-score/:catId" element={<ParticipantClassScorePage />} />
+                <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
                 {/* Protected scoring routes - require judge role */}
                 <Route path="/score/:cageNumber" element={

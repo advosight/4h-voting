@@ -62,6 +62,8 @@ type Query {
   getScoreAuditHistory(scoreId: ID!): ScoreAuditConnection! @aws_cognito_user_pools
   listJudgeAccounts: JudgeAccountConnection! @aws_cognito_user_pools
   getJudgeAccount(userId: ID!): JudgeAccount @aws_cognito_user_pools
+  listInvitations: InvitationConnection! @aws_cognito_user_pools
+  validateInvitation(email: String!, token: String!): InvitationValidation! @aws_api_key
   getClassScore(id: ID!): ClassScore @aws_cognito_user_pools
   getClassScoresByCat(catId: ID!): ClassScoreConnection! @aws_cognito_user_pools
   getClassScoresByCage(cageNumber: Int!): ClassScoreConnection! @aws_cognito_user_pools
@@ -91,8 +93,10 @@ type Mutation {
   createScore(input: CreateScoreInput!): Score! @aws_cognito_user_pools
   updateScore(id: ID!, input: UpdateScoreInput!): Score! @aws_cognito_user_pools
   finalizeScore(id: ID!): Score! @aws_cognito_user_pools
-  createJudgeAccount(input: CreateJudgeInput!): JudgeAccount! @aws_cognito_user_pools
   updateUserRole(userId: ID!, role: String!): UserRoleUpdate! @aws_cognito_user_pools
+  inviteUser(input: InviteUserInput!): Invitation! @aws_cognito_user_pools
+  resendInvitation(email: String!): Invitation! @aws_cognito_user_pools
+  revokeInvitation(email: String!): Boolean! @aws_cognito_user_pools
   createClassScore(input: CreateClassScoreInput!): ClassScore! @aws_cognito_user_pools
   updateClassScore(id: ID!, input: UpdateClassScoreInput!): ClassScore! @aws_cognito_user_pools
   finalizeClassScore(id: ID!): ClassScore! @aws_cognito_user_pools
@@ -226,20 +230,44 @@ type UserRoleUpdate {
   updatedAt: String! @aws_cognito_user_pools
 }
 
-input CreateJudgeInput {
+type JudgeAccountConnection {
+  items: [JudgeAccount!]! @aws_cognito_user_pools
+}
+
+# Invitation Types
+type Invitation {
+  email: String! @aws_cognito_user_pools
+  name: String @aws_cognito_user_pools
+  role: String! @aws_cognito_user_pools
+  judgeId: String @aws_cognito_user_pools
+  cageScoring: Boolean! @aws_cognito_user_pools
+  classScoring: Boolean! @aws_cognito_user_pools
+  fitShowScoring: Boolean! @aws_cognito_user_pools
+  status: String! @aws_cognito_user_pools
+  invitedBy: String! @aws_cognito_user_pools
+  createdAt: String! @aws_cognito_user_pools
+  expiresAt: String! @aws_cognito_user_pools
+}
+
+type InvitationConnection {
+  items: [Invitation!]! @aws_cognito_user_pools
+}
+
+type InvitationValidation {
+  valid: Boolean! @aws_api_key
+  email: String @aws_api_key
+  name: String @aws_api_key
+  role: String @aws_api_key
+  reason: String @aws_api_key
+}
+
+input InviteUserInput {
   email: String!
-  name: String!
-  temporaryPassword: String!
-  judgeId: String
+  name: String
+  role: String!
   cageScoring: Boolean
   classScoring: Boolean
   fitShowScoring: Boolean
-}
-
-
-
-type JudgeAccountConnection {
-  items: [JudgeAccount!]! @aws_cognito_user_pools
 }
 
 # Class Scoring Types

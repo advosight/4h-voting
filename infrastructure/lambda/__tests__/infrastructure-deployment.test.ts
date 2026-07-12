@@ -12,8 +12,9 @@ describe('Infrastructure Deployment', () => {
   });
 
   test('Fit and Show Scoring Lambda Function is created', () => {
-    // Check that we have the expected number of Lambda functions (including fit show scoring)
-    template.resourceCountIs('AWS::Lambda::Function', 8);
+    // Check that we have the expected number of Lambda functions (including fit show
+    // scoring, and the PreSignUp/PostConfirmation triggers backing invite-by-email signup)
+    template.resourceCountIs('AWS::Lambda::Function', 10);
     
     // Check that fit show scoring function exists by checking for a function with TABLE_NAME env var
     const lambdaFunctions = template.findResources('AWS::Lambda::Function');
