@@ -458,8 +458,8 @@ function JudgeManagement(): JSX.Element {
       {invitations.length > 0 && (
         <div style={{ marginBottom: '2rem' }}>
           <h3>Pending Invitations</h3>
-          <div style={{ backgroundColor: 'white', border: '1px solid #dee2e6', borderRadius: '4px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ backgroundColor: 'white', border: '1px solid #dee2e6', borderRadius: '4px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8f9fa' }}>
                   <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Email</th>
@@ -519,13 +519,12 @@ function JudgeManagement(): JSX.Element {
       )}
 
       <h3>Active Accounts</h3>
-      <div style={{ backgroundColor: 'white', border: '1px solid #dee2e6', borderRadius: '4px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ backgroundColor: 'white', border: '1px solid #dee2e6', borderRadius: '4px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8f9fa' }}>
               <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Name</th>
               <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Email</th>
-              <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Judge ID</th>
               <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Role</th>
               <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Permissions</th>
               <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>Status</th>
@@ -538,7 +537,6 @@ function JudgeManagement(): JSX.Element {
               <tr key={judge.userId}>
                 <td style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>{judge.name}</td>
                 <td style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>{judge.email}</td>
-                <td style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>{judge.judgeId}</td>
                 <td style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
                   <select
                     value={judge.role}

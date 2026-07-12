@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
+import { canCageScore } from '../utils/roleUtils';
 import CageScoringForm from '../components/CageScoringForm';
 import { ScoringErrorBoundary } from '../components/ScoringErrorBoundary';
 import { NetworkErrorHandler } from '../components/NetworkErrorHandler';
@@ -119,29 +120,6 @@ function CageScorePage(): JSX.Element {
   const [showDebugInfo, setShowDebugInfo] = useState<boolean>(false);
   const [hasScorePermission, setHasScorePermission] = useState<boolean>(false);
 
-  const checkScorePermission = (user: any): boolean => {
-    if (!user) return false;
-    
-    // Check Cognito groups first (highest priority)
-    const cognitoGroups = user.signInUserSession?.idToken?.payload?.['cognito:groups'] || [];
-    if (cognitoGroups.includes('admin') || cognitoGroups.includes('judge')) {
-      return true;
-    }
-    
-    // Check if user is the default admin
-    const isAdmin = user.signInDetails?.loginId === '4h-leader@example.com';
-    
-    // Check custom role attribute
-    const customRole = user.attributes?.['custom:role'];
-    const hasJudgeId = user.attributes?.['custom:judgeId'];
-    
-    // Determine if user has judge or admin role
-    return isAdmin || 
-           customRole === 'judge' || 
-           customRole === 'admin' || 
-           (hasJudgeId && !customRole); // Has judge ID but no explicit role set
-  };
-
   useEffect(() => {
     initializePage();
   }, [cageNumber]);
@@ -171,7 +149,7 @@ function CageScorePage(): JSX.Element {
 
       // Check if user has judge role and scoring permissions
       setJudge(currentUser);
-      const hasPermission = checkScorePermission(currentUser);
+      const hasPermission = await canCageScore();
       setHasScorePermission(hasPermission);
 
       // Validate cage number

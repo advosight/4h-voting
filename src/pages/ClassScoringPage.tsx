@@ -29,9 +29,6 @@ import {
 import {
   EmojiEvents as ClassScoringIcon,
   Search as SearchIcon,
-  TrendingUp as TrendingUpIcon,
-  Star as StarIcon,
-  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import ClassScoreLeaderboard from '../components/ClassScoreLeaderboard';
@@ -102,7 +99,7 @@ function ClassScoringPage(): JSX.Element {
   const [selectedBreedCategory, setSelectedBreedCategory] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(false);
   const [catsLoading, setCatsLoading] = useState<boolean>(true);
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -141,7 +138,7 @@ function ClassScoringPage(): JSX.Element {
     try {
       setLoading(true);
       console.log('Fetching class scores...');
-      const result = await client.graphql({ 
+      const result = await client.graphql({
         query: listAllClassScores,
         variables: { limit: 100 }
       });
@@ -181,9 +178,16 @@ function ClassScoringPage(): JSX.Element {
     setSelectedBreedCategory(event.target.value);
   };
 
+  const hasActiveFilter = selectedAgeGroup !== 'all' || selectedBreedCategory !== 'all';
+
+  const clearFilters = () => {
+    setSelectedAgeGroup('all');
+    setSelectedBreedCategory('all');
+  };
+
   return (
     <Box sx={{ pb: isMobile ? 10 : 2 }}>
-      
+
       {/* Debug Info - Remove in production */}
       {process.env.NODE_ENV === 'development' && (
         <Alert severity="info" sx={{ mb: 2 }}>
@@ -244,69 +248,155 @@ function ClassScoringPage(): JSX.Element {
         </Box>
       </Paper>
 
-      {/* Cats List with Scores */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4, backgroundColor: '#f8f9ff', border: '1px solid #e3f2fd' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Typography variant="h6" sx={{ color: '#1976d2', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ClassScoringIcon />
-            Registered Cats & Scores
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="class-age-group-filter-label">Filter by Cat Age Group</InputLabel>
-              <Select
-                labelId="class-age-group-filter-label"
-                value={selectedAgeGroup}
-                label="Filter by Cat Age Group"
-                onChange={handleAgeGroupChange}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <FilterIcon />
-                  </InputAdornment>
+      {/* Filter Cats */}
+      <Paper elevation={1} sx={{ p: 3, mb: 3, backgroundColor: '#f8f9ff', border: '1px solid #1976d2' }}>
+        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2' }}>
+          Filter Cats
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="class-age-group-filter-label">Cat Age Group</InputLabel>
+            <Select
+              labelId="class-age-group-filter-label"
+              value={selectedAgeGroup}
+              label="Cat Age Group"
+              onChange={handleAgeGroupChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: '#1976d2' },
+                  '&:hover fieldset': { borderColor: '#1565c0' },
+                  '&.Mui-focused fieldset': { borderColor: '#1565c0' }
                 }
-              >
-                <MenuItem value="all">All Age Groups</MenuItem>
-                {CAT_AGE_GROUPS.map((group) => (
-                  <MenuItem key={group.value} value={group.value}>
-                    {group.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+              }}
+            >
+              <MenuItem value="all">All Age Groups</MenuItem>
+              {CAT_AGE_GROUPS.map((group) => (
+                <MenuItem key={group.value} value={group.value}>
+                  {group.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="class-breed-category-filter-label">Filter by Breed Category</InputLabel>
-              <Select
-                labelId="class-breed-category-filter-label"
-                value={selectedBreedCategory}
-                label="Filter by Breed Category"
-                onChange={handleBreedCategoryChange}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <FilterIcon />
-                  </InputAdornment>
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="class-breed-category-filter-label">Breed Category</InputLabel>
+            <Select
+              labelId="class-breed-category-filter-label"
+              value={selectedBreedCategory}
+              label="Breed Category"
+              onChange={handleBreedCategoryChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: '#1976d2' },
+                  '&:hover fieldset': { borderColor: '#1565c0' },
+                  '&.Mui-focused fieldset': { borderColor: '#1565c0' }
                 }
-              >
-                <MenuItem value="all">All Breed Categories</MenuItem>
-                {BREED_CATEGORIES.map((category) => (
-                  <MenuItem key={category.value} value={category.value}>
-                    {category.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+              }}
+            >
+              <MenuItem value="all">All Breed Categories</MenuItem>
+              {BREED_CATEGORIES.map((category) => (
+                <MenuItem key={category.value} value={category.value}>
+                  {category.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Chip
+            label={`${filteredCats.length} cat${filteredCats.length !== 1 ? 's' : ''} shown`}
+            sx={{ backgroundColor: '#1976d2', color: 'white' }}
+          />
+
+          {hasActiveFilter && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={clearFilters}
+              sx={{
+                borderColor: '#1976d2',
+                color: '#1976d2',
+                '&:hover': { borderColor: '#1565c0', backgroundColor: '#f8f9ff' }
+              }}
+            >
+              Clear Filters
+            </Button>
+          )}
         </Box>
+      </Paper>
 
-        {/* Simple cats list for debugging */}
-        {process.env.NODE_ENV === 'development' && cats.length > 0 && (
-          <Box sx={{ mb: 2, p: 2, bgcolor: '#f0f0f0', borderRadius: 1 }}>
-            <Typography variant="caption">
-              Raw cats data: {cats.map(cat => `${cat.name} (${cat.cageNumber})`).join(', ')}
-            </Typography>
-          </Box>
-        )}
+      {/* Available Participants Grid */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+        <Typography variant="h6" sx={{ color: '#1976d2' }}>
+          Available Participants
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {hasActiveFilter
+            ? `Showing ${filteredCats.length} filtered participant${filteredCats.length !== 1 ? 's' : ''}`
+            : `Showing all ${filteredCats.length} participants`
+          }
+        </Typography>
+      </Box>
+      <Grid container spacing={2} sx={{ mb: 4 }} data-testid="class-scoring-participant-cards">
+        {filteredCats.map((cat) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={`class-${cat.id}`}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: '1px solid #1976d2',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 4,
+                  borderColor: '#1565c0',
+                }
+              }}
+              onClick={() => navigate(`/class-score/${cat.id}`)}
+            >
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Typography variant="h6" color="primary">
+                  {cat.name}
+                </Typography>
+                <Typography variant="body2" color="text.primary">
+                  Cage {cat.cageNumber}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Owner: {cat.owner}
+                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Chip
+                    label={`${cat.ownerAgeGroup} • ${cat.catAgeGroup}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {filteredCats.length === 0 && !catsLoading && (
+        <Box sx={{ textAlign: 'center', py: 4, mb: 4 }}>
+          <Typography variant="body2" color="text.secondary">
+            {cats.length === 0
+              ? "No cats registered yet. Please add cats to the system first."
+              : "No cats found for the selected age group and breed category."
+            }
+          </Typography>
+        </Box>
+      )}
+
+      {/* Real-time Leaderboard & Scores */}
+      <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <ClassScoringIcon />
+        Real-time Leaderboard & Scores
+      </Typography>
+
+      <Paper elevation={1} sx={{ maxWidth: '95vw', p: 3, mb: 3, backgroundColor: '#f8f9ff', border: '1px solid #e3f2fd' }}>
+        <Typography variant="subtitle1" gutterBottom sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+          Registered Cats & Scores
+        </Typography>
 
         {loading || catsLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -314,7 +404,7 @@ function ClassScoringPage(): JSX.Element {
           </Box>
         ) : filteredCats.length > 0 ? (
           <TableContainer>
-            <Table size={isMobile ? "small" : "medium"}>
+            <Table size={isMobile ? "small" : "medium"} sx={{ minWidth: 900 }}>
               <TableHead>
                 <TableRow>
                   <TableCell align="center"><strong>Actions</strong></TableCell>
@@ -334,9 +424,9 @@ function ClassScoringPage(): JSX.Element {
                 {filteredCats.map((cat) => {
                   const classScore = getCatClassScore(cat.id);
                   return (
-                    <TableRow 
+                    <TableRow
                       key={cat.id}
-                      sx={{ 
+                      sx={{
                         '&:hover': { backgroundColor: '#f5f5f5' },
                         cursor: 'pointer'
                       }}
@@ -387,7 +477,7 @@ function ClassScoringPage(): JSX.Element {
                         {classScore ? (
                           <Chip
                             label={classScore.beautyScore}
-                            size="small" 
+                            size="small"
                             color={classScore.beautyScore >= 80 ? "success" : classScore.beautyScore >= 60 ? "warning" : "default"}
                           />
                         ) : (
@@ -396,9 +486,9 @@ function ClassScoringPage(): JSX.Element {
                       </TableCell>
                       <TableCell align="center">
                         {classScore ? (
-                          <Chip 
-                            label={classScore.personalityScore} 
-                            size="small" 
+                          <Chip
+                            label={classScore.personalityScore}
+                            size="small"
                             color={classScore.personalityScore >= 80 ? "success" : classScore.personalityScore >= 60 ? "warning" : "default"}
                           />
                         ) : (
@@ -418,9 +508,9 @@ function ClassScoringPage(): JSX.Element {
                       </TableCell>
                       <TableCell align="center">
                         {classScore ? (
-                          <Chip 
-                            label={classScore.totalScore} 
-                            size="small" 
+                          <Chip
+                            label={classScore.totalScore}
+                            size="small"
                             color="primary"
                             sx={{ fontWeight: 'bold' }}
                           />
@@ -450,9 +540,7 @@ function ClassScoringPage(): JSX.Element {
               </TableBody>
             </Table>
           </TableContainer>
-        ) : null}
-
-        {filteredCats.length === 0 && !loading && !catsLoading && (
+        ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body2" color="text.secondary">
               {cats.length === 0
@@ -460,97 +548,13 @@ function ClassScoringPage(): JSX.Element {
                 : "No cats found for the selected age group and breed category."
               }
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              Total cats loaded: {cats.length} | Filtered cats: {filteredCats.length}
-            </Typography>
           </Box>
         )}
       </Paper>
 
-      {/* Available Participants Grid */}
-      <Typography variant="h6" gutterBottom sx={{ color: '#1976d2' }}>
-        Available Participants
-      </Typography>
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        {cats.map((cat) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={`class-${cat.id}`}>
-            <Card 
-              sx={{ 
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                border: '1px solid #1976d2',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4,
-                  borderColor: '#1565c0',
-                }
-              }}
-              onClick={() => navigate(`/class-score/${cat.id}`)}
-            >
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" color="primary">
-                  {cat.name}
-                </Typography>
-                <Typography variant="body2" color="text.primary">
-                  Cage {cat.cageNumber}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Owner: {cat.owner}
-                </Typography>
-                <Box sx={{ mt: 1 }}>
-                  <Chip 
-                    label={`${cat.ownerAgeGroup} • ${cat.catAgeGroup}`} 
-                    size="small" 
-                    color="primary"
-                    variant="outlined"
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Scoring Criteria Information */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4, backgroundColor: '#e3f2fd', border: '1px solid #1976d2' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2' }}>
-          Class Scoring Criteria
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <StarIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
-              <Typography variant="h6" color="primary">Beauty</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Physical appearance, coat quality, and breed standards
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <ClassScoringIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
-              <Typography variant="h6" color="primary">Personality</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Temperament, behavior, and interaction with judges
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <TrendingUpIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
-              <Typography variant="h6" color="primary">Health</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Overall health condition and vitality assessment
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Real-time Leaderboard */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <ClassScoreLeaderboard 
+          <ClassScoreLeaderboard
             showOnlyFinalized={false}
             maxEntriesPerRibbon={8}
             refreshInterval={30000}
@@ -558,7 +562,7 @@ function ClassScoringPage(): JSX.Element {
           />
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
-          <ClassScoreNotifications 
+          <ClassScoreNotifications
             maxNotifications={5}
             autoHideDelay={8000}
             showOnlyFinalized={false}

@@ -124,13 +124,14 @@ describe('ClassScoringPage', () => {
 
   it('renders class scoring interface correctly', async () => {
     renderWithProviders(<ClassScoringPage />);
-    
+
     // Wait for cats to load
     await waitFor(() => {
-      expect(screen.getByText('Bella')).toBeInTheDocument();
-      expect(screen.getByText('Max')).toBeInTheDocument();
+      const cards = within(screen.getByTestId('class-scoring-participant-cards'));
+      expect(cards.getByText('Bella')).toBeInTheDocument();
+      expect(cards.getByText('Max')).toBeInTheDocument();
     });
-    
+
     // Check that key components are present
     expect(screen.getByText('Quick Access by Cage Number')).toBeInTheDocument();
     expect(screen.getByText('Available Participants')).toBeInTheDocument();
@@ -138,27 +139,29 @@ describe('ClassScoringPage', () => {
 
   it('displays participant cards with correct information', async () => {
     renderWithProviders(<ClassScoringPage />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Bella')).toBeInTheDocument();
-      expect(screen.getByText('Max')).toBeInTheDocument();
-      expect(screen.getByText('Cage 10')).toBeInTheDocument();
-      expect(screen.getByText('Cage 11')).toBeInTheDocument();
-      expect(screen.getByText('Owner: Alice Johnson')).toBeInTheDocument();
-      expect(screen.getByText('Owner: Bob Wilson')).toBeInTheDocument();
+      const cards = within(screen.getByTestId('class-scoring-participant-cards'));
+      expect(cards.getByText('Bella')).toBeInTheDocument();
+      expect(cards.getByText('Max')).toBeInTheDocument();
+      expect(cards.getByText('Cage 10')).toBeInTheDocument();
+      expect(cards.getByText('Cage 11')).toBeInTheDocument();
+      expect(cards.getByText('Owner: Alice Johnson')).toBeInTheDocument();
+      expect(cards.getByText('Owner: Bob Wilson')).toBeInTheDocument();
     });
   });
 
   it('navigates to class scoring when participant card is clicked', async () => {
     renderWithProviders(<ClassScoringPage />);
-    
+
     await waitFor(() => {
-      const participantCard = screen.getByText('Bella').closest('div[role="button"], div');
+      const cards = within(screen.getByTestId('class-scoring-participant-cards'));
+      const participantCard = cards.getByText('Bella').closest('div[role="button"], div');
       if (participantCard) {
         fireEvent.click(participantCard);
       }
     });
-    
+
     expect(mockNavigate).toHaveBeenCalledWith('/class-score/cat1');
   });
 
@@ -183,16 +186,6 @@ describe('ClassScoringPage', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
     
     expect(mockNavigate).toHaveBeenCalledWith('/class-score/cage/20');
-  });
-
-  it('displays scoring criteria information', () => {
-    renderWithProviders(<ClassScoringPage />);
-    
-    expect(screen.getByText('Class Scoring Criteria')).toBeInTheDocument();
-    expect(screen.getByText('Beauty')).toBeInTheDocument();
-    expect(screen.getByText('Personality')).toBeInTheDocument();
-    expect(screen.getByText('Health')).toBeInTheDocument();
-    expect(screen.getByText('Physical appearance, coat quality, and breed standards')).toBeInTheDocument();
   });
 
   it('displays quick access section correctly', () => {
@@ -231,20 +224,24 @@ describe('ClassScoringPage', () => {
 
   it('filters cats by age group', async () => {
     renderWithProviders(<ClassScoringPage />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Bella')).toBeInTheDocument();
-      expect(screen.getByText('Max')).toBeInTheDocument();
+      const cards = within(screen.getByTestId('class-scoring-participant-cards'));
+      expect(cards.getByText('Bella')).toBeInTheDocument();
+      expect(cards.getByText('Max')).toBeInTheDocument();
     });
-    
+
     // Filter by kitten age group
-    const filterSelect = screen.getByLabelText('Filter by Cat Age Group');
+    const filterSelect = screen.getByLabelText('Cat Age Group');
     fireEvent.mouseDown(filterSelect);
     fireEvent.click(screen.getByRole('option', { name: 'Kitten (under 8 months)' }));
 
-    // The age filter only applies to the scores table (the quick-access cards
-    // above always list every cat), so scope the "Max filtered out" check to the table.
+    // The age filter now applies to both the participant cards and the scores table.
     await waitFor(() => {
+      const cards = within(screen.getByTestId('class-scoring-participant-cards'));
+      expect(cards.getByText('Bella')).toBeInTheDocument();
+      expect(cards.queryByText('Max')).not.toBeInTheDocument();
+
       const table = within(screen.getByRole('table'));
       expect(table.getByText('Bella')).toBeInTheDocument();
       expect(table.queryByText('Max')).not.toBeInTheDocument();
