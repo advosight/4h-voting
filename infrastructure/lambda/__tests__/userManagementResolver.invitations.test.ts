@@ -1,5 +1,6 @@
 import { DynamoDBDocumentClient, GetCommand, PutCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { CognitoIdentityProviderClient, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { mockClient } from 'aws-sdk-client-mock';
 
 process.env.USER_POOL_ID = 'test-pool';
@@ -11,6 +12,7 @@ import { handler } from '../userManagementResolver';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const sesMock = mockClient(SESClient);
+const cognitoMock = mockClient(CognitoIdentityProviderClient);
 
 const adminEvent = (fieldName: string, args: any) => ({
   info: { fieldName },
@@ -34,6 +36,10 @@ describe('userManagementResolver invitations', () => {
   beforeEach(() => {
     ddbMock.reset();
     sesMock.reset();
+    cognitoMock.reset();
+    cognitoMock.on(AdminGetUserCommand).resolves({
+      UserAttributes: [{ Name: 'email', Value: 'admin@example.com' }],
+    } as any);
   });
 
   describe('inviteUser', () => {
@@ -94,6 +100,30 @@ describe('userManagementResolver invitations', () => {
       expect(result.fitShowScoring).toBe(true);
     });
 
+    it('resolves invitedBy via Cognito when the identity claims have no email (access token)', async () => {
+      ddbMock.on(PutCommand).resolves({});
+      sesMock.on(SendEmailCommand).resolves({});
+
+      const accessTokenEvent = {
+        info: { fieldName: 'inviteUser' },
+        arguments: { input: { email: 'judge3@example.com', role: 'judge' } },
+        identity: {
+          claims: {
+            sub: 'admin-123',
+            'cognito:groups': ['admin'],
+            token_use: 'access',
+            username: 'admin-123',
+          },
+        },
+      } as any;
+
+      const result: any = await handler(accessTokenEvent);
+
+      expect(result.invitedBy).toBe('admin@example.com');
+      const putItem = ddbMock.commandCalls(PutCommand)[0].args[0].input.Item as any;
+      expect(putItem.invitedBy).toBe('admin@example.com');
+    });
+
     it('rejects an invalid role', async () => {
       await expect(handler(adminEvent('inviteUser', {
         input: { email: 'x@example.com', role: 'superadmin' },
@@ -138,6 +168,34 @@ describe('userManagementResolver invitations', () => {
       expect(result.status).toBe('pending');
       const putItem = ddbMock.commandCalls(PutCommand)[0].args[0].input.Item as any;
       expect(putItem.token).not.toBe('old-token');
+    });
+
+    it('does not crash sending the email when a pre-existing record has no invitedBy', async () => {
+      const existing = {
+        PK: 'INVITE#judge@example.com',
+        SK: 'METADATA',
+        email: 'judge@example.com',
+        role: 'judge',
+        judgeId: 'JUDGE_1',
+        cageScoring: true,
+        classScoring: true,
+        fitShowScoring: true,
+        token: 'old-token',
+        status: 'pending',
+        invitedBy: undefined,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date().toISOString(),
+      };
+
+      ddbMock.on(GetCommand).resolves({ Item: existing });
+      ddbMock.on(PutCommand).resolves({});
+      sesMock.on(SendEmailCommand).resolves({});
+
+      const result: any = await handler(adminEvent('resendInvitation', { email: 'judge@example.com' }));
+
+      expect(result.status).toBe('pending');
+      const emailCall = sesMock.commandCalls(SendEmailCommand)[0].args[0].input;
+      expect(emailCall.Message?.Body?.Html?.Data).toContain('4H Cat Show admin');
     });
 
     it('throws when there is no existing invitation', async () => {
