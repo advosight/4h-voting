@@ -2,6 +2,8 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 import {
   CognitoIdentityProviderClient,
   AdminUpdateUserAttributesCommand,
+  AdminDisableUserCommand,
+  AdminEnableUserCommand,
   ListUsersCommand,
   AdminGetUserCommand,
   UserType
@@ -79,7 +81,7 @@ interface InvitationValidation {
   reason?: string;
 }
 
-interface JudgeAccount {
+interface UserAccount {
   userId: string;
   email: string;
   name: string;
@@ -109,9 +111,9 @@ function generateJudgeId(): string {
 }
 
 /**
- * Convert Cognito user to JudgeAccount format
+ * Convert Cognito user to UserAccount format
  */
-function mapUserToJudgeAccount(user: UserType): JudgeAccount | null {
+function mapUserToAccount(user: UserType): UserAccount | null {
   if (!user.Username || !user.Attributes) return null;
 
   const attributes = user.Attributes.reduce((acc, attr) => {
@@ -121,14 +123,18 @@ function mapUserToJudgeAccount(user: UserType): JudgeAccount | null {
     return acc;
   }, {} as Record<string, string>);
 
-  const role = attributes['custom:role'];
-  if (!role || !['judge', 'admin'].includes(role)) return null;
+  // No custom:role attribute (e.g. an account an admin downgraded away from
+  // judge/admin) falls back to participant, matching roleValidation's runtime default.
+  const role = attributes['custom:role'] || 'participant';
+  if (!['judge', 'admin', 'participant'].includes(role)) return null;
 
-  // Legacy accounts created before per-scoring-type permissions existed have none of these
-  // attributes set; default them to fully permitted so existing judges keep their access.
+  // Legacy judge accounts created before per-scoring-type permissions existed have none
+  // of these attributes set; default them to fully permitted so they keep their access.
+  // Participants never score, so they get no permissions regardless of these attributes.
   const hasAnyPermissionAttr = 'custom:cageScoring' in attributes ||
     'custom:classScoring' in attributes ||
     'custom:fitShowScoring' in attributes;
+  const isJudge = role === 'judge';
 
   return {
     userId: user.Username,
@@ -137,10 +143,13 @@ function mapUserToJudgeAccount(user: UserType): JudgeAccount | null {
     judgeId: attributes['custom:judgeId'] || user.Username,
     role,
     createdAt: user.UserCreateDate?.toISOString() || new Date().toISOString(),
-    isActive: user.UserStatus === 'CONFIRMED' || user.UserStatus === 'FORCE_CHANGE_PASSWORD',
-    cageScoring: role === 'admin' || (hasAnyPermissionAttr ? attributes['custom:cageScoring'] === 'true' : true),
-    classScoring: role === 'admin' || (hasAnyPermissionAttr ? attributes['custom:classScoring'] === 'true' : true),
-    fitShowScoring: role === 'admin' || (hasAnyPermissionAttr ? attributes['custom:fitShowScoring'] === 'true' : true),
+    // Enabled is undefined on some SDK response shapes (e.g. AdminGetUser via the
+    // mockUser bridge in getAccount); only a hard `false` from AdminDisableUser
+    // should count as revoked.
+    isActive: user.Enabled !== false && (user.UserStatus === 'CONFIRMED' || user.UserStatus === 'FORCE_CHANGE_PASSWORD'),
+    cageScoring: role === 'admin' || (isJudge && (hasAnyPermissionAttr ? attributes['custom:cageScoring'] === 'true' : true)),
+    classScoring: role === 'admin' || (isJudge && (hasAnyPermissionAttr ? attributes['custom:classScoring'] === 'true' : true)),
+    fitShowScoring: role === 'admin' || (isJudge && (hasAnyPermissionAttr ? attributes['custom:fitShowScoring'] === 'true' : true)),
   };
 }
 
@@ -161,10 +170,16 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
         return await validateInvitation(event);
       case 'updateUserRole':
         return await updateUserRole(event);
-      case 'listJudgeAccounts':
-        return await listJudgeAccounts(event);
-      case 'getJudgeAccount':
-        return await getJudgeAccount(event);
+      case 'updateUserPermissions':
+        return await updateUserPermissions(event);
+      case 'revokeUser':
+        return await revokeUser(event);
+      case 'reactivateUser':
+        return await reactivateUser(event);
+      case 'listAccounts':
+        return await listAccounts(event);
+      case 'getAccount':
+        return await getAccount(event);
       default:
         throw new Error(`Unknown field: ${fieldName}`);
     }
@@ -498,36 +513,137 @@ async function updateUserRole(event: AppSyncResolverEvent<{ userId: string; role
 }
 
 /**
- * List all judge accounts
+ * Update a judge's per-scoring-type permissions
  */
-async function listJudgeAccounts(event: AppSyncResolverEvent<{}>): Promise<{ items: JudgeAccount[] }> {
+async function updateUserPermissions(event: AppSyncResolverEvent<{
+  userId: string;
+  cageScoring: boolean;
+  classScoring: boolean;
+  fitShowScoring: boolean;
+}>): Promise<UserAccount> {
+  const userContext = getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const { userId, cageScoring, classScoring, fitShowScoring } = event.arguments;
+
+  const userResult = await cognitoClient.send(new AdminGetUserCommand({
+    UserPoolId: USER_POOL_ID,
+    Username: userId,
+  }));
+
+  const attributes = (userResult.UserAttributes || []).reduce((acc, attr) => {
+    if (attr.Name && attr.Value) {
+      acc[attr.Name] = attr.Value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+
+  const targetRole = attributes['custom:role'] || 'participant';
+  if (targetRole !== 'judge') {
+    throw new Error('Individual scoring permissions only apply to judges.');
+  }
+
+  await cognitoClient.send(new AdminUpdateUserAttributesCommand({
+    UserPoolId: USER_POOL_ID,
+    Username: userId,
+    UserAttributes: [
+      { Name: 'custom:cageScoring', Value: String(cageScoring) },
+      { Name: 'custom:classScoring', Value: String(classScoring) },
+      { Name: 'custom:fitShowScoring', Value: String(fitShowScoring) },
+    ],
+  }));
+
+  return {
+    userId,
+    email: attributes.email || '',
+    name: attributes.name || attributes.email || 'Unknown',
+    judgeId: attributes['custom:judgeId'] || userId,
+    role: attributes['custom:role'] || 'judge',
+    createdAt: userResult.UserCreateDate?.toISOString() || new Date().toISOString(),
+    isActive: userResult.Enabled !== false && (userResult.UserStatus === 'CONFIRMED' || userResult.UserStatus === 'FORCE_CHANGE_PASSWORD'),
+    cageScoring,
+    classScoring,
+    fitShowScoring,
+  };
+}
+
+/**
+ * Revoke (disable) a user's account. Disabled users can no longer sign in;
+ * this does not delete their account or history, so it can be undone via
+ * reactivateUser.
+ */
+async function revokeUser(event: AppSyncResolverEvent<{ userId: string }>): Promise<boolean> {
+  const userContext = getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const { userId } = event.arguments;
+
+  const userResult = await cognitoClient.send(new AdminGetUserCommand({
+    UserPoolId: USER_POOL_ID,
+    Username: userId,
+  }));
+  const email = userResult.UserAttributes?.find((attr) => attr.Name === 'email')?.Value;
+
+  if (email && userContext!.email && email.toLowerCase() === userContext!.email.toLowerCase()) {
+    throw new Error('You cannot revoke your own account.');
+  }
+
+  await cognitoClient.send(new AdminDisableUserCommand({
+    UserPoolId: USER_POOL_ID,
+    Username: userId,
+  }));
+
+  return true;
+}
+
+/**
+ * Reactivate a previously revoked user's account.
+ */
+async function reactivateUser(event: AppSyncResolverEvent<{ userId: string }>): Promise<boolean> {
+  const userContext = getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const { userId } = event.arguments;
+
+  await cognitoClient.send(new AdminEnableUserCommand({
+    UserPoolId: USER_POOL_ID,
+    Username: userId,
+  }));
+
+  return true;
+}
+
+/**
+ * List all accounts (judges, admins, and participants)
+ */
+async function listAccounts(event: AppSyncResolverEvent<{}>): Promise<{ items: UserAccount[] }> {
   const userContext = getUserContext(event);
   requireRole(userContext, 'admin');
 
   try {
     // Cognito's ListUsers Filter only supports a single attribute expression
-    // (no "or"), so role filtering happens in mapUserToJudgeAccount instead.
+    // (no "or"), so role filtering happens in mapUserToAccount instead.
     const listCommand = new ListUsersCommand({
       UserPoolId: USER_POOL_ID,
     });
 
     const result = await cognitoClient.send(listCommand);
-    const judgeAccounts = (result.Users || [])
-      .map(mapUserToJudgeAccount)
-      .filter((account): account is JudgeAccount => account !== null);
+    const accounts = (result.Users || [])
+      .map(mapUserToAccount)
+      .filter((account): account is UserAccount => account !== null);
 
-    return { items: judgeAccounts };
+    return { items: accounts };
 
   } catch (error) {
-    console.error('Error listing judge accounts:', error);
-    throw new Error('Failed to list judge accounts');
+    console.error('Error listing accounts:', error);
+    throw new Error('Failed to list accounts');
   }
 }
 
 /**
- * Get a specific judge account
+ * Get a specific account
  */
-async function getJudgeAccount(event: AppSyncResolverEvent<{ userId: string }>): Promise<JudgeAccount | null> {
+async function getAccount(event: AppSyncResolverEvent<{ userId: string }>): Promise<UserAccount | null> {
   const userContext = getUserContext(event);
   requireRole(userContext, 'admin');
 
@@ -550,15 +666,16 @@ async function getJudgeAccount(event: AppSyncResolverEvent<{ userId: string }>):
       Attributes: result.UserAttributes,
       UserCreateDate: result.UserCreateDate,
       UserStatus: result.UserStatus,
+      Enabled: result.Enabled,
     };
 
-    return mapUserToJudgeAccount(mockUser);
+    return mapUserToAccount(mockUser);
 
   } catch (error) {
-    console.error('Error getting judge account:', error);
+    console.error('Error getting account:', error);
     if (error instanceof Error && error.name === 'UserNotFoundException') {
       return null;
     }
-    throw new Error('Failed to get judge account');
+    throw new Error('Failed to get account');
   }
 }

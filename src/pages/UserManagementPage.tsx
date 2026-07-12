@@ -7,7 +7,7 @@ import {
 import {
   People as PeopleIcon,
 } from '@mui/icons-material';
-import JudgeManagement from '../components/JudgeManagement';
+import UserManagement from '../components/UserManagement';
 
 function UserManagementPage(): JSX.Element {
   return (
@@ -21,7 +21,7 @@ function UserManagementPage(): JSX.Element {
       </Typography>
       
       <Paper elevation={2} sx={{ p: 3, mt: 3, maxWidth: '95vw' }}>
-        <JudgeManagement />
+        <UserManagement />
       </Paper>
     </Box>
   );

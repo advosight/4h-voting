@@ -58,7 +58,7 @@ export class CatVotingStack extends cdk.Stack {
           mutable: true,
         }),
         // Added alongside the invite-by-email feature: these were referenced by
-        // mapUserToJudgeAccount/roleValidation.ts but never actually declared on
+        // mapUserToAccount/roleValidation.ts but never actually declared on
         // the pool, so setting them previously would have failed at runtime.
         cageScoring: new cognito.BooleanAttribute({
           mutable: true,
@@ -229,7 +229,9 @@ export class CatVotingStack extends cdk.Stack {
       'cognito-idp:AdminSetUserAttributes',
       'cognito-idp:ListUsers',
       'cognito-idp:AdminGetUser',
-      'cognito-idp:AdminUpdateUserAttributes'
+      'cognito-idp:AdminUpdateUserAttributes',
+      'cognito-idp:AdminDisableUser',
+      'cognito-idp:AdminEnableUser'
     );
 
     // The PostConfirmation trigger applies the invited role/permissions and
@@ -478,14 +480,29 @@ export class CatVotingStack extends cdk.Stack {
       fieldName: 'updateUserRole',
     });
 
-    userManagementDataSource.createResolver('listJudgeAccountsResolver', {
-      typeName: 'Query',
-      fieldName: 'listJudgeAccounts',
+    userManagementDataSource.createResolver('updateUserPermissionsResolver', {
+      typeName: 'Mutation',
+      fieldName: 'updateUserPermissions',
     });
 
-    userManagementDataSource.createResolver('getJudgeAccountResolver', {
+    userManagementDataSource.createResolver('revokeUserResolver', {
+      typeName: 'Mutation',
+      fieldName: 'revokeUser',
+    });
+
+    userManagementDataSource.createResolver('reactivateUserResolver', {
+      typeName: 'Mutation',
+      fieldName: 'reactivateUser',
+    });
+
+    userManagementDataSource.createResolver('listAccountsResolver', {
       typeName: 'Query',
-      fieldName: 'getJudgeAccount',
+      fieldName: 'listAccounts',
+    });
+
+    userManagementDataSource.createResolver('getAccountResolver', {
+      typeName: 'Query',
+      fieldName: 'getAccount',
     });
 
     // Invitation Resolvers
