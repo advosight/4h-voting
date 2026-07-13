@@ -6,6 +6,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 process.env.USER_POOL_ID = 'test-pool';
 process.env.TABLE_NAME = 'test-table';
 process.env.SES_FROM_EMAIL = 'noreply@advosight.com';
+process.env.SES_CONFIGURATION_SET = 'test-configuration-set';
 process.env.APP_BASE_URL = 'https://example.com';
 
 import { handler } from '../userManagementResolver';
