@@ -17,6 +17,7 @@ import * as cloudwatchActions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
 import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager';
+import * as ses from 'aws-cdk-lib/aws-ses';
 import { Construct } from 'constructs';
 
 export interface CatVotingStackProps extends cdk.StackProps {
@@ -160,6 +161,13 @@ export class CatVotingStack extends cdk.Stack {
 
     const SES_FROM_EMAIL = props?.sesFromEmail || 'noreply@advosight.com';
 
+    // Stack-managed configuration set for invite emails, so sends don't depend
+    // on whatever configuration set happens to be the account-level default
+    // (which previously pointed at an unmanaged "my-first-configuration-set").
+    const inviteEmailConfigurationSet = new ses.ConfigurationSet(this, 'InviteEmailConfigurationSet', {
+      configurationSetName: 'cat-voting-invite-emails',
+    });
+
     const userManagementResolverFunction = new nodejs.NodejsFunction(this, 'UserManagementResolverFunction', {
       entry: path.join(__dirname, '..', 'lambda', 'userManagementResolver.ts'),
       runtime: lambda.Runtime.NODEJS_LATEST,
@@ -168,6 +176,7 @@ export class CatVotingStack extends cdk.Stack {
         USER_POOL_ID: userPool.userPoolId,
         TABLE_NAME: table.tableName,
         SES_FROM_EMAIL,
+        SES_CONFIGURATION_SET: inviteEmailConfigurationSet.configurationSetName,
       },
     });
 
@@ -248,11 +257,17 @@ export class CatVotingStack extends cdk.Stack {
     // advosight.com is verified in SES as a domain identity (not the
     // individual noreply@ address), so SES authorizes sends against the
     // domain's identity ARN; scope the send permission to that directly
-    // rather than re-declaring the identity as a CDK resource.
+    // rather than re-declaring the identity as a CDK resource. The Lambda
+    // explicitly passes SES_CONFIGURATION_SET on every send, which takes
+    // precedence over the account-level default configuration set, so only
+    // the stack-managed configuration set needs a grant here.
     const SES_FROM_DOMAIN = SES_FROM_EMAIL.split('@')[1];
     userManagementResolverFunction.addToRolePolicy(new iam.PolicyStatement({
       actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-      resources: [`arn:aws:ses:${this.region}:${this.account}:identity/${SES_FROM_DOMAIN}`],
+      resources: [
+        `arn:aws:ses:${this.region}:${this.account}:identity/${SES_FROM_DOMAIN}`,
+        `arn:aws:ses:${this.region}:${this.account}:configuration-set/${inviteEmailConfigurationSet.configurationSetName}`,
+      ],
     }));
 
     // API Gateway for voting

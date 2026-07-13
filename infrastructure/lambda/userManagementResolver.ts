@@ -27,6 +27,7 @@ const TABLE_NAME = process.env.TABLE_NAME!;
 
 const sesClient = new SESClient({});
 const SES_FROM_EMAIL = process.env.SES_FROM_EMAIL!;
+const SES_CONFIGURATION_SET = process.env.SES_CONFIGURATION_SET!;
 const APP_BASE_URL = process.env.APP_BASE_URL!;
 
 const INVITATION_TTL_DAYS = 7;
@@ -285,6 +286,7 @@ async function sendInviteEmail(record: InvitationRecord): Promise<void> {
   await sesClient.send(new SendEmailCommand({
     Source: SES_FROM_EMAIL,
     Destination: { ToAddresses: [record.email] },
+    ConfigurationSetName: SES_CONFIGURATION_SET,
     Message: {
       Subject: { Data: `You're invited to join the 4H Cat Show as a ${roleLabel}` },
       Body: {
