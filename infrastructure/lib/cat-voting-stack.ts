@@ -245,12 +245,14 @@ export class CatVotingStack extends cdk.Stack {
       resources: ['*'],
     }));
 
-    // The noreply@advosight.com SES identity is already verified in this
-    // account; scope the send permission to it directly rather than
-    // re-declaring the identity as a CDK resource.
+    // advosight.com is verified in SES as a domain identity (not the
+    // individual noreply@ address), so SES authorizes sends against the
+    // domain's identity ARN; scope the send permission to that directly
+    // rather than re-declaring the identity as a CDK resource.
+    const SES_FROM_DOMAIN = SES_FROM_EMAIL.split('@')[1];
     userManagementResolverFunction.addToRolePolicy(new iam.PolicyStatement({
       actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-      resources: [`arn:aws:ses:${this.region}:${this.account}:identity/${SES_FROM_EMAIL}`],
+      resources: [`arn:aws:ses:${this.region}:${this.account}:identity/${SES_FROM_DOMAIN}`],
     }));
 
     // API Gateway for voting
