@@ -311,8 +311,14 @@ function TVModePage(): JSX.Element {
     : cats
   ).slice().sort((a, b) => getVoteCount(b) - getVoteCount(a));
 
-  // Top 5 per owner age group, sorted by whichever vote metric is active
-  const topByAgeGroup = OWNER_AGE_GROUPS.map(group => ({
+  // Top 5 per owner age group, sorted by whichever vote metric is active.
+  // Cloverbuds displayed last -- everywhere else (forms, etc.) still uses
+  // OWNER_AGE_GROUPS' natural youngest-to-oldest order.
+  const tvAgeGroupOrder = [
+    ...OWNER_AGE_GROUPS.filter(group => group.value !== 'cloverbuds'),
+    ...OWNER_AGE_GROUPS.filter(group => group.value === 'cloverbuds'),
+  ];
+  const topByAgeGroup = tvAgeGroupOrder.map(group => ({
     group,
     cats: cats
       .filter(cat => cat.ownerAgeGroup === group.value)
