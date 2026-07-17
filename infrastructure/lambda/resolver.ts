@@ -17,6 +17,8 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
       return await getCat(event.arguments.id);
     case 'getCatByCage':
       return await getCatByCage(event.arguments.cageNumber);
+    case 'getVotesByDay':
+      return await getVotesByDay(event.arguments.catId);
     case 'createCat':
       requireRole(getUserContext(event), 'admin');
       return await createCat(event.arguments.input);
@@ -198,19 +200,39 @@ async function updateCat(id: string, input: { name?: string; owner?: string; cag
   };
 }
 
+// en-CA formats as YYYY-MM-DD, which sorts and compares correctly as a string.
+// Using the venue's local day (rather than UTC) keeps a day's votes grouped
+// together the way an organizer standing at the event would expect.
+function getPacificDateString(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
+}
+
 // `votes` is the number of votes to add (typically 1), not the new absolute total.
 // Using an atomic ADD instead of a read-then-SET avoids losing votes when two
-// requests for the same cat race each other.
+// requests for the same cat race each other. Alongside the event-wide total on
+// the METADATA item, we ADD into a per-day counter item (SK: VOTES#<date>) so
+// daily turnout can be reported without losing the running total.
 async function updateVotes(id: string, votes: number) {
-  const result = await docClient.send(new UpdateCommand({
-    TableName: process.env.TABLE_NAME,
-    Key: { PK: `CAT#${id}`, SK: 'METADATA' },
-    UpdateExpression: 'ADD votes :increment',
-    ExpressionAttributeValues: { ':increment': votes },
-    ReturnValues: 'ALL_NEW',
-  }));
+  const today = getPacificDateString();
 
-  const item = result.Attributes;
+  const [totalResult] = await Promise.all([
+    docClient.send(new UpdateCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { PK: `CAT#${id}`, SK: 'METADATA' },
+      UpdateExpression: 'ADD votes :increment',
+      ExpressionAttributeValues: { ':increment': votes },
+      ReturnValues: 'ALL_NEW',
+    })),
+    docClient.send(new UpdateCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { PK: `CAT#${id}`, SK: `VOTES#${today}` },
+      UpdateExpression: 'SET #date = :date ADD votes :increment',
+      ExpressionAttributeNames: { '#date': 'date' },
+      ExpressionAttributeValues: { ':date': today, ':increment': votes },
+    })),
+  ]);
+
+  const item = totalResult.Attributes;
   return {
     id,
     name: item?.name,
@@ -224,20 +246,55 @@ async function updateVotes(id: string, votes: number) {
   };
 }
 
-async function listEmails() {
-  const result = await docClient.send(new ScanCommand({
+async function getVotesByDay(catId: string) {
+  const result = await docClient.send(new QueryCommand({
     TableName: process.env.TABLE_NAME,
-    FilterExpression: 'begins_with(PK, :pk)',
+    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
     ExpressionAttributeValues: {
-      ':pk': 'EMAIL#',
+      ':pk': `CAT#${catId}`,
+      ':skPrefix': 'VOTES#',
     },
   }));
 
-  const emails = result.Items?.map(item => ({
+  const days = (result.Items || []).map(item => ({
+    date: item.date,
+    votes: parseInt(item.votes) || 0,
+  }));
+
+  days.sort((a, b) => a.date.localeCompare(b.date));
+
+  return days;
+}
+
+async function listEmails() {
+  let allItems: any[] = [];
+  let lastEvaluatedKey: any = undefined;
+
+  // Handle pagination — a single Scan page tops out at 1MB of pre-filter data,
+  // which the growing number of VOTE#/SCORE# rows can exceed well before every
+  // EMAIL# row has been seen.
+  do {
+    const result = await docClient.send(new ScanCommand({
+      TableName: process.env.TABLE_NAME,
+      FilterExpression: 'begins_with(PK, :pk)',
+      ExpressionAttributeValues: {
+        ':pk': 'EMAIL#',
+      },
+      ExclusiveStartKey: lastEvaluatedKey,
+    }));
+
+    if (result.Items) {
+      allItems.push(...result.Items);
+    }
+
+    lastEvaluatedKey = result.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+
+  const emails = allItems.map(item => ({
     id: item.email,
     email: item.email,
     timestamp: item.timestamp,
-  })) || [];
+  }));
 
   return { items: emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) };
 }

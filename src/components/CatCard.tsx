@@ -26,6 +26,7 @@ import {
   HowToVote as VoteIcon,
   EmojiEvents as TrophyIcon,
   Delete as DeleteIcon,
+  EventNote as EventNoteIcon,
 } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import { OWNER_AGE_GROUPS, CAT_AGE_GROUPS, getOwnerAgeGroupLabel, getCatAgeGroupLabel } from '../utils/ageGroups';
@@ -57,6 +58,15 @@ const deleteCat = `
   }
 `;
 
+const getVotesByDay = `
+  query GetVotesByDay($catId: ID!) {
+    getVotesByDay(catId: $catId) {
+      date
+      votes
+    }
+  }
+`;
+
 interface CatCardProps {
   cat: any;
   rank: number;
@@ -79,6 +89,26 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
   const [catAgeGroup, setCatAgeGroup] = useState<string>(cat.catAgeGroup || '');
   const [peoplesChoiceGroup, setPeoplesChoiceGroup] = useState<string>(cat.peoplesChoiceGroup?.toString() || '');
   const [breedCategory, setBreedCategory] = useState<string>(cat.breedCategory || '');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [dailyVotes, setDailyVotes] = useState<{ date: string; votes: number }[]>([]);
+
+  const handleShowHistory = async () => {
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    try {
+      const response: any = await client.graphql({
+        query: getVotesByDay,
+        variables: { catId: cat.id }
+      });
+      setDailyVotes(response.data.getVotesByDay);
+    } catch (error) {
+      console.error('Error fetching vote history:', error);
+      setDailyVotes([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const handleGenerateSign = () => {
     navigate(`/sign/${cat.id}`);
@@ -166,22 +196,22 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
                 Owner: {cat.owner}
               </Typography>
               {cat.ownerAgeGroup && (
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Owner: {getOwnerAgeGroupLabel(cat.ownerAgeGroup)}
                 </Typography>
               )}
               {cat.catAgeGroup && (
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Cat: {getCatAgeGroupLabel(cat.catAgeGroup)}
                 </Typography>
               )}
               {cat.peoplesChoiceGroup && (
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   People's Choice: Group {cat.peoplesChoiceGroup}
                 </Typography>
               )}
               {cat.breedCategory && (
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Breed: {getBreedCategoryLabel(cat.breedCategory)}
                 </Typography>
               )}
@@ -217,6 +247,15 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
                 aria-label="Edit"
               >
                 <EditIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Votes by Day">
+              <IconButton
+                size="small"
+                onClick={handleShowHistory}
+                aria-label="Votes by Day"
+              >
+                <EventNoteIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Test">
@@ -358,6 +397,34 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
           <Button onClick={handleSave} variant="contained">
             Save
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Votes by Day Dialog */}
+      <Dialog open={historyOpen} onClose={() => setHistoryOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Votes by Day — {cat.name}</DialogTitle>
+        <DialogContent>
+          {historyLoading ? (
+            <Typography color="text.secondary">Loading...</Typography>
+          ) : dailyVotes.length === 0 ? (
+            <Typography color="text.secondary">No votes recorded yet.</Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+              {dailyVotes.map((day) => (
+                <Box key={day.date} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography>{day.date}</Typography>
+                  <Typography fontWeight="bold">{day.votes}</Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Typography fontWeight="bold">Total (all days)</Typography>
+            <Typography fontWeight="bold">{cat.votes}</Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setHistoryOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 

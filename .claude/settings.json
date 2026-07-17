@@ -13,7 +13,10 @@
       "Bash(npm init *)",
       "Bash(npm test *)",
       "Bash(grep -v \"Test suite failed to run\\\\|--$\")",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(AWS_PROFILE=prod aws cloudformation list-stacks --region us-west-2 --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE --query \"StackSummaries[].StackName\" --output table)",
+      "Bash(AWS_PROFILE=prod aws dynamodb list-tables --region us-west-2)",
+      "Bash(AWS_PROFILE=prod aws appsync list-graphql-apis --region us-west-2 --query \"graphqlApis[].{name:name,id:apiId,uris:uris}\" --output json)"
     ],
     "additionalDirectories": [
       "/tmp",

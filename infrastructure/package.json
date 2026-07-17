@@ -16,7 +16,9 @@
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
     "migrate:fitshow": "node scripts/migrate-fit-show-scoring.js",
-    "migrate:fitshow:sample": "node scripts/migrate-fit-show-scoring.js --create-sample"
+    "migrate:fitshow:sample": "node scripts/migrate-fit-show-scoring.js --create-sample",
+    "backfill:daily-votes": "node scripts/backfill-daily-votes.js",
+    "backfill:daily-votes:apply": "node scripts/backfill-daily-votes.js --apply"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
