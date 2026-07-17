@@ -29,6 +29,8 @@ import {
   SwipeLeft as SwipeIcon,
   Menu as MenuIcon,
   Close as CloseIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon,
 } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import AddCatForm from '../components/AddCatForm';
@@ -109,11 +111,37 @@ const onVotingStatusChange = `
   }
 `;
 
+const getDeviceLimitStatus = `
+  query GetDeviceLimitStatus {
+    getDeviceLimitStatus {
+      enabled
+    }
+  }
+`;
+
+const setDeviceLimitStatus = `
+  mutation SetDeviceLimitStatus($enabled: Boolean!) {
+    setDeviceLimitStatus(enabled: $enabled) {
+      enabled
+    }
+  }
+`;
+
+const onDeviceLimitStatusChange = `
+  subscription OnDeviceLimitStatusChange {
+    onDeviceLimitStatusChange {
+      enabled
+    }
+  }
+`;
+
 function DashboardPage(): JSX.Element {
   const navigate = useNavigate();
   const [cats, setCats] = useState<any[]>([]);
   const [emails, setEmails] = useState<any[]>([]);
   const [votingActive, setVotingActive] = useState<boolean>(true);
+  const [deviceLimitEnabled, setDeviceLimitEnabled] = useState<boolean>(true);
+  const [deviceLimitLoading, setDeviceLimitLoading] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [addCatDrawerOpen, setAddCatDrawerOpen] = useState<boolean>(false);
   const [currentCardIndex, setCurrentCardIndex] = useState<number>(0);
@@ -140,12 +168,14 @@ function DashboardPage(): JSX.Element {
   useEffect(() => {
     fetchCats();
     fetchVotingStatus();
+    fetchDeviceLimitStatus();
 
     console.log('Setting up subscriptions...');
-    
+
     let voteSubscription: any;
     let emailSubscription: any;
     let votingStatusSubscription: any;
+    let deviceLimitStatusSubscription: any;
 
     try {
       const voteSubscriptionObservable = client.graphql({
@@ -214,6 +244,24 @@ function DashboardPage(): JSX.Element {
           }
         });
       }
+
+      const deviceLimitStatusSubscriptionObservable = client.graphql({
+        query: onDeviceLimitStatusChange
+      });
+
+      if ('subscribe' in deviceLimitStatusSubscriptionObservable) {
+        deviceLimitStatusSubscription = deviceLimitStatusSubscriptionObservable.subscribe({
+          next: (result: any) => {
+            console.log('Device limit status update received:', result);
+            if (result?.data?.onDeviceLimitStatusChange?.enabled !== undefined) {
+              setDeviceLimitEnabled(result.data.onDeviceLimitStatusChange.enabled);
+            }
+          },
+          error: (error: any) => {
+            console.error('Device limit status subscription error:', error);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error setting up subscriptions:', error);
     }
@@ -230,6 +278,9 @@ function DashboardPage(): JSX.Element {
       }
       if (votingStatusSubscription?.unsubscribe) {
         votingStatusSubscription.unsubscribe();
+      }
+      if (deviceLimitStatusSubscription?.unsubscribe) {
+        deviceLimitStatusSubscription.unsubscribe();
       }
     };
   }, []);
@@ -279,6 +330,33 @@ function DashboardPage(): JSX.Element {
       console.error('Error toggling voting status:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDeviceLimitStatus = async () => {
+    try {
+      const result = await client.graphql({ query: getDeviceLimitStatus });
+      setDeviceLimitEnabled(result.data.getDeviceLimitStatus.enabled);
+    } catch (error) {
+      console.error('Error fetching device limit status:', error);
+      setDeviceLimitEnabled(true);
+    }
+  };
+
+  const toggleDeviceLimitStatus = async () => {
+    try {
+      setDeviceLimitLoading(true);
+      await client.graphql({
+        query: setDeviceLimitStatus,
+        variables: {
+          enabled: !deviceLimitEnabled
+        }
+      });
+      setDeviceLimitEnabled(!deviceLimitEnabled);
+    } catch (error) {
+      console.error('Error toggling device limit status:', error);
+    } finally {
+      setDeviceLimitLoading(false);
     }
   };
 
@@ -334,6 +412,20 @@ function DashboardPage(): JSX.Element {
             </Button>
           )}
 
+          {isAdmin && (
+            <Button
+              variant={deviceLimitEnabled ? "contained" : "outlined"}
+              color={deviceLimitEnabled ? "primary" : "warning"}
+              onClick={toggleDeviceLimitStatus}
+              disabled={deviceLimitLoading}
+              startIcon={deviceLimitEnabled ? <LockIcon /> : <LockOpenIcon />}
+              size={isMobile ? "small" : "medium"}
+              sx={{ flex: 1, minHeight: 44 }}
+            >
+              {deviceLimitLoading ? 'Updating...' : deviceLimitEnabled ? '1 Vote/Day: On' : '1 Vote/Day: Off'}
+            </Button>
+          )}
+
           <Button
             variant="outlined"
             onClick={() => window.open('/tv-mode', '_blank')}
@@ -348,6 +440,12 @@ function DashboardPage(): JSX.Element {
         {!votingActive && (
           <Alert severity="warning" sx={{ mt: 2, fontSize: '0.875rem' }}>
             Voting is currently paused
+          </Alert>
+        )}
+
+        {!deviceLimitEnabled && (
+          <Alert severity="warning" sx={{ mt: 2, fontSize: '0.875rem' }}>
+            One-vote-per-device-per-day limit is currently off — devices can vote unlimited times
           </Alert>
         )}
       </CardContent>

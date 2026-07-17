@@ -41,6 +41,11 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
     case 'setVotingStatus':
       requireRole(getUserContext(event), 'admin');
       return await setVotingStatus(event.arguments.isActive);
+    case 'getDeviceLimitStatus':
+      return await getDeviceLimitStatus();
+    case 'setDeviceLimitStatus':
+      requireRole(getUserContext(event), 'admin');
+      return await setDeviceLimitStatus(event.arguments.enabled);
     default:
       throw new Error(`Unknown field: ${fieldName}`);
   }
@@ -415,6 +420,35 @@ async function setVotingStatus(isActive: boolean) {
       updatedAt: new Date().toISOString(),
     },
   }));
-  
+
   return { isActive };
+}
+
+async function getDeviceLimitStatus() {
+  try {
+    const result = await docClient.send(new GetCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: { PK: 'SETTINGS', SK: 'DEVICE_LIMIT_STATUS' },
+    }));
+
+    console.log('Device limit status from DynamoDB:', JSON.stringify(result.Item, null, 2));
+    return { enabled: result.Item?.enabled ?? true };
+  } catch (error) {
+    console.error('Error getting device limit status:', error);
+    return { enabled: true }; // Default to enforcing the limit if error
+  }
+}
+
+async function setDeviceLimitStatus(enabled: boolean) {
+  await docClient.send(new PutCommand({
+    TableName: process.env.TABLE_NAME,
+    Item: {
+      PK: 'SETTINGS',
+      SK: 'DEVICE_LIMIT_STATUS',
+      enabled: enabled,
+      updatedAt: new Date().toISOString(),
+    },
+  }));
+
+  return { enabled };
 }

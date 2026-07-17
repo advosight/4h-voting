@@ -450,6 +450,16 @@ export class CatVotingStack extends cdk.Stack {
       fieldName: 'setVotingStatus',
     });
 
+    dataSource.createResolver('getDeviceLimitStatusResolver', {
+      typeName: 'Query',
+      fieldName: 'getDeviceLimitStatus',
+    });
+
+    dataSource.createResolver('setDeviceLimitStatusResolver', {
+      typeName: 'Mutation',
+      fieldName: 'setDeviceLimitStatus',
+    });
+
     // Score Resolvers
     scoreDataSource.createResolver('getScoreResolver', {
       typeName: 'Query',
