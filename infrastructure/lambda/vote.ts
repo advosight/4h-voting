@@ -8,6 +8,29 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const lambdaClient = new LambdaClient({});
 
+const DEVICE_COOKIE_NAME = 'deviceId';
+const DEVICE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+// Same convention as the per-day vote bucketing: venue-local (Pacific)
+// calendar day, not UTC, so a device's daily limit resets when the event
+// day actually turns over, not at midnight UTC.
+function getPacificDateString(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
+}
+
+function getDeviceIdFromCookies(event: APIGatewayProxyEvent): string | undefined {
+  const cookieHeader = event.headers['Cookie'] || event.headers['cookie'] || '';
+  const match = cookieHeader
+    .split(';')
+    .map(pair => pair.trim())
+    .find(pair => pair.startsWith(`${DEVICE_COOKIE_NAME}=`));
+  return match ? match.substring(DEVICE_COOKIE_NAME.length + 1) : undefined;
+}
+
+function buildDeviceCookieHeader(deviceId: string): string {
+  return `${DEVICE_COOKIE_NAME}=${deviceId}; Max-Age=${DEVICE_COOKIE_MAX_AGE_SECONDS}; Path=/; HttpOnly; Secure; SameSite=Lax`;
+}
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Vote handler invoked:', JSON.stringify(event, null, 2));
 
@@ -43,7 +66,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   try {
-    // Check if voting is active
+    // Check if voting is active, and whether the admin has the one-vote-per-
+    // device-per-day limit turned on -- combined into one request since both
+    // are needed before every vote.
     const votingStatusResponse = await fetch(process.env.GRAPHQL_ENDPOINT!, {
       method: 'POST',
       headers: {
@@ -51,7 +76,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         'x-api-key': process.env.GRAPHQL_API_KEY || '',
       },
       body: JSON.stringify({
-        query: `query GetVotingStatus { getVotingStatus { isActive } }`,
+        query: `query GetVotingStatus { getVotingStatus { isActive } getDeviceLimitStatus { enabled } }`,
       }),
     });
 
@@ -60,6 +85,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // Explicitly check if isActive is false (not just falsy)
     const isVotingActive = votingStatusData?.data?.getVotingStatus?.isActive === true;
     console.log('Is voting active:', isVotingActive);
+    // Default to enforcing the limit (fail toward the safer/stricter behavior)
+    // if the flag is missing or the request partially failed.
+    const isDeviceLimitEnabled = votingStatusData?.data?.getDeviceLimitStatus?.enabled !== false;
+    console.log('Is device limit enabled:', isDeviceLimitEnabled);
 
     if (!isVotingActive) {
       console.log('Voting is paused, redirecting to paused page');
@@ -117,6 +146,46 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     console.log(`Recording a vote for cat: ${catId} (current votes: ${result.Item?.votes || 0})`);
+
+    // Enforce one vote per device per day (Pacific calendar day), regardless
+    // of which cat is being voted for -- unless the admin has turned this
+    // limit off. The PutCommand's ConditionExpression makes claiming today's
+    // slot atomic, so two concurrent requests from the same device (double-
+    // tap, refresh) can't both slip through.
+    const deviceId = getDeviceIdFromCookies(event) || randomUUID();
+    const today = getPacificDateString();
+    const deviceCookieHeader = buildDeviceCookieHeader(deviceId);
+
+    if (isDeviceLimitEnabled) {
+      try {
+        await docClient.send(new PutCommand({
+          TableName: process.env.TABLE_NAME,
+          Item: {
+            PK: `DEVICE#${deviceId}`,
+            SK: `VOTE#${today}`,
+            catId,
+            timestamp: new Date().toISOString(),
+          },
+          ConditionExpression: 'attribute_not_exists(PK)',
+        }));
+      } catch (error: any) {
+        if (error.name === 'ConditionalCheckFailedException') {
+          console.log(`Device ${deviceId} already voted today (${today}); not recording another vote`);
+          return {
+            statusCode: 302,
+            headers: {
+              'Location': `/${event.requestContext.stage}/thanks?status=already-voted`,
+              'Set-Cookie': deviceCookieHeader,
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Headers': 'Content-Type',
+              'Access-Control-Allow-Methods': 'GET, POST',
+            },
+            body: '',
+          };
+        }
+        throw error;
+      }
+    }
 
     // Store vote with device info in DynamoDB
     const voteId = randomUUID();
@@ -182,6 +251,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       statusCode: 302,
       headers: {
         'Location': `/${event.requestContext.stage}/thanks`,
+        'Set-Cookie': deviceCookieHeader,
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'GET, POST',
@@ -276,6 +346,7 @@ async function handleThanksPage(event: APIGatewayProxyEvent): Promise<APIGateway
   // account actually served this page, silently sending every visitor's
   // email submission to the wrong AWS account.
   const emailEndpoint = `/${event.requestContext.stage}/email`;
+  const alreadyVoted = event.queryStringParameters?.status === 'already-voted';
 
   return {
     statusCode: 200,
@@ -291,7 +362,7 @@ async function handleThanksPage(event: APIGatewayProxyEvent): Promise<APIGateway
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Vote Recorded - Cat 4H</title>
+        <title>${alreadyVoted ? 'Already Voted Today' : 'Vote Recorded'} - Cat 4H</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -339,8 +410,13 @@ async function handleThanksPage(event: APIGatewayProxyEvent): Promise<APIGateway
       </head>
       <body>
         <div class="container">
+          ${alreadyVoted ? `
+          <h1>✅ You Already Voted Today!</h1>
+          <p>Only one vote per device per day -- come back tomorrow to vote again!</p>
+          ` : `
           <h1>🎉 Vote Recorded! 🎉</h1>
           <p>Thank you for voting!</p>
+          `}
           <div class="cat-emoji">🐈‍⬛</div>
           
           <div class="info-section">
