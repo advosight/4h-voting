@@ -493,6 +493,79 @@ body {
   font-size: 0.9em;
 }
 
+/* TV Age Group Grid - Top 5 by Age Group view */
+.tv-age-group-grid {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  padding: var(--space-2);
+  max-width: 100%;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tv-age-group-panel {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tv-age-group-title {
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.tv-age-group-empty {
+  text-align: center;
+  opacity: 0.7;
+  padding: var(--space-3) 0;
+}
+
+.tv-age-group-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tv-age-group-item:last-child {
+  border-bottom: none;
+}
+
+.tv-age-group-rank {
+  font-weight: 900;
+  color: var(--color-warning);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  min-width: 2.5em;
+}
+
+.tv-age-group-cage {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.tv-age-group-name {
+  font-style: italic;
+  opacity: 0.8;
+  font-size: 0.9em;
+  flex: 1;
+}
+
+.tv-age-group-votes {
+  font-weight: 700;
+  color: var(--color-primary-lighter);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* TV Footer */
 .tv-footer {
   text-align: center;

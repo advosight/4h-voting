@@ -14,6 +14,11 @@ type CatConnection {
   items: [Cat!]!
 }
 
+type DailyVoteCount {
+  date: String! @aws_cognito_user_pools
+  votes: Int! @aws_cognito_user_pools
+}
+
 input CreateCatInput {
   name: String!
   owner: String!
@@ -39,9 +44,9 @@ input UpdateCatInput {
 scalar AWSJSON
 
 type Email {
-  id: ID! @aws_cognito_user_pools
-  email: String! @aws_cognito_user_pools
-  timestamp: String! @aws_cognito_user_pools
+  id: ID! @aws_api_key @aws_cognito_user_pools
+  email: String! @aws_api_key @aws_cognito_user_pools
+  timestamp: String! @aws_api_key @aws_cognito_user_pools
 }
 
 type EmailConnection {
@@ -52,6 +57,7 @@ type Query {
   getCat(id: ID!): Cat
   getCatByCage(cageNumber: Int!): Cat @aws_cognito_user_pools
   listCats: CatConnection!
+  getVotesByDay(catId: ID!): [DailyVoteCount!]! @aws_cognito_user_pools
   listEmails: EmailConnection! @aws_cognito_user_pools
   getVotingStatus: VotingStatus! @aws_api_key @aws_cognito_user_pools
   getScore(id: ID!): Score @aws_cognito_user_pools

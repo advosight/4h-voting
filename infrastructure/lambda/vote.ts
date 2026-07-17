@@ -66,7 +66,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return {
         statusCode: 302,
         headers: {
-          'Location': `${process.env.API_URL || 'https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/'}paused`,
+          // Root-relative to the current request's own stage/host -- never a
+          // hardcoded cross-environment URL, so this can't ever redirect a
+          // visitor on one account's API into another account's stack.
+          'Location': `/${event.requestContext.stage}/paused`,
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Headers': 'Content-Type',
           'Access-Control-Allow-Methods': 'GET, POST',
@@ -178,7 +181,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return {
       statusCode: 302,
       headers: {
-        'Location': `${process.env.API_URL || 'https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/'}thanks`,
+        'Location': `/${event.requestContext.stage}/thanks`,
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'GET, POST',
@@ -268,6 +271,12 @@ async function handleThanksPage(event: APIGatewayProxyEvent): Promise<APIGateway
     sourceIp: event.requestContext?.identity?.sourceIp || 'Unknown'
   });
 
+  // Root-relative to this request's own stage -- the previous hardcoded
+  // absolute URL here pointed at the dev account's API regardless of which
+  // account actually served this page, silently sending every visitor's
+  // email submission to the wrong AWS account.
+  const emailEndpoint = `/${event.requestContext.stage}/email`;
+
   return {
     statusCode: 200,
     headers: {
@@ -348,7 +357,7 @@ async function handleThanksPage(event: APIGatewayProxyEvent): Promise<APIGateway
                 const email = document.getElementById('emailInput').value;
                 const messageDiv = document.getElementById('emailMessage');
                 
-                fetch('https://s2fhl5bike.execute-api.us-west-2.amazonaws.com/prod/email', {
+                fetch('${emailEndpoint}', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ email: email })

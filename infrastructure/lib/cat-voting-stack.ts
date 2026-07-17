@@ -405,6 +405,11 @@ export class CatVotingStack extends cdk.Stack {
       fieldName: 'getCatByCage',
     });
 
+    dataSource.createResolver('getVotesByDayResolver', {
+      typeName: 'Query',
+      fieldName: 'getVotesByDay',
+    });
+
     dataSource.createResolver('createCatResolver', {
       typeName: 'Mutation',
       fieldName: 'createCat',
