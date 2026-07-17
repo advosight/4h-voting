@@ -58,6 +58,22 @@ const deleteCat = `
   }
 `;
 
+const getCat = `
+  query GetCat($id: ID!) {
+    getCat(id: $id) {
+      id
+      name
+      owner
+      votes
+      cageNumber
+      ownerAgeGroup
+      catAgeGroup
+      peoplesChoiceGroup
+      breedCategory
+    }
+  }
+`;
+
 const getVotesByDay = `
   query GetVotesByDay($catId: ID!) {
     getVotesByDay(catId: $catId) {
@@ -92,6 +108,41 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [dailyVotes, setDailyVotes] = useState<{ date: string; votes: number }[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
+
+  // The card's local state (including `votes`) is only ever set from the
+  // `cat` prop at mount time and doesn't track later live vote updates. If we
+  // opened the edit dialog on that stale snapshot, saving -- even to fix an
+  // unrelated field like cage number -- would blindly overwrite the real
+  // vote count with the old one. Pulling the latest record from the server
+  // right before showing the dialog keeps the edit starting from what the
+  // vote count actually is right now.
+  const handleOpenEdit = async () => {
+    setEditLoading(true);
+    try {
+      const response: any = await client.graphql({
+        query: getCat,
+        variables: { id: cat.id }
+      });
+      const freshCat = response.data.getCat;
+      if (freshCat) {
+        setName(freshCat.name);
+        setOwner(freshCat.owner);
+        setCageNumber(freshCat.cageNumber || 1);
+        setVotes(freshCat.votes);
+        setOwnerAgeGroup(freshCat.ownerAgeGroup || '');
+        setCatAgeGroup(freshCat.catAgeGroup || '');
+        setPeoplesChoiceGroup(freshCat.peoplesChoiceGroup?.toString() || '');
+        setBreedCategory(freshCat.breedCategory || '');
+      }
+    } catch (error) {
+      console.error('Error fetching latest cat data:', error);
+      // Fall back to the values already in local state if the refresh fails
+    } finally {
+      setEditLoading(false);
+      setEditing(true);
+    }
+  };
 
   const handleShowHistory = async () => {
     setHistoryOpen(true);
@@ -243,7 +294,8 @@ function CatCard({ cat, rank, onUpdate, isAdmin = false }: CatCardProps): JSX.El
             <Tooltip title="Edit">
               <IconButton
                 size="small"
-                onClick={() => setEditing(true)}
+                onClick={handleOpenEdit}
+                disabled={editLoading}
                 aria-label="Edit"
               >
                 <EditIcon />
