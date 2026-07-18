@@ -56,7 +56,6 @@ export const ResponsiveForm: React.FC<ResponsiveFormProps> = ({
           duration: theme.transitions.duration.standard,
         }),
         opacity: isChangingOrientation ? 0.7 : 1,
-        pointerEvents: isChangingOrientation ? 'none' : 'auto',
       },
       paper: {
         padding: baseSpacing * 1.5,

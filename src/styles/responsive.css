@@ -19,10 +19,6 @@
 }
 
 /* Orientation Change Handling */
-.orientation-changing {
-  pointer-events: none;
-}
-
 .orientation-changing * {
   transition: all var(--orientation-transition) !important;
 }

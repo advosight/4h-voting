@@ -279,8 +279,7 @@ export const ResponsiveDataTable = <T extends Record<string, any>>({
         overflowX: tableLayout === 'horizontal-scroll' ? 'auto' : 'hidden',
         WebkitOverflowScrolling: 'touch',
         transition: isChangingOrientation ? 'all 0.3s ease-in-out' : 'none',
-        opacity: isChangingOrientation ? 0.7 : 1,
-        pointerEvents: isChangingOrientation ? 'none' : 'auto'
+        opacity: isChangingOrientation ? 0.7 : 1
       }}
     >
       <table 

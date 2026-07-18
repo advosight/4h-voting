@@ -94,40 +94,69 @@ export const useDeviceDetection = () => {
 
   // Handle orientation changes
   useEffect(() => {
-    const handleOrientationChange = () => {
+    const getOrientationFromSize = () =>
+      window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+
+    const handleOrientationEvent = () => {
       setOrientation(prev => ({ ...prev, isChanging: true }));
 
       // Use a timeout to smooth the transition
       setTimeout(() => {
-        const newOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
         const angle = screen.orientation?.angle || 0;
 
         setOrientation({
-          orientation: newOrientation,
+          orientation: getOrientationFromSize(),
           angle,
           isChanging: false
         });
       }, 100);
     };
 
+    // Mobile browsers fire `resize` whenever the URL bar shows/hides during
+    // scrolling, not just on real device rotation. If we treated every resize
+    // as an orientation change, the `orientation-changing` class (which sets
+    // pointer-events: none) would get reapplied continuously while the user
+    // scrolls, leaving the page un-clickable. Only start the transition when
+    // portrait/landscape actually flips.
+    const handleResize = () => {
+      const newOrientation = getOrientationFromSize();
+
+      setOrientation(prev => {
+        if (newOrientation === prev.orientation) {
+          return prev;
+        }
+        return { ...prev, isChanging: true };
+      });
+
+      setTimeout(() => {
+        const angle = screen.orientation?.angle || 0;
+        setOrientation(prev => {
+          if (!prev.isChanging) {
+            return prev;
+          }
+          return { orientation: getOrientationFromSize(), angle, isChanging: false };
+        });
+      }, 100);
+    };
+
     // Listen for orientation change events
     if (screen.orientation) {
-      screen.orientation.addEventListener('change', handleOrientationChange);
+      screen.orientation.addEventListener('change', handleOrientationEvent);
     } else {
       // Fallback for older browsers
-      window.addEventListener('orientationchange', handleOrientationChange);
+      window.addEventListener('orientationchange', handleOrientationEvent);
     }
 
-    // Also listen for resize as a fallback
-    window.addEventListener('resize', handleOrientationChange);
+    // Also listen for resize as a fallback, filtered to real orientation flips
+    window.addEventListener('resize', handleResize);
 
     return () => {
       if (screen.orientation) {
-        screen.orientation.removeEventListener('change', handleOrientationChange);
+        screen.orientation.removeEventListener('change', handleOrientationEvent);
       } else {
-        window.removeEventListener('orientationchange', handleOrientationChange);
+        window.removeEventListener('orientationchange', handleOrientationEvent);
       }
-      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
