@@ -72,7 +72,6 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
     isMobile,
     isTablet,
     orientation,
-    isChangingOrientation,
     showSidebar,
     showBottomNav,
     shouldShowCompactHeader,
@@ -164,23 +163,6 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
       announceToScreenReader(orientationMessage);
     }
   }, [getCSSVariables, legacyIsMobile, mobileOpen, orientation, config.announceOrientationChanges, announceToScreenReader]);
-
-  // Handle smooth transitions during orientation changes
-  useEffect(() => {
-    if (isChangingOrientation) {
-      // Temporarily disable interactions during orientation change
-      document.body.style.pointerEvents = 'none';
-      
-      const timer = setTimeout(() => {
-        document.body.style.pointerEvents = 'auto';
-      }, 300);
-
-      return () => {
-        clearTimeout(timer);
-        document.body.style.pointerEvents = 'auto';
-      };
-    }
-  }, [isChangingOrientation]);
 
   const drawerWidth = 280;
 
