@@ -627,4 +627,82 @@ describe('FitShowScoreDataAccess', () => {
       await expect(dataAccess.finalizeFitShowScore('non-existent', 'judge-123')).rejects.toThrow('Fit and show score not found');
     });
   });
+
+  describe('finalizeAllFitShowScores', () => {
+    it('should finalize all unfinalized scores and return the finalized list', async () => {
+      const unfinalizedScores = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: false, totalScore: 85 },
+        { id: 'score-2', catId: 'cat-456', judgeId: 'judge-456', isFinalized: false, totalScore: 92 },
+      ];
+
+      const finalizedScores = unfinalizedScores.map(s => ({ ...s, isFinalized: true }));
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: unfinalizedScores.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      // Mock individual getFitShowScore calls for each score
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...unfinalizedScores[0] } });
+      mockSend.mockResolvedValueOnce({}); // audit entry
+      mockSend.mockResolvedValue({}); // subsequent updates
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Bulk finalized by admin');
+
+      expect(result).toHaveLength(2);
+      expect(result[0].isFinalized).toBe(true);
+      expect(result[1].isFinalized).toBe(true);
+    });
+
+    it('should skip already-finalized scores and only finalize unfinalized ones', async () => {
+      const mixedScores = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: false, totalScore: 85 },
+        { id: 'score-2', catId: 'cat-456', judgeId: 'judge-456', isFinalized: true, totalScore: 92 }, // Already finalized
+      ];
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: mixedScores.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      // Mock getFitShowScore for unfinalized score only
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...mixedScores[0] } });
+      mockSend.mockResolvedValue({}); // audit entry and updates
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Bulk finalized by admin');
+
+      // Should only return the finalized one (the unfinalized score)
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('score-1');
+      expect(result[0].isFinalized).toBe(true);
+    });
+
+    it('should return empty array when all scores are already finalized', async () => {
+      const allFinalized = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: true, totalScore: 85 },
+        { id: 'score-2', catId: 'cat-456', judgeId: 'judge-456', isFinalized: true, totalScore: 92 },
+      ];
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: allFinalized.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Bulk finalized by admin');
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should accept optional reason parameter and pass it to finalizeFitShowScore', async () => {
+      const unfinalizedScores = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: false, totalScore: 85 },
+      ];
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: unfinalizedScores.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      // Mock getFitShowScore
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...unfinalizedScores[0] } });
+      mockSend.mockResolvedValue({}); // audit entry and updates
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Custom finalization reason');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isFinalized).toBe(true);
+    });
+  });
 });
