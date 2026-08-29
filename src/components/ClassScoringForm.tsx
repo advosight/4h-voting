@@ -127,17 +127,17 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
   hasPermission = true
 }) => {
   const [formData, setFormData] = useState<ClassScoreFormData>({
-    beautyScore: existingScore?.beautyScore || 0,
+    beautyScore: existingScore?.beautyScore ?? 15,
     beautyComments: existingScore?.beautyComments || '',
-    personalityScore: existingScore?.personalityScore || 0,
+    personalityScore: existingScore?.personalityScore ?? 20,
     personalityComments: existingScore?.personalityComments || '',
-    balanceProportionScore: existingScore?.balanceProportionScore || 0,
+    balanceProportionScore: existingScore?.balanceProportionScore ?? 15,
     balanceProportionComments: existingScore?.balanceProportionComments || '',
-    coatCleanGroomed: existingScore?.coatCleanGroomed || 0,
-    teethGumsHealthy: existingScore?.teethGumsHealthy || 0,
-    eyesNoseClear: existingScore?.eyesNoseClear || 0,
-    earsCleanMiteFree: existingScore?.earsCleanMiteFree || 0,
-    toenailsClipped: existingScore?.toenailsClipped || 0,
+    coatCleanGroomed: existingScore?.coatCleanGroomed ?? 15,
+    teethGumsHealthy: existingScore?.teethGumsHealthy ?? 5,
+    eyesNoseClear: existingScore?.eyesNoseClear ?? 5,
+    earsCleanMiteFree: existingScore?.earsCleanMiteFree ?? 10,
+    toenailsClipped: existingScore?.toenailsClipped ?? 15,
     fleaIssues: existingScore?.fleaIssues ?? false,
     healthGroomingComments: existingScore?.healthGroomingComments || ''
   });
