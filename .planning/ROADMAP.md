@@ -11,7 +11,7 @@ trail.
 
 **Depends on:** None
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 - [x] 01-01-PLAN.md — Complete FitShowScoringForm (all six categories), judge score
       editing, and live subscription updates to the scoring grid
@@ -25,7 +25,7 @@ trail.
 - [x] 01-04-PLAN.md — Admin "Finalize All Scores" action, finalized-score override with
       audit reason, and audit-history changelog viewer
 
-- [ ] 01-05-PLAN.md — Mobile: floating action button, guaranteed single-column layout,
+- [x] 01-05-PLAN.md — Mobile: floating action button, guaranteed single-column layout,
       48x48px touch targets, pinch-zoom support
 
 ---
