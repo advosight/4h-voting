@@ -31,6 +31,7 @@ interface FitShowScoringFormProps {
   judgeId: string;
   judgeName: string;
   existingScore?: FitShowScore;
+  modificationReason?: string;
   onScoreSubmitted?: (score: FitShowScore) => void;
   onError?: (error: string) => void;
 }
@@ -130,6 +131,7 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
   judgeId,
   judgeName,
   existingScore,
+  modificationReason,
   onScoreSubmitted,
   onError
 }) => {
@@ -592,7 +594,8 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
           healthExaminationComments: scoreData.healthExaminationComments,
           groomingCareComments: scoreData.groomingCareComments,
           knowledgeComments: scoreData.knowledgeComments,
-          isFinalized: false  // Always false for judge action
+          isFinalized: false,  // Always false for judge action
+          ...(modificationReason && { modificationReason })  // Include reason if provided (admin override)
         };
 
         const result = await client.graphql({ query: updateFitShowScore, variables: { id: existingScore.id, input: updateInput } });
