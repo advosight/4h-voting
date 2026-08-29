@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box, Typography, TextField, Slider, Paper } from '@mui/material';
 
 interface DemonstrationScoringProps {
   showingHeadShape: number;
@@ -20,129 +21,125 @@ export const DemonstrationScoring: React.FC<DemonstrationScoringProps> = ({
   onScoreChange
 }) => {
   return (
-    <div className="scoring-section demonstration-scoring">
-      <div className="section-header">
-        <h3>Demonstration Skills</h3>
-        <div className="section-total">
-          <strong>{total}/16 points</strong>
-        </div>
-      </div>
+    <Paper sx={{ p: 3, mb: 3, backgroundColor: '#fff3e0', border: '2px solid #ff9800' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5">Demonstration Skills</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/16 points</Typography>
+      </Box>
 
-      <div className="scoring-fields">
-        <div className="score-field">
-          <label htmlFor="showingHeadShape">
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 3 }}>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
             Showing head shape (1-4 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingHeadShape"
-              min="1"
-              max="4"
-              value={showingHeadShape}
-              onChange={(e) => onScoreChange('showingHeadShape', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingHeadShape / 4) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-4 points</div>
-        </div>
+          </Typography>
+          <Slider
+            value={showingHeadShape}
+            onChange={(e, newValue) => onScoreChange('showingHeadShape', newValue)}
+            min={1}
+            max={4}
+            marks
+            valueLabelDisplay="auto"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            type="number"
+            size="small"
+            fullWidth
+            value={showingHeadShape}
+            onChange={(e) => onScoreChange('showingHeadShape', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 4 }}
+          />
+        </Box>
 
-        <div className="score-field">
-          <label htmlFor="showingBodyType">
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
             Showing body type (1-4 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingBodyType"
-              min="1"
-              max="4"
-              value={showingBodyType}
-              onChange={(e) => onScoreChange('showingBodyType', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingBodyType / 4) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-4 points</div>
-        </div>
+          </Typography>
+          <Slider
+            value={showingBodyType}
+            onChange={(e, newValue) => onScoreChange('showingBodyType', newValue)}
+            min={1}
+            max={4}
+            marks
+            valueLabelDisplay="auto"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            type="number"
+            size="small"
+            fullWidth
+            value={showingBodyType}
+            onChange={(e) => onScoreChange('showingBodyType', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 4 }}
+          />
+        </Box>
 
-        <div className="score-field">
-          <label htmlFor="showingTail">
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
             Showing tail (1-4 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingTail"
-              min="1"
-              max="4"
-              value={showingTail}
-              onChange={(e) => onScoreChange('showingTail', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingTail / 4) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-4 points</div>
-        </div>
+          </Typography>
+          <Slider
+            value={showingTail}
+            onChange={(e, newValue) => onScoreChange('showingTail', newValue)}
+            min={1}
+            max={4}
+            marks
+            valueLabelDisplay="auto"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            type="number"
+            size="small"
+            fullWidth
+            value={showingTail}
+            onChange={(e) => onScoreChange('showingTail', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 4 }}
+          />
+        </Box>
 
-        <div className="score-field">
-          <label htmlFor="showingCoatTexture">
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
             Showing coat texture (1-4 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingCoatTexture"
-              min="1"
-              max="4"
-              value={showingCoatTexture}
-              onChange={(e) => onScoreChange('showingCoatTexture', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingCoatTexture / 4) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-4 points</div>
-        </div>
-      </div>
+          </Typography>
+          <Slider
+            value={showingCoatTexture}
+            onChange={(e, newValue) => onScoreChange('showingCoatTexture', newValue)}
+            min={1}
+            max={4}
+            marks
+            valueLabelDisplay="auto"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            type="number"
+            size="small"
+            fullWidth
+            value={showingCoatTexture}
+            onChange={(e) => onScoreChange('showingCoatTexture', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 4 }}
+          />
+        </Box>
+      </Box>
 
-      <div className="comments-section">
-        <label htmlFor="demonstrationComments">
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
           Comments (optional, max 500 characters)
-        </label>
-        <textarea
-          id="demonstrationComments"
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
           value={comments}
           onChange={(e) => onScoreChange('demonstrationComments', e.target.value)}
-          maxLength={500}
-          rows={3}
-          className="comments-textarea"
           placeholder="Add comments about the participant's demonstration skills..."
+          slotProps={{
+            input: {
+              maxLength: 500,
+            },
+          }}
+          helperText={`${comments.length}/500 characters`}
         />
-        <div className="character-count">
-          {comments.length}/500 characters
-        </div>
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 };

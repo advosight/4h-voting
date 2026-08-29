@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box, Typography, TextField, Slider, Paper } from '@mui/material';
 
 interface HandlingScoringProps {
   controlEquipment: number;
@@ -16,81 +17,79 @@ export const HandlingScoring: React.FC<HandlingScoringProps> = ({
   onScoreChange
 }) => {
   return (
-    <div className="scoring-section handling-scoring">
-      <div className="section-header">
-        <h3>Handling & Control</h3>
-        <div className="section-total">
-          <strong>{total}/14 points</strong>
-        </div>
-      </div>
+    <Paper sx={{ p: 3, mb: 3, backgroundColor: '#fff3e0', border: '2px solid #ff9800' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5">Handling & Control</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/14 points</Typography>
+      </Box>
 
-      <div className="scoring-fields">
-        <div className="score-field">
-          <label htmlFor="controlEquipment">
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 3 }}>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
             Control, harness fits, leash on wrist (1-10 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="controlEquipment"
-              min="1"
-              max="10"
-              value={controlEquipment}
-              onChange={(e) => onScoreChange('controlEquipment', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(controlEquipment / 10) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-10 points</div>
-        </div>
+          </Typography>
+          <Slider
+            value={controlEquipment}
+            onChange={(e, newValue) => onScoreChange('controlEquipment', newValue)}
+            min={1}
+            max={10}
+            marks
+            valueLabelDisplay="auto"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            type="number"
+            size="small"
+            fullWidth
+            value={controlEquipment}
+            onChange={(e) => onScoreChange('controlEquipment', Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 10 }}
+          />
+        </Box>
 
-        <div className="score-field">
-          <label htmlFor="pickupCarrying">
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
             Picking up & carrying of cat (1-4 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="pickupCarrying"
-              min="1"
-              max="4"
-              value={pickupCarrying}
-              onChange={(e) => onScoreChange('pickupCarrying', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(pickupCarrying / 4) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-4 points</div>
-        </div>
-      </div>
+          </Typography>
+          <Slider
+            value={pickupCarrying}
+            onChange={(e, newValue) => onScoreChange('pickupCarrying', newValue)}
+            min={1}
+            max={4}
+            marks
+            valueLabelDisplay="auto"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            type="number"
+            size="small"
+            fullWidth
+            value={pickupCarrying}
+            onChange={(e) => onScoreChange('pickupCarrying', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 4 }}
+          />
+        </Box>
+      </Box>
 
-      <div className="comments-section">
-        <label htmlFor="handlingComments">
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
           Comments (optional, max 500 characters)
-        </label>
-        <textarea
-          id="handlingComments"
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
           value={comments}
           onChange={(e) => onScoreChange('handlingComments', e.target.value)}
-          maxLength={500}
-          rows={3}
-          className="comments-textarea"
           placeholder="Add comments about the participant's handling techniques..."
+          slotProps={{
+            input: {
+              maxLength: 500,
+            },
+          }}
+          helperText={`${comments.length}/500 characters`}
         />
-        <div className="character-count">
-          {comments.length}/500 characters
-        </div>
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 };
