@@ -9,7 +9,6 @@ import {
   Chip,
   FormControlLabel,
   Checkbox,
-  Slider,
   Alert,
   Grid,
   Paper,
@@ -23,6 +22,7 @@ import {
   Save as SaveIcon,
   Send as SendIcon,
 } from '@mui/icons-material';
+import { ScoreInput } from './ScoreInput';
 
 interface Cat {
   id: string;
@@ -127,17 +127,17 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
   hasPermission = true
 }) => {
   const [formData, setFormData] = useState<ClassScoreFormData>({
-    beautyScore: existingScore?.beautyScore || 0,
+    beautyScore: existingScore?.beautyScore ?? 15,
     beautyComments: existingScore?.beautyComments || '',
-    personalityScore: existingScore?.personalityScore || 0,
+    personalityScore: existingScore?.personalityScore ?? 20,
     personalityComments: existingScore?.personalityComments || '',
-    balanceProportionScore: existingScore?.balanceProportionScore || 0,
+    balanceProportionScore: existingScore?.balanceProportionScore ?? 15,
     balanceProportionComments: existingScore?.balanceProportionComments || '',
-    coatCleanGroomed: existingScore?.coatCleanGroomed || 0,
-    teethGumsHealthy: existingScore?.teethGumsHealthy || 0,
-    eyesNoseClear: existingScore?.eyesNoseClear || 0,
-    earsCleanMiteFree: existingScore?.earsCleanMiteFree || 0,
-    toenailsClipped: existingScore?.toenailsClipped || 0,
+    coatCleanGroomed: existingScore?.coatCleanGroomed ?? 15,
+    teethGumsHealthy: existingScore?.teethGumsHealthy ?? 5,
+    eyesNoseClear: existingScore?.eyesNoseClear ?? 5,
+    earsCleanMiteFree: existingScore?.earsCleanMiteFree ?? 10,
+    toenailsClipped: existingScore?.toenailsClipped ?? 15,
     fleaIssues: existingScore?.fleaIssues ?? false,
     healthGroomingComments: existingScore?.healthGroomingComments || ''
   });
@@ -347,53 +347,33 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
 
           <Grid container spacing={3}>
             {/* Beauty Section */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ height: '100%', border: '2px solid #e91e63' }}>
+            <Grid size={{ xs: 12 }}>
+              <Card sx={{ border: '2px solid #e91e63' }}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <StarIcon sx={{ mr: 2, color: '#e91e63', fontSize: '2rem' }} />
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#e91e63' }}>
                       Beauty (0-{BEAUTY_MAX_SCORE})
                     </Typography>
                   </Box>
 
-                  <TextField
-                    type="number"
-                    label="Beauty Score"
-                    value={formData.beautyScore}
-                    onChange={(e) => handleInputChange('beautyScore', parseInt(e.target.value) || 0)}
-                    slotProps={{ htmlInput: { min: 0, max: BEAUTY_MAX_SCORE } }}
-                    error={!!errors.beautyScore}
-                    helperText={errors.beautyScore}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                  />
+                  <Box sx={{ mb: 3 }}>
+                    <ScoreInput
+                      value={formData.beautyScore}
+                      min={0}
+                      max={BEAUTY_MAX_SCORE}
+                      label="Beauty Score"
+                      onChange={(value) => handleInputChange('beautyScore', value)}
+                    />
+                  </Box>
 
-                  <Typography gutterBottom>Score: {formData.beautyScore}</Typography>
-                  <Slider
-                    value={formData.beautyScore}
-                    onChange={(_, value) => handleInputChange('beautyScore', value as number)}
-                    min={0}
-                    max={BEAUTY_MAX_SCORE}
-                    marks
-                    step={1}
-                    valueLabelDisplay="auto"
-                    sx={{
-                      color: '#e91e63',
-                      width: '100%',
-                      mb: 2,
-                      '& .MuiSlider-rail': {
-                        width: '100%'
-                      },
-                      '& .MuiSlider-track': {
-                        width: '100%'
-                      }
-                    }}
-                  />
+                  {errors.beautyScore && (
+                    <Alert severity="error" sx={{ mb: 2 }}>{errors.beautyScore}</Alert>
+                  )}
 
                   <TextField
                     multiline
-                    rows={4}
+                    rows={3}
                     label="Beauty Comments"
                     value={formData.beautyComments}
                     onChange={(e) => handleInputChange('beautyComments', e.target.value)}
@@ -408,53 +388,33 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
             </Grid>
 
             {/* Personality Section */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ height: '100%', border: '2px solid #ff9800' }}>
+            <Grid size={{ xs: 12 }}>
+              <Card sx={{ border: '2px solid #ff9800' }}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <HeartIcon sx={{ mr: 2, color: '#ff9800', fontSize: '2rem' }} />
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
                       Personality (0-{PERSONALITY_MAX_SCORE})
                     </Typography>
                   </Box>
 
-                  <TextField
-                    type="number"
-                    label="Personality Score"
-                    value={formData.personalityScore}
-                    onChange={(e) => handleInputChange('personalityScore', parseInt(e.target.value) || 0)}
-                    slotProps={{ htmlInput: { min: 0, max: PERSONALITY_MAX_SCORE } }}
-                    error={!!errors.personalityScore}
-                    helperText={errors.personalityScore}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                  />
+                  <Box sx={{ mb: 3 }}>
+                    <ScoreInput
+                      value={formData.personalityScore}
+                      min={0}
+                      max={PERSONALITY_MAX_SCORE}
+                      label="Personality Score"
+                      onChange={(value) => handleInputChange('personalityScore', value)}
+                    />
+                  </Box>
 
-                  <Typography gutterBottom>Score: {formData.personalityScore}</Typography>
-                  <Slider
-                    value={formData.personalityScore}
-                    onChange={(_, value) => handleInputChange('personalityScore', value as number)}
-                    min={0}
-                    max={PERSONALITY_MAX_SCORE}
-                    marks
-                    step={1}
-                    valueLabelDisplay="auto"
-                    sx={{
-                      color: '#ff9800',
-                      width: '100%',
-                      mb: 2,
-                      '& .MuiSlider-rail': {
-                        width: '100%'
-                      },
-                      '& .MuiSlider-track': {
-                        width: '100%'
-                      }
-                    }}
-                  />
+                  {errors.personalityScore && (
+                    <Alert severity="error" sx={{ mb: 2 }}>{errors.personalityScore}</Alert>
+                  )}
 
                   <TextField
                     multiline
-                    rows={4}
+                    rows={3}
                     label="Personality Comments"
                     value={formData.personalityComments}
                     onChange={(e) => handleInputChange('personalityComments', e.target.value)}
@@ -469,53 +429,33 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
             </Grid>
 
             {/* Balance/Proportion Section */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card sx={{ height: '100%', border: '2px solid #4caf50' }}>
+            <Grid size={{ xs: 12 }}>
+              <Card sx={{ border: '2px solid #4caf50' }}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <BalanceIcon sx={{ mr: 2, color: '#4caf50', fontSize: '2rem' }} />
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
                       Balance/Proportion (0-{BALANCE_PROPORTION_MAX_SCORE})
                     </Typography>
                   </Box>
 
-                  <TextField
-                    type="number"
-                    label="Balance/Proportion Score"
-                    value={formData.balanceProportionScore}
-                    onChange={(e) => handleInputChange('balanceProportionScore', parseInt(e.target.value) || 0)}
-                    slotProps={{ htmlInput: { min: 0, max: BALANCE_PROPORTION_MAX_SCORE } }}
-                    error={!!errors.balanceProportionScore}
-                    helperText={errors.balanceProportionScore}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                  />
+                  <Box sx={{ mb: 3 }}>
+                    <ScoreInput
+                      value={formData.balanceProportionScore}
+                      min={0}
+                      max={BALANCE_PROPORTION_MAX_SCORE}
+                      label="Balance/Proportion Score"
+                      onChange={(value) => handleInputChange('balanceProportionScore', value)}
+                    />
+                  </Box>
 
-                  <Typography gutterBottom>Score: {formData.balanceProportionScore}</Typography>
-                  <Slider
-                    value={formData.balanceProportionScore}
-                    onChange={(_, value) => handleInputChange('balanceProportionScore', value as number)}
-                    min={0}
-                    max={BALANCE_PROPORTION_MAX_SCORE}
-                    marks
-                    step={1}
-                    valueLabelDisplay="auto"
-                    sx={{
-                      color: '#4caf50',
-                      width: '100%',
-                      mb: 2,
-                      '& .MuiSlider-rail': {
-                        width: '100%'
-                      },
-                      '& .MuiSlider-track': {
-                        width: '100%'
-                      }
-                    }}
-                  />
+                  {errors.balanceProportionScore && (
+                    <Alert severity="error" sx={{ mb: 2 }}>{errors.balanceProportionScore}</Alert>
+                  )}
 
                   <TextField
                     multiline
-                    rows={4}
+                    rows={3}
                     label="Balance/Proportion Comments"
                     value={formData.balanceProportionComments}
                     onChange={(e) => handleInputChange('balanceProportionComments', e.target.value)}
@@ -536,235 +476,85 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
             <HealthIcon sx={{ mr: 2, color: '#4caf50', fontSize: '2rem' }} />
             <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
-              Health & Grooming
+              Health & Grooming (Total: {healthGroomingScore}/{HEALTH_GROOMING_MAX_SCORE})
             </Typography>
           </Box>
 
           <Grid container spacing={3}>
             <Grid size={{ xs: 12 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: '#4caf50', fontWeight: 'bold' }}>
-                Health & Grooming Scoring (Total: {healthGroomingScore}/{HEALTH_GROOMING_MAX_SCORE})
-              </Typography>
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.coatCleanGroomed}
+                  min={0}
+                  max={COAT_CLEAN_GROOMED_MAX_SCORE}
+                  label="Coat Clean & Well Groomed"
+                  onChange={(value) => handleInputChange('coatCleanGroomed', value)}
+                />
+              </Box>
+            </Grid>
 
-              <Grid container spacing={3}>
-                {/* Coat Clean & Groomed */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ p: 2, border: '1px solid #4caf50' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#4caf50' }}>
-                      Coat Clean & Well Groomed (0-{COAT_CLEAN_GROOMED_MAX_SCORE})
-                    </Typography>
-                    <TextField
-                      type="number"
-                      label="Score"
-                      value={formData.coatCleanGroomed}
-                      onChange={(e) => handleInputChange('coatCleanGroomed', parseInt(e.target.value) || 0)}
-                      slotProps={{ htmlInput: { min: 0, max: COAT_CLEAN_GROOMED_MAX_SCORE } }}
-                      error={!!errors.coatCleanGroomed}
-                      helperText={errors.coatCleanGroomed}
-                      fullWidth
-                      sx={{ mb: 1 }}
-                    />
-                    <Slider
-                      value={formData.coatCleanGroomed}
-                      onChange={(_, value) => handleInputChange('coatCleanGroomed', value as number)}
-                      min={0}
-                      max={COAT_CLEAN_GROOMED_MAX_SCORE}
-                      marks
-                      step={1}
-                      valueLabelDisplay="auto"
-                      sx={{ 
-                        color: '#4caf50',
-                        width: '100%',
-                        '& .MuiSlider-rail': {
-                          width: '100%'
-                        },
-                        '& .MuiSlider-track': {
-                          width: '100%'
-                        }
-                      }}
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      Fleas/flea dirt may receive Red Ribbon
-                    </Typography>
-                  </Card>
-                </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.teethGumsHealthy}
+                  min={0}
+                  max={TEETH_GUMS_MAX_SCORE}
+                  label="Teeth/Gums Clean & Healthy"
+                  onChange={(value) => handleInputChange('teethGumsHealthy', value)}
+                />
+              </Box>
+            </Grid>
 
-                {/* Teeth/Gums */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ p: 2, border: '1px solid #4caf50' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#4caf50' }}>
-                      Teeth/Gums Clean & Healthy (0-{TEETH_GUMS_MAX_SCORE})
-                    </Typography>
-                    <TextField
-                      type="number"
-                      label="Score"
-                      value={formData.teethGumsHealthy}
-                      onChange={(e) => handleInputChange('teethGumsHealthy', parseInt(e.target.value) || 0)}
-                      slotProps={{ htmlInput: { min: 0, max: TEETH_GUMS_MAX_SCORE } }}
-                      error={!!errors.teethGumsHealthy}
-                      helperText={errors.teethGumsHealthy}
-                      fullWidth
-                      sx={{ mb: 1 }}
-                    />
-                    <Slider
-                      value={formData.teethGumsHealthy}
-                      onChange={(_, value) => handleInputChange('teethGumsHealthy', value as number)}
-                      min={0}
-                      max={TEETH_GUMS_MAX_SCORE}
-                      marks
-                      step={1}
-                      valueLabelDisplay="auto"
-                      sx={{ 
-                        color: '#4caf50',
-                        width: '100%',
-                        '& .MuiSlider-rail': {
-                          width: '100%'
-                        },
-                        '& .MuiSlider-track': {
-                          width: '100%'
-                        }
-                      }}
-                    />
-                  </Card>
-                </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.eyesNoseClear}
+                  min={0}
+                  max={EYES_NOSE_MAX_SCORE}
+                  label="Eyes & Nose Clear"
+                  onChange={(value) => handleInputChange('eyesNoseClear', value)}
+                />
+              </Box>
+            </Grid>
 
-                {/* Eyes & Nose */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ p: 2, border: '1px solid #4caf50' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#4caf50' }}>
-                      Eyes & Nose Clear (0-{EYES_NOSE_MAX_SCORE})
-                    </Typography>
-                    <TextField
-                      type="number"
-                      label="Score"
-                      value={formData.eyesNoseClear}
-                      onChange={(e) => handleInputChange('eyesNoseClear', parseInt(e.target.value) || 0)}
-                      slotProps={{ htmlInput: { min: 0, max: EYES_NOSE_MAX_SCORE } }}
-                      error={!!errors.eyesNoseClear}
-                      helperText={errors.eyesNoseClear}
-                      fullWidth
-                      sx={{ mb: 1 }}
-                    />
-                    <Slider
-                      value={formData.eyesNoseClear}
-                      onChange={(_, value) => handleInputChange('eyesNoseClear', value as number)}
-                      min={0}
-                      max={EYES_NOSE_MAX_SCORE}
-                      marks
-                      step={1}
-                      valueLabelDisplay="auto"
-                      sx={{ 
-                        color: '#4caf50',
-                        width: '100%',
-                        '& .MuiSlider-rail': {
-                          width: '100%'
-                        },
-                        '& .MuiSlider-track': {
-                          width: '100%'
-                        }
-                      }}
-                    />
-                  </Card>
-                </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.earsCleanMiteFree}
+                  min={0}
+                  max={EARS_CLEAN_MAX_SCORE}
+                  label="Ears Clean Free of Mites"
+                  onChange={(value) => handleInputChange('earsCleanMiteFree', value)}
+                />
+              </Box>
+            </Grid>
 
-                {/* Ears Clean */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ p: 2, border: '1px solid #4caf50' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#4caf50' }}>
-                      Ears Clean Free of Mites (0-{EARS_CLEAN_MAX_SCORE})
-                    </Typography>
-                    <TextField
-                      type="number"
-                      label="Score"
-                      value={formData.earsCleanMiteFree}
-                      onChange={(e) => handleInputChange('earsCleanMiteFree', parseInt(e.target.value) || 0)}
-                      slotProps={{ htmlInput: { min: 0, max: EARS_CLEAN_MAX_SCORE } }}
-                      error={!!errors.earsCleanMiteFree}
-                      helperText={errors.earsCleanMiteFree}
-                      fullWidth
-                      sx={{ mb: 1 }}
-                    />
-                    <Slider
-                      value={formData.earsCleanMiteFree}
-                      onChange={(_, value) => handleInputChange('earsCleanMiteFree', value as number)}
-                      min={0}
-                      max={EARS_CLEAN_MAX_SCORE}
-                      marks
-                      step={1}
-                      valueLabelDisplay="auto"
-                      sx={{ 
-                        color: '#4caf50',
-                        width: '100%',
-                        '& .MuiSlider-rail': {
-                          width: '100%'
-                        },
-                        '& .MuiSlider-track': {
-                          width: '100%'
-                        }
-                      }}
-                    />
-                  </Card>
-                </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.toenailsClipped}
+                  min={0}
+                  max={TOENAILS_CLIPPED_MAX_SCORE}
+                  label="Toenails/Claws Clipped"
+                  onChange={(value) => handleInputChange('toenailsClipped', value)}
+                />
+              </Box>
+            </Grid>
 
-                {/* Toenails Clipped */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ p: 2, border: '1px solid #4caf50' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#4caf50' }}>
-                      Toenails/Claws Clipped (0-{TOENAILS_CLIPPED_MAX_SCORE})
-                    </Typography>
-                    <TextField
-                      type="number"
-                      label="Score"
-                      value={formData.toenailsClipped}
-                      onChange={(e) => handleInputChange('toenailsClipped', parseInt(e.target.value) || 0)}
-                      slotProps={{ htmlInput: { min: 0, max: TOENAILS_CLIPPED_MAX_SCORE } }}
-                      error={!!errors.toenailsClipped}
-                      helperText={errors.toenailsClipped}
-                      fullWidth
-                      sx={{ mb: 1 }}
+            <Grid size={{ xs: 12 }}>
+              <Card sx={{ p: 2, border: formData.fleaIssues ? '2px solid #f44336' : '1px solid #e0e0e0', mb: 3 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.fleaIssues}
+                      onChange={(e) => handleInputChange('fleaIssues', e.target.checked)}
+                      color="error"
                     />
-                    <Slider
-                      value={formData.toenailsClipped}
-                      onChange={(_, value) => handleInputChange('toenailsClipped', value as number)}
-                      min={0}
-                      max={TOENAILS_CLIPPED_MAX_SCORE}
-                      marks
-                      step={1}
-                      valueLabelDisplay="auto"
-                      sx={{ 
-                        color: '#4caf50',
-                        width: '100%',
-                        '& .MuiSlider-rail': {
-                          width: '100%'
-                        },
-                        '& .MuiSlider-track': {
-                          width: '100%'
-                        }
-                      }}
-                    />
-                  </Card>
-                </Grid>
-
-                {/* Flea Issues Checkbox */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ p: 2, border: formData.fleaIssues ? '2px solid #f44336' : '1px solid #e0e0e0' }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={formData.fleaIssues}
-                          onChange={(e) => handleInputChange('fleaIssues', e.target.checked)}
-                          color="error"
-                        />
-                      }
-                      label="⚠️ Flea issues detected"
-                      sx={{ color: formData.fleaIssues ? '#f44336' : 'inherit' }}
-                    />
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                      Check if fleas or flea dirt are present (may result in Red Ribbon)
-                    </Typography>
-                  </Card>
-                </Grid>
-              </Grid>
+                  }
+                  label="⚠️ Flea issues detected (may result in Red Ribbon)"
+                  sx={{ color: formData.fleaIssues ? '#f44336' : 'inherit' }}
+                />
+              </Card>
             </Grid>
 
             <Grid size={{ xs: 12 }}>

@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 import { DynamoDBDocumentClient, PutCommand, GetCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 
@@ -92,7 +94,7 @@ const mockJudges = {
 describe('Type Class Scoring Workflow Backend Integration Tests', () => {
   beforeEach(() => {
     ddbMock.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Complete Judge Type Class Scoring Process', () => {

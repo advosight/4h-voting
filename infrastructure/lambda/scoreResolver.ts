@@ -132,7 +132,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
  * Create a new score
  */
 async function createScore(event: AppSyncResolverEvent<{ input: CreateScoreInput }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
   requireScoringPermission(userContext, 'cageScoring');
 
@@ -168,7 +168,7 @@ async function createScore(event: AppSyncResolverEvent<{ input: CreateScoreInput
  * Update an existing score
  */
 async function updateScore(event: AppSyncResolverEvent<{ id: string; input: UpdateScoreInput }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
   requireScoringPermission(userContext, 'cageScoring');
 
@@ -197,7 +197,7 @@ async function updateScore(event: AppSyncResolverEvent<{ id: string; input: Upda
  * Get a single score by ID
  */
 async function getScore(event: AppSyncResolverEvent<{ id: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin', 'participant']);
 
   const { id } = event.arguments;
@@ -227,7 +227,7 @@ async function getScore(event: AppSyncResolverEvent<{ id: string }>) {
  * Get all scores for a specific cat
  */
 async function getScoresByCat(event: AppSyncResolverEvent<{ catId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin', 'participant']);
 
   const { catId } = event.arguments;
@@ -254,7 +254,7 @@ async function getScoresByCat(event: AppSyncResolverEvent<{ catId: string }>) {
  * Get all scores for a specific cage number
  */
 async function getScoresByCage(event: AppSyncResolverEvent<{ cageNumber: number }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin', 'participant']);
 
   const { cageNumber } = event.arguments;
@@ -278,7 +278,7 @@ async function getScoresByCage(event: AppSyncResolverEvent<{ cageNumber: number 
  * List all scores in the system
  */
 async function listAllScores(event: AppSyncResolverEvent<{}>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']); // Judges and admins can list all scores for the leaderboard
 
   const scores = await scoreDataAccess.listAllScores();
@@ -289,7 +289,7 @@ async function listAllScores(event: AppSyncResolverEvent<{}>) {
  * Get all scores by a specific judge
  */
 async function getScoresByJudge(event: AppSyncResolverEvent<{ judgeId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
 
   const { judgeId } = event.arguments;
@@ -305,7 +305,7 @@ async function getScoresByJudge(event: AppSyncResolverEvent<{ judgeId: string }>
  * Finalize a score (prevent further modifications)
  */
 async function finalizeScore(event: AppSyncResolverEvent<{ id: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
 
   const { id } = event.arguments;
@@ -335,7 +335,7 @@ async function finalizeScore(event: AppSyncResolverEvent<{ id: string }>) {
  * Get audit history for a score
  */
 async function getScoreAuditHistory(event: AppSyncResolverEvent<{ scoreId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
 
   const { scoreId } = event.arguments;

@@ -1,4 +1,6 @@
 import React from 'react';
+import { Box, Typography, TextField, Paper } from '@mui/material';
+import { ScoreInput } from './ScoreInput';
 
 interface HealthExaminationScoringProps {
   showingMouthTeethGums: number;
@@ -30,249 +32,105 @@ export const HealthExaminationScoring: React.FC<HealthExaminationScoringProps> =
   onScoreChange
 }) => {
   return (
-    <div className="scoring-section health-examination-scoring">
-      <div className="section-header">
-        <h3>Health Examination</h3>
-        <div className="section-total">
-          <strong>{total}/21 points</strong>
-        </div>
-      </div>
+    <Paper sx={{ p: 3, mb: 3, backgroundColor: '#fff3e0', border: '2px solid #ff9800' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5">Health Examination</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/24 points</Typography>
+      </Box>
 
-      <div className="scoring-fields">
-        <div className="score-field">
-          <label htmlFor="showingMouthTeethGums">
-            Showing mouth/teeth/gums (1-3 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingMouthTeethGums"
-              min="1"
-              max="3"
-              value={showingMouthTeethGums}
-              onChange={(e) => onScoreChange('showingMouthTeethGums', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingMouthTeethGums / 3) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-3 points</div>
-        </div>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3, mb: 3 }}>
+        <ScoreInput
+          value={showingMouthTeethGums}
+          min={1}
+          max={3}
+          label="Showing mouth/teeth/gums"
+          onChange={(value) => onScoreChange('showingMouthTeethGums', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="conditionMouthTeethGums">
-            Condition of mouth/teeth/gums (1-2 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="conditionMouthTeethGums"
-              min="1"
-              max="2"
-              value={conditionMouthTeethGums}
-              onChange={(e) => onScoreChange('conditionMouthTeethGums', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(conditionMouthTeethGums / 2) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-2 points</div>
-        </div>
+        <ScoreInput
+          value={conditionMouthTeethGums}
+          min={1}
+          max={2}
+          label="Condition of mouth/teeth/gums"
+          onChange={(value) => onScoreChange('conditionMouthTeethGums', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="showingNose">
-            Showing nose (1-2 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingNose"
-              min="1"
-              max="2"
-              value={showingNose}
-              onChange={(e) => onScoreChange('showingNose', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingNose / 2) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-2 points</div>
-        </div>
+        <ScoreInput
+          value={showingNose}
+          min={1}
+          max={2}
+          label="Showing nose"
+          onChange={(value) => onScoreChange('showingNose', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="showingEyes">
-            Showing eyes (1-2 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingEyes"
-              min="1"
-              max="2"
-              value={showingEyes}
-              onChange={(e) => onScoreChange('showingEyes', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingEyes / 2) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-2 points</div>
-        </div>
+        <ScoreInput
+          value={showingEyes}
+          min={1}
+          max={2}
+          label="Showing eyes"
+          onChange={(value) => onScoreChange('showingEyes', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="conditionNoseEyes">
-            Condition of nose & eyes (1-2 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="conditionNoseEyes"
-              min="1"
-              max="2"
-              value={conditionNoseEyes}
-              onChange={(e) => onScoreChange('conditionNoseEyes', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(conditionNoseEyes / 2) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-2 points</div>
-        </div>
+        <ScoreInput
+          value={conditionNoseEyes}
+          min={1}
+          max={2}
+          label="Condition of nose & eyes"
+          onChange={(value) => onScoreChange('conditionNoseEyes', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="showingEars">
-            Showing ears (1-2 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingEars"
-              min="1"
-              max="2"
-              value={showingEars}
-              onChange={(e) => onScoreChange('showingEars', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingEars / 2) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-2 points</div>
-        </div>
+        <ScoreInput
+          value={showingEars}
+          min={1}
+          max={2}
+          label="Showing ears"
+          onChange={(value) => onScoreChange('showingEars', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="earsClean">
-            Ears clean (1-2 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="earsClean"
-              min="1"
-              max="2"
-              value={earsClean}
-              onChange={(e) => onScoreChange('earsClean', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(earsClean / 2) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-2 points</div>
-        </div>
+        <ScoreInput
+          value={earsClean}
+          min={1}
+          max={2}
+          label="Ears clean"
+          onChange={(value) => onScoreChange('earsClean', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="showingToenailsClaws">
-            Showing toenails/claws (1-3 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingToenailsClaws"
-              min="1"
-              max="3"
-              value={showingToenailsClaws}
-              onChange={(e) => onScoreChange('showingToenailsClaws', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingToenailsClaws / 3) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-3 points</div>
-        </div>
+        <ScoreInput
+          value={showingToenailsClaws}
+          min={1}
+          max={3}
+          label="Showing toenails/claws"
+          onChange={(value) => onScoreChange('showingToenailsClaws', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="toenailsClipped">
-            Toenails clipped (1-6 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="toenailsClipped"
-              min="1"
-              max="6"
-              value={toenailsClipped}
-              onChange={(e) => onScoreChange('toenailsClipped', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(toenailsClipped / 6) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-6 points</div>
-        </div>
-      </div>
+        <ScoreInput
+          value={toenailsClipped}
+          min={1}
+          max={6}
+          label="Toenails clipped"
+          onChange={(value) => onScoreChange('toenailsClipped', value)}
+        />
+      </Box>
 
-      <div className="comments-section">
-        <label htmlFor="healthExaminationComments">
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
           Comments (optional, max 500 characters)
-        </label>
-        <textarea
-          id="healthExaminationComments"
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
           value={comments}
           onChange={(e) => onScoreChange('healthExaminationComments', e.target.value)}
-          maxLength={500}
-          rows={3}
-          className="comments-textarea"
           placeholder="Add comments about the participant's health examination skills..."
+          slotProps={{
+            input: {
+              maxLength: 500,
+            },
+          }}
+          helperText={`${comments.length}/500 characters`}
         />
-        <div className="character-count">
-          {comments.length}/500 characters
-        </div>
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 };

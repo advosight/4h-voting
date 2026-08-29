@@ -7,15 +7,25 @@ import {
   TextField,
   Button,
   Chip,
-  Slider,
   Grid,
   Paper,
   Alert,
   CircularProgress,
+  Fab,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
+import { Check as CheckIcon } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import { FitShowScore, CreateFitShowScoreInput, UpdateFitShowScoreInput } from '../types/scoring';
 import { ValidationSummary } from './ValidationErrorDisplay';
+import { AppearanceScoring } from './AppearanceScoring';
+import { HandlingScoring } from './HandlingScoring';
+import { DemonstrationScoring } from './DemonstrationScoring';
+import { HealthExaminationScoring } from './HealthExaminationScoring';
+import { GroomingCareScoring } from './GroomingCareScoring';
+import { KnowledgeScoring } from './KnowledgeScoring';
+import { FitShowNetworkErrorHandler, NetworkError } from './FitShowNetworkErrorHandler';
 
 const client = generateClient();
 
@@ -25,6 +35,7 @@ interface FitShowScoringFormProps {
   judgeId: string;
   judgeName: string;
   existingScore?: FitShowScore;
+  modificationReason?: string;
   onScoreSubmitted?: (score: FitShowScore) => void;
   onError?: (error: string) => void;
 }
@@ -45,7 +56,7 @@ interface FitShowScoreData {
   showingTail: number;
   showingCoatTexture: number;
 
-  // Health Examination (21 points)
+  // Health Examination (24 points)
   showingMouthTeethGums: number;
   conditionMouthTeethGums: number;
   showingNose: number;
@@ -77,42 +88,37 @@ interface FitShowScoreData {
 }
 
 const initialScoreData: FitShowScoreData = {
-  // Appearance & Demeanor (20 points max)
-  attire: 10,        // max 10
-  attentive: 5,      // max 5
-  courteous: 5,      // max 5
+  // All numeric fields default to their maximum values (judges deduct points)
+  attire: 10,
+  attentive: 5,
+  courteous: 5,
 
-  // Handling & Control (14 points max)
-  controlEquipment: 10,  // max 10
-  pickupCarrying: 4,     // max 4
+  controlEquipment: 10,
+  pickupCarrying: 4,
 
-  // Demonstration Skills (16 points max)
-  showingHeadShape: 4,     // max 4
-  showingBodyType: 4,      // max 4
-  showingTail: 4,          // max 4
-  showingCoatTexture: 4,   // max 4
+  showingHeadShape: 4,
+  showingBodyType: 4,
+  showingTail: 4,
+  showingCoatTexture: 4,
 
-  // Health Examination (21 points max)
-  showingMouthTeethGums: 3,    // max 3
-  conditionMouthTeethGums: 2,  // max 2
-  showingNose: 2,              // max 2
-  showingEyes: 2,              // max 2
-  conditionNoseEyes: 2,        // max 2
-  showingEars: 2,              // max 2
-  earsClean: 2,                // max 2
-  showingToenailsClaws: 3,     // max 3
-  toenailsClipped: 6,          // max 6
+  showingMouthTeethGums: 3,
+  conditionMouthTeethGums: 2,
+  showingNose: 2,
+  showingEyes: 2,
+  conditionNoseEyes: 2,
+  showingEars: 2,
+  earsClean: 2,
+  showingToenailsClaws: 3,
+  toenailsClipped: 6,
 
-  // Grooming & Care (14 points max)
-  showingBellyCoatCleanliness: 3,  // max 3
-  coatCleanWellGroomed: 8,         // max 8
-  catHealthCare: 3,                // max 3
+  showingBellyCoatCleanliness: 3,
+  coatCleanWellGroomed: 8,
+  catHealthCare: 3,
 
-  // Knowledge (12 points max)
-  generalKnowledge: 3,    // max 3
-  catBreedsShowing: 3,    // max 3
-  catAnatomy: 3,          // max 3
-  fourHKnowledge: 3,      // max 3
+  generalKnowledge: 3,
+  catBreedsShowing: 3,
+  catAnatomy: 3,
+  fourHKnowledge: 3,
 
   // Comments
   appearanceComments: '',
@@ -129,14 +135,20 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
   judgeId,
   judgeName,
   existingScore,
+  modificationReason,
   onScoreSubmitted,
   onError
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [scoreData, setScoreData] = useState<FitShowScoreData>(initialScoreData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitted' | 'success' | 'error'>('idle');
+  const [networkError, setNetworkError] = useState<NetworkError | null>(null);
 
   // Initialize form with existing score data
   useEffect(() => {
@@ -177,29 +189,82 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
     }
   }, [existingScore]);
 
+  // Check localStorage for queued submission on mount and retry if safe
+  const retryQueued = useCallback(async () => {
+    const queueKey = `fitshow-queue-${catId}-${judgeId}`;
+    const queuedData = localStorage.getItem(queueKey);
+
+    if (!queuedData) {
+      return;
+    }
+
+    try {
+      const queued = JSON.parse(queuedData);
+
+      // Check if queued entry is newer than current server score
+      if (existingScore) {
+        const queuedTimestamp = new Date(queued.timestamp).getTime();
+        const serverTimestamp = new Date(existingScore.updatedAt).getTime();
+
+        if (queuedTimestamp < serverTimestamp) {
+          // Queued entry is older - discard it to avoid clobbering newer save
+          console.warn(
+            `Discarding stale queued submission (${new Date(queued.timestamp).toISOString()}) ` +
+            `— server has newer save (${existingScore.updatedAt})`
+          );
+          localStorage.removeItem(queueKey);
+          return;
+        }
+      }
+
+      // Safe to replay - seed form and retry
+      if (queued.scoreData) {
+        setScoreData(queued.scoreData);
+      }
+
+      // Retry the submission
+      await saveScore(false);
+    } catch (error) {
+      console.error('Error replaying queued submission:', error);
+    }
+  }, [catId, judgeId, existingScore]);
+
+  useEffect(() => {
+    // On mount, check for queued entry and retry if online
+    if (navigator.onLine) {
+      retryQueued();
+    }
+
+    // Add listener for online event
+    const handleOnline = () => {
+      retryQueued();
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [retryQueued]);
+
   // Calculate category totals
   const calculateCategoryTotals = useCallback(() => {
-    const appearanceTotal = scoreData.attire + scoreData.attentive + scoreData.courteous;
-    const handlingTotal = scoreData.controlEquipment + scoreData.pickupCarrying;
-    const demonstrationTotal = scoreData.showingHeadShape + scoreData.showingBodyType +
+    const exhibitorTotal = scoreData.attire + scoreData.attentive + scoreData.courteous;
+    const showmanshipTotal = scoreData.controlEquipment + scoreData.pickupCarrying +
+      scoreData.showingHeadShape + scoreData.showingBodyType +
       scoreData.showingTail + scoreData.showingCoatTexture;
-    const healthExaminationTotal = scoreData.showingMouthTeethGums + scoreData.conditionMouthTeethGums +
+    const presentationTotal = scoreData.showingMouthTeethGums + scoreData.conditionMouthTeethGums +
       scoreData.showingNose + scoreData.showingEyes + scoreData.conditionNoseEyes +
       scoreData.showingEars + scoreData.earsClean + scoreData.showingToenailsClaws +
-      scoreData.toenailsClipped;
-    const groomingCareTotal = scoreData.showingBellyCoatCleanliness + scoreData.coatCleanWellGroomed +
-      scoreData.catHealthCare;
-    const knowledgeTotal = scoreData.generalKnowledge + scoreData.catBreedsShowing +
-      scoreData.catAnatomy + scoreData.fourHKnowledge;
-    const totalScore = appearanceTotal + handlingTotal + demonstrationTotal +
-      healthExaminationTotal + groomingCareTotal + knowledgeTotal;
+      scoreData.toenailsClipped + scoreData.showingBellyCoatCleanliness + scoreData.coatCleanWellGroomed;
+    const knowledgeTotal = scoreData.catHealthCare + scoreData.generalKnowledge +
+      scoreData.catBreedsShowing + scoreData.catAnatomy + scoreData.fourHKnowledge;
+    const totalScore = exhibitorTotal + showmanshipTotal + presentationTotal + knowledgeTotal;
 
     return {
-      appearanceTotal,
-      handlingTotal,
-      demonstrationTotal,
-      healthExaminationTotal,
-      groomingCareTotal,
+      exhibitorTotal,
+      showmanshipTotal,
+      presentationTotal,
       knowledgeTotal,
       totalScore
     };
@@ -454,27 +519,6 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
     setAutoSaveStatus('idle');
   };
 
-  const handleSaveDraft = async () => {
-    const errors = validateScoreData();
-    setValidationErrors(errors);
-
-    if (errors.length > 0) {
-      onError?.('Please correct the validation errors before saving.');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      await saveScore(false); // Save as draft (isFinalized: false)
-    } catch (error) {
-      console.error('Error saving fit and show score draft:', error);
-      onError?.('Failed to save draft. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -486,10 +530,23 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
       return;
     }
 
+    // Show optimistic feedback immediately
+    setSubmitStatus('submitted');
+    setNetworkError(null);
     setIsSubmitting(true);
 
+    // Persist to localStorage before mutation
+    const queueKey = `fitshow-queue-${catId}-${judgeId}`;
+    const queuedEntry = {
+      catId,
+      judgeId,
+      timestamp: new Date().toISOString(),
+      scoreData
+    };
+    localStorage.setItem(queueKey, JSON.stringify(queuedEntry));
+
     try {
-      await saveScore(true); // Submit as finalized (isFinalized: true)
+      await saveScore(false); // Never finalize from judge action
     } catch (error) {
       console.error('Error submitting fit and show score:', error);
       onError?.('Failed to submit score. Please try again.');
@@ -499,98 +556,125 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
   };
 
   const saveScore = async (isFinalized: boolean) => {
-    if (existingScore) {
-      // Update existing score
-      const updateInput: UpdateFitShowScoreInput = {
-        participantName,
-        // Individual scores
-        attire: scoreData.attire,
-        attentive: scoreData.attentive,
-        courteous: scoreData.courteous,
-        controlEquipment: scoreData.controlEquipment,
-        pickupCarrying: scoreData.pickupCarrying,
-        showingHeadShape: scoreData.showingHeadShape,
-        showingBodyType: scoreData.showingBodyType,
-        showingTail: scoreData.showingTail,
-        showingCoatTexture: scoreData.showingCoatTexture,
-        showingMouthTeethGums: scoreData.showingMouthTeethGums,
-        conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
-        showingNose: scoreData.showingNose,
-        showingEyes: scoreData.showingEyes,
-        conditionNoseEyes: scoreData.conditionNoseEyes,
-        showingEars: scoreData.showingEars,
-        earsClean: scoreData.earsClean,
-        showingToenailsClaws: scoreData.showingToenailsClaws,
-        toenailsClipped: scoreData.toenailsClipped,
-        showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
-        coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
-        catHealthCare: scoreData.catHealthCare,
-        generalKnowledge: scoreData.generalKnowledge,
-        catBreedsShowing: scoreData.catBreedsShowing,
-        catAnatomy: scoreData.catAnatomy,
-        fourHKnowledge: scoreData.fourHKnowledge,
-        // Comments
-        appearanceComments: scoreData.appearanceComments,
-        handlingComments: scoreData.handlingComments,
-        demonstrationComments: scoreData.demonstrationComments,
-        healthExaminationComments: scoreData.healthExaminationComments,
-        groomingCareComments: scoreData.groomingCareComments,
-        knowledgeComments: scoreData.knowledgeComments,
-        isFinalized
+    const queueKey = `fitshow-queue-${catId}-${judgeId}`;
+
+    try {
+      if (existingScore) {
+        // Update existing score
+        const updateInput: UpdateFitShowScoreInput = {
+          participantName,
+          // Individual scores
+          attire: scoreData.attire,
+          attentive: scoreData.attentive,
+          courteous: scoreData.courteous,
+          controlEquipment: scoreData.controlEquipment,
+          pickupCarrying: scoreData.pickupCarrying,
+          showingHeadShape: scoreData.showingHeadShape,
+          showingBodyType: scoreData.showingBodyType,
+          showingTail: scoreData.showingTail,
+          showingCoatTexture: scoreData.showingCoatTexture,
+          showingMouthTeethGums: scoreData.showingMouthTeethGums,
+          conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
+          showingNose: scoreData.showingNose,
+          showingEyes: scoreData.showingEyes,
+          conditionNoseEyes: scoreData.conditionNoseEyes,
+          showingEars: scoreData.showingEars,
+          earsClean: scoreData.earsClean,
+          showingToenailsClaws: scoreData.showingToenailsClaws,
+          toenailsClipped: scoreData.toenailsClipped,
+          showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
+          coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
+          catHealthCare: scoreData.catHealthCare,
+          generalKnowledge: scoreData.generalKnowledge,
+          catBreedsShowing: scoreData.catBreedsShowing,
+          catAnatomy: scoreData.catAnatomy,
+          fourHKnowledge: scoreData.fourHKnowledge,
+          // Comments
+          appearanceComments: scoreData.appearanceComments,
+          handlingComments: scoreData.handlingComments,
+          demonstrationComments: scoreData.demonstrationComments,
+          healthExaminationComments: scoreData.healthExaminationComments,
+          groomingCareComments: scoreData.groomingCareComments,
+          knowledgeComments: scoreData.knowledgeComments,
+          isFinalized: false,  // Always false for judge action
+          ...(modificationReason && { modificationReason })  // Include reason if provided (admin override)
+        };
+
+        const result = await client.graphql({ query: updateFitShowScore, variables: { id: existingScore.id, input: updateInput } });
+        const updatedScore = (result as any).data.updateFitShowScore;
+
+        console.log('Updated score result:', updatedScore);
+        console.log('isFinalized in result:', updatedScore.isFinalized);
+
+        // Success - remove from queue and update status
+        localStorage.removeItem(queueKey);
+        setSubmitStatus('success');
+        setTimeout(() => setSubmitStatus('idle'), 2000);
+
+        onScoreSubmitted?.(updatedScore);
+      } else {
+        // Create new score
+        const createInput: CreateFitShowScoreInput = {
+          catId,
+          participantName,
+          // Individual scores
+          attire: scoreData.attire,
+          attentive: scoreData.attentive,
+          courteous: scoreData.courteous,
+          controlEquipment: scoreData.controlEquipment,
+          pickupCarrying: scoreData.pickupCarrying,
+          showingHeadShape: scoreData.showingHeadShape,
+          showingBodyType: scoreData.showingBodyType,
+          showingTail: scoreData.showingTail,
+          showingCoatTexture: scoreData.showingCoatTexture,
+          showingMouthTeethGums: scoreData.showingMouthTeethGums,
+          conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
+          showingNose: scoreData.showingNose,
+          showingEyes: scoreData.showingEyes,
+          conditionNoseEyes: scoreData.conditionNoseEyes,
+          showingEars: scoreData.showingEars,
+          earsClean: scoreData.earsClean,
+          showingToenailsClaws: scoreData.showingToenailsClaws,
+          toenailsClipped: scoreData.toenailsClipped,
+          showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
+          coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
+          catHealthCare: scoreData.catHealthCare,
+          generalKnowledge: scoreData.generalKnowledge,
+          catBreedsShowing: scoreData.catBreedsShowing,
+          catAnatomy: scoreData.catAnatomy,
+          fourHKnowledge: scoreData.fourHKnowledge,
+          // Comments
+          appearanceComments: scoreData.appearanceComments,
+          handlingComments: scoreData.handlingComments,
+          demonstrationComments: scoreData.demonstrationComments,
+          healthExaminationComments: scoreData.healthExaminationComments,
+          groomingCareComments: scoreData.groomingCareComments,
+          knowledgeComments: scoreData.knowledgeComments,
+          isFinalized: false  // Always false for judge action
+        };
+
+        const result = await client.graphql({ query: createFitShowScore, variables: { input: createInput } });
+        const newScore = (result as any).data.createFitShowScore;
+
+        // Success - remove from queue and update status
+        localStorage.removeItem(queueKey);
+        setSubmitStatus('success');
+        setTimeout(() => setSubmitStatus('idle'), 2000);
+
+        onScoreSubmitted?.(newScore);
+      }
+    } catch (error) {
+      // Failure - keep in queue and show error handler
+      setSubmitStatus('error');
+      const networkErr: NetworkError = {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        code: 'NETWORK_ERROR',
+        operation: 'submit score',
+        timestamp: new Date(),
+        retryCount: 0
       };
-
-      const result = await client.graphql({ query: updateFitShowScore, variables: { id: existingScore.id, input: updateInput } });
-      const updatedScore = (result as any).data.updateFitShowScore;
-
-      console.log('Updated score result:', updatedScore);
-      console.log('isFinalized in result:', updatedScore.isFinalized);
-
-      onScoreSubmitted?.(updatedScore);
-    } else {
-      // Create new score
-      const createInput: CreateFitShowScoreInput = {
-        catId,
-        participantName,
-        // Individual scores
-        attire: scoreData.attire,
-        attentive: scoreData.attentive,
-        courteous: scoreData.courteous,
-        controlEquipment: scoreData.controlEquipment,
-        pickupCarrying: scoreData.pickupCarrying,
-        showingHeadShape: scoreData.showingHeadShape,
-        showingBodyType: scoreData.showingBodyType,
-        showingTail: scoreData.showingTail,
-        showingCoatTexture: scoreData.showingCoatTexture,
-        showingMouthTeethGums: scoreData.showingMouthTeethGums,
-        conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
-        showingNose: scoreData.showingNose,
-        showingEyes: scoreData.showingEyes,
-        conditionNoseEyes: scoreData.conditionNoseEyes,
-        showingEars: scoreData.showingEars,
-        earsClean: scoreData.earsClean,
-        showingToenailsClaws: scoreData.showingToenailsClaws,
-        toenailsClipped: scoreData.toenailsClipped,
-        showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
-        coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
-        catHealthCare: scoreData.catHealthCare,
-        generalKnowledge: scoreData.generalKnowledge,
-        catBreedsShowing: scoreData.catBreedsShowing,
-        catAnatomy: scoreData.catAnatomy,
-        fourHKnowledge: scoreData.fourHKnowledge,
-        // Comments
-        appearanceComments: scoreData.appearanceComments,
-        handlingComments: scoreData.handlingComments,
-        demonstrationComments: scoreData.demonstrationComments,
-        healthExaminationComments: scoreData.healthExaminationComments,
-        groomingCareComments: scoreData.groomingCareComments,
-        knowledgeComments: scoreData.knowledgeComments,
-        isFinalized
-      };
-
-      const result = await client.graphql({ query: createFitShowScore, variables: { input: createInput } });
-      const newScore = (result as any).data.createFitShowScore;
-
-      onScoreSubmitted?.(newScore);
+      setNetworkError(networkErr);
+      throw error;
     }
   };
 
@@ -598,28 +682,22 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
       {/* Sticky Header with Totals */}
       <Paper elevation={3} sx={{ p: 3, mb: 3, bgcolor: '#fff8f0', border: '2px solid #ff9800', position: 'sticky', top: 0, zIndex: 100 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Box sx={{
-            bgcolor: '#ff9800',
-            color: 'white',
-            borderRadius: '50%',
-            width: 56,
-            height: 56,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.5rem'
-          }}>
-            🎓
-          </Box>
-          <Box>
-            <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-              Fit & Show Scoring
-            </Typography>
-            <Typography variant="h6" color="text.secondary">
-              Participant: {participantName} • Judge: {judgeName}
-            </Typography>
-          </Box>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 'bold', mb: 1 }}>
+            Fit and Show Scoring
+          </Typography>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body1">
+            Participant: <Box component="span">{participantName}</Box>
+          </Typography>
+          <Typography variant="body1">
+            Judge: <Box component="span">{judgeName}</Box>
+          </Typography>
+          <Typography variant="body1">
+            Cat ID: <Box component="span">{catId}</Box>
+          </Typography>
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -630,32 +708,22 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
             sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}
           />
           <Chip
-            label={`Appearance: ${totals.appearanceTotal}/20`}
+            label={`Exhibitor: ${totals.exhibitorTotal}/20`}
             color="warning"
             variant="outlined"
           />
           <Chip
-            label={`Handling: ${totals.handlingTotal}/14`}
+            label={`Showmanship: ${totals.showmanshipTotal}/30`}
             color="warning"
             variant="outlined"
           />
           <Chip
-            label={`Demo: ${totals.demonstrationTotal}/16`}
+            label={`Presentation: ${totals.presentationTotal}/35`}
             color="warning"
             variant="outlined"
           />
           <Chip
-            label={`Health: ${totals.healthExaminationTotal}/21`}
-            color="warning"
-            variant="outlined"
-          />
-          <Chip
-            label={`Grooming: ${totals.groomingCareTotal}/14`}
-            color="warning"
-            variant="outlined"
-          />
-          <Chip
-            label={`Knowledge: ${totals.knowledgeTotal}/12`}
+            label={`Knowledge: ${totals.knowledgeTotal}/15`}
             color="warning"
             variant="outlined"
           />
@@ -670,6 +738,23 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
         )}
       </Paper>
 
+      {submitStatus === 'submitted' && (
+        <Alert severity="success" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CircularProgress size={20} sx={{ color: 'success.main' }} />
+          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+            Score submitted! Syncing to server...
+          </Typography>
+        </Alert>
+      )}
+
+      {submitStatus === 'success' && (
+        <Alert severity="success" sx={{ mb: 3 }}>
+          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+            ✅ Score submitted successfully!
+          </Typography>
+        </Alert>
+      )}
+
       {validationErrors.length > 0 && (
         <Alert severity="error" sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>Please correct the following errors:</Typography>
@@ -681,223 +766,137 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
         </Alert>
       )}
 
+      {networkError && (
+        <Box sx={{ mb: 3 }}>
+          <FitShowNetworkErrorHandler
+            error={networkError}
+            onRetry={async () => {
+              try {
+                await saveScore(false);
+              } catch (error) {
+                // Error handler will update networkError state
+              }
+            }}
+            autoRetry
+            maxRetries={3}
+          />
+        </Box>
+      )}
+
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Appearance & Demeanor Section */}
+          {/* Exhibitor Section */}
           <Grid size={{ xs: 12 }}>
-            <Card elevation={2} sx={{ border: '2px solid #ff9800' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ mr: 2, fontSize: '2rem' }}>👔</Box>
-                  <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                    Appearance & Demeanor ({totals.appearanceTotal}/20)
-                  </Typography>
-                </Box>
-
-                <Grid container spacing={3}>
-                  {/* Attire */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Neat, Clean, Appropriate Attire (1-10)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.attire}
-                        onChange={(e) => handleScoreChange('attire', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 10 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.attire}
-                        onChange={(_, value) => handleScoreChange('attire', value as number)}
-                        min={1}
-                        max={10}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Attentive */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Attentive (1-5)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.attentive}
-                        onChange={(e) => handleScoreChange('attentive', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 5 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.attentive}
-                        onChange={(_, value) => handleScoreChange('attentive', value as number)}
-                        min={1}
-                        max={5}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Courteous */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Courteous (1-5)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.courteous}
-                        onChange={(e) => handleScoreChange('courteous', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 5 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.courteous}
-                        onChange={(_, value) => handleScoreChange('courteous', value as number)}
-                        min={1}
-                        max={5}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Comments */}
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      multiline
-                      rows={3}
-                      label="Appearance Comments (optional, max 500 characters)"
-                      value={scoreData.appearanceComments}
-                      onChange={(e) => handleScoreChange('appearanceComments', e.target.value)}
-                      placeholder="Add comments about the participant's appearance and demeanor..."
-                      fullWidth
-                      slotProps={{ htmlInput: { maxLength: 500 } }}
-                      helperText={`${scoreData.appearanceComments.length}/500 characters`}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Exhibitor (20 pts)
+              </Typography>
+            </Box>
+            <AppearanceScoring
+              data-testid="appearance-scoring"
+              attire={scoreData.attire}
+              attentive={scoreData.attentive}
+              courteous={scoreData.courteous}
+              comments={scoreData.appearanceComments}
+              total={totals.exhibitorTotal}
+              onScoreChange={handleScoreChange}
+            />
           </Grid>
 
-          {/* Handling & Control Section */}
+          {/* Showing of Cat Showmanship Section */}
           <Grid size={{ xs: 12 }}>
-            <Card elevation={2} sx={{ border: '2px solid #ff9800' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ mr: 2, fontSize: '2rem' }}>🤲</Box>
-                  <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                    Handling & Control ({totals.handlingTotal}/14)
-                  </Typography>
-                </Box>
-
-                <Grid container spacing={3}>
-                  {/* Control Equipment */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Control/Equipment (1-10)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.controlEquipment}
-                        onChange={(e) => handleScoreChange('controlEquipment', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 10 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.controlEquipment}
-                        onChange={(_, value) => handleScoreChange('controlEquipment', value as number)}
-                        min={1}
-                        max={10}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Pickup Carrying */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Pickup/Carrying (1-4)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.pickupCarrying}
-                        onChange={(e) => handleScoreChange('pickupCarrying', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 4 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.pickupCarrying}
-                        onChange={(_, value) => handleScoreChange('pickupCarrying', value as number)}
-                        min={1}
-                        max={4}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Comments */}
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      multiline
-                      rows={3}
-                      label="Handling Comments (optional, max 500 characters)"
-                      value={scoreData.handlingComments}
-                      onChange={(e) => handleScoreChange('handlingComments', e.target.value)}
-                      placeholder="Add comments about handling and control..."
-                      fullWidth
-                      slotProps={{ htmlInput: { maxLength: 500 } }}
-                      helperText={`${scoreData.handlingComments.length}/500 characters`}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Showing of Cat Showmanship (30 pts)
+              </Typography>
+            </Box>
           </Grid>
 
-          {/* Action Buttons */}
+          <Grid size={{ xs: 12 }}>
+            <HandlingScoring
+              data-testid="handling-scoring"
+              controlEquipment={scoreData.controlEquipment}
+              pickupCarrying={scoreData.pickupCarrying}
+              comments={scoreData.handlingComments}
+              total={scoreData.controlEquipment + scoreData.pickupCarrying}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12 }}>
+            <DemonstrationScoring
+              data-testid="demonstration-scoring"
+              showingHeadShape={scoreData.showingHeadShape}
+              showingBodyType={scoreData.showingBodyType}
+              showingTail={scoreData.showingTail}
+              showingCoatTexture={scoreData.showingCoatTexture}
+              comments={scoreData.demonstrationComments}
+              total={scoreData.showingHeadShape + scoreData.showingBodyType + scoreData.showingTail + scoreData.showingCoatTexture}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          {/* Presentation & Appearance Section */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Presentation & Appearance (35 pts)
+              </Typography>
+            </Box>
+          </Grid>
+
+          <Grid size={{ xs: 12 }}>
+            <HealthExaminationScoring
+              data-testid="health-examination-scoring"
+              showingMouthTeethGums={scoreData.showingMouthTeethGums}
+              conditionMouthTeethGums={scoreData.conditionMouthTeethGums}
+              showingNose={scoreData.showingNose}
+              showingEyes={scoreData.showingEyes}
+              conditionNoseEyes={scoreData.conditionNoseEyes}
+              showingEars={scoreData.showingEars}
+              earsClean={scoreData.earsClean}
+              showingToenailsClaws={scoreData.showingToenailsClaws}
+              toenailsClipped={scoreData.toenailsClipped}
+              comments={scoreData.healthExaminationComments}
+              total={scoreData.showingMouthTeethGums + scoreData.conditionMouthTeethGums + scoreData.showingNose + scoreData.showingEyes + scoreData.conditionNoseEyes + scoreData.showingEars + scoreData.earsClean + scoreData.showingToenailsClaws + scoreData.toenailsClipped}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12 }}>
+            <GroomingCareScoring
+              data-testid="grooming-care-scoring"
+              showingBellyCoatCleanliness={scoreData.showingBellyCoatCleanliness}
+              coatCleanWellGroomed={scoreData.coatCleanWellGroomed}
+              comments={scoreData.groomingCareComments}
+              total={scoreData.showingBellyCoatCleanliness + scoreData.coatCleanWellGroomed}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          {/* Knowledge of Exhibitor Section */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Knowledge of Exhibitor (15 pts)
+              </Typography>
+            </Box>
+            <KnowledgeScoring
+              data-testid="knowledge-scoring"
+              catHealthCare={scoreData.catHealthCare}
+              generalKnowledge={scoreData.generalKnowledge}
+              catBreedsShowing={scoreData.catBreedsShowing}
+              catAnatomy={scoreData.catAnatomy}
+              fourHKnowledge={scoreData.fourHKnowledge}
+              comments={scoreData.knowledgeComments}
+              total={totals.knowledgeTotal}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          {/* Action Button */}
           <Grid size={{ xs: 12 }}>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4 }}>
-              <Button
-                variant="outlined"
-                color="warning"
-                disabled={isSubmitting}
-                size="large"
-                onClick={handleSaveDraft}
-                startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
-              >
-                {isSubmitting ? 'Saving...' : 'Save Draft'}
-              </Button>
               <Button
                 type="submit"
                 variant="contained"
@@ -907,12 +906,37 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
                 sx={{ fontWeight: 'bold' }}
                 startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit & Finalize Score'}
+                {isSubmitting ? 'Submitting...' : (existingScore ? 'Update Score' : 'Submit Score')}
               </Button>
             </Box>
           </Grid>
         </Grid>
       </form>
+
+      {/* Mobile Floating Action Button for Submit */}
+      {isMobile && (
+        <Fab
+          color="warning"
+          aria-label="submit score"
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            zIndex: (theme) => theme.zIndex.speedDial,
+          }}
+          disabled={isSubmitting}
+          onClick={() => {
+            // Trigger form submission
+            const form = document.querySelector('form');
+            if (form) {
+              const event = new Event('submit', { bubbles: true, cancelable: true });
+              form.dispatchEvent(event);
+            }
+          }}
+        >
+          <CheckIcon />
+        </Fab>
+      )}
     </Box>
   );
 };

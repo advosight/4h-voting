@@ -1,32 +1,35 @@
+import { vi } from "vitest";
+
 import { AppSyncResolverEvent } from 'aws-lambda';
 
 // Mock the FitShowScoreDataAccess before importing the handler
 const mockFitShowScoreDataAccess = {
-  createFitShowScore: jest.fn(),
-  createFitShowScoreWithAudit: jest.fn(),
-  updateFitShowScore: jest.fn(),
-  updateFitShowScoreWithAudit: jest.fn(),
-  getFitShowScore: jest.fn(),
-  getFitShowScoresByCat: jest.fn(),
-  getFitShowScoresByCage: jest.fn(),
-  listFitShowScores: jest.fn(),
-  getFitShowScoresByJudge: jest.fn(),
-  finalizeFitShowScore: jest.fn(),
-  getFitShowScoreAuditHistory: jest.fn(),
+  createFitShowScore: vi.fn(),
+  createFitShowScoreWithAudit: vi.fn(),
+  updateFitShowScore: vi.fn(),
+  updateFitShowScoreWithAudit: vi.fn(),
+  getFitShowScore: vi.fn(),
+  getFitShowScoresByCat: vi.fn(),
+  getFitShowScoresByCage: vi.fn(),
+  listFitShowScores: vi.fn(),
+  getFitShowScoresByJudge: vi.fn(),
+  finalizeFitShowScore: vi.fn(),
+  finalizeAllFitShowScores: vi.fn(),
+  getFitShowScoreAuditHistory: vi.fn(),
 };
 
-jest.mock('../fitShowScoreDataAccess', () => ({
-  FitShowScoreDataAccess: jest.fn().mockImplementation(() => mockFitShowScoreDataAccess),
+vi.mock('../fitShowScoreDataAccess', () => ({
+  FitShowScoreDataAccess: vi.fn().mockImplementation(() => mockFitShowScoreDataAccess),
 }));
 
 // Mock AWS SDK
-jest.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: jest.fn(),
+vi.mock('@aws-sdk/client-dynamodb', () => ({
+  DynamoDBClient: vi.fn(),
 }));
 
-jest.mock('@aws-sdk/lib-dynamodb', () => ({
+vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: {
-    from: jest.fn(),
+    from: vi.fn(),
   },
 }));
 
@@ -35,7 +38,7 @@ import { handler } from '../fitShowScoreResolver';
 
 describe('Fit and Show Score Resolver', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const createMockEvent = (
@@ -592,6 +595,47 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('getFitShowScoreAuditHistory', { fitShowScoreId: 'nonexistent' });
 
       await expect(handler(event)).rejects.toThrow('Fit and show score with ID nonexistent not found');
+    });
+  });
+
+  describe('finalizeAllFitShowScores', () => {
+    beforeEach(() => {
+      mockFitShowScoreDataAccess.finalizeAllFitShowScores = vi.fn();
+    });
+
+    it('should finalize all scores for admin user', async () => {
+      const finalizedScores = [
+        { ...mockFitShowScore, id: 'score-1', isFinalized: true },
+        { ...mockFitShowScore, id: 'score-2', isFinalized: true },
+      ];
+
+      mockFitShowScoreDataAccess.finalizeAllFitShowScores.mockResolvedValue(finalizedScores);
+
+      const event = createMockEvent('finalizeAllFitShowScores', {}, 'admin', 'admin-123');
+
+      const result = await handler(event);
+
+      expect(result).toEqual({ items: finalizedScores });
+      expect(mockFitShowScoreDataAccess.finalizeAllFitShowScores).toHaveBeenCalledWith(
+        'admin-123',
+        'Bulk finalized by admin'
+      );
+    });
+
+    it('should throw PermissionError for non-admin user', async () => {
+      const event = createMockEvent('finalizeAllFitShowScores', {}, 'judge', 'judge-123');
+
+      await expect(handler(event)).rejects.toThrow('Access Denied');
+    });
+
+    it('should return empty items array when no scores to finalize', async () => {
+      mockFitShowScoreDataAccess.finalizeAllFitShowScores.mockResolvedValue([]);
+
+      const event = createMockEvent('finalizeAllFitShowScores', {}, 'admin', 'admin-123');
+
+      const result = await handler(event);
+
+      expect(result).toEqual({ items: [] });
     });
   });
 

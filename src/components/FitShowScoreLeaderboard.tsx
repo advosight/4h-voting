@@ -94,7 +94,7 @@ const getCategoryBreakdown = (score: FitShowScore) => [
   { name: 'Appearance', score: score.appearanceTotal, max: 20 },
   { name: 'Handling', score: score.handlingTotal, max: 14 },
   { name: 'Demonstration', score: score.demonstrationTotal, max: 16 },
-  { name: 'Health Exam', score: score.healthExaminationTotal, max: 21 },
+  { name: 'Health Exam', score: score.healthExaminationTotal, max: 24 },
   { name: 'Grooming', score: score.groomingCareTotal, max: 14 },
   { name: 'Knowledge', score: score.knowledgeTotal, max: 12 },
 ];

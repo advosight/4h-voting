@@ -1,9 +1,10 @@
 import React from 'react';
+import { Box, Typography, TextField, Paper } from '@mui/material';
+import { ScoreInput } from './ScoreInput';
 
 interface GroomingCareScoringProps {
   showingBellyCoatCleanliness: number;
   coatCleanWellGroomed: number;
-  catHealthCare: number;
   comments: string;
   total: number;
   onScoreChange: (field: string, value: number | string) => void;
@@ -12,111 +13,54 @@ interface GroomingCareScoringProps {
 export const GroomingCareScoring: React.FC<GroomingCareScoringProps> = ({
   showingBellyCoatCleanliness,
   coatCleanWellGroomed,
-  catHealthCare,
   comments,
   total,
   onScoreChange
 }) => {
   return (
-    <div className="scoring-section grooming-care-scoring">
-      <div className="section-header">
-        <h3>Grooming & Care</h3>
-        <div className="section-total">
-          <strong>{total}/14 points</strong>
-        </div>
-      </div>
+    <Paper sx={{ p: 3, mb: 3, backgroundColor: '#fff3e0', border: '2px solid #ff9800' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5">Grooming & Presentation</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/11 points</Typography>
+      </Box>
 
-      <div className="scoring-fields">
-        <div className="score-field">
-          <label htmlFor="showingBellyCoatCleanliness">
-            Showing belly/coat/cleanliness (1-3 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="showingBellyCoatCleanliness"
-              min="1"
-              max="3"
-              value={showingBellyCoatCleanliness}
-              onChange={(e) => onScoreChange('showingBellyCoatCleanliness', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(showingBellyCoatCleanliness / 3) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-3 points</div>
-        </div>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3, mb: 3 }}>
+        <ScoreInput
+          value={showingBellyCoatCleanliness}
+          min={1}
+          max={3}
+          label="Showing belly/coat/cleanliness"
+          onChange={(value) => onScoreChange('showingBellyCoatCleanliness', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="coatCleanWellGroomed">
-            Coat clean & well groomed (1-8 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="coatCleanWellGroomed"
-              min="1"
-              max="8"
-              value={coatCleanWellGroomed}
-              onChange={(e) => onScoreChange('coatCleanWellGroomed', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(coatCleanWellGroomed / 8) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-8 points</div>
-        </div>
+        <ScoreInput
+          value={coatCleanWellGroomed}
+          min={1}
+          max={8}
+          label="Coat clean & well groomed"
+          onChange={(value) => onScoreChange('coatCleanWellGroomed', value)}
+        />
+      </Box>
 
-        <div className="score-field">
-          <label htmlFor="catHealthCare">
-            Cat health/care (1-3 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="catHealthCare"
-              min="1"
-              max="3"
-              value={catHealthCare}
-              onChange={(e) => onScoreChange('catHealthCare', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(catHealthCare / 3) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-3 points</div>
-        </div>
-      </div>
-
-      <div className="comments-section">
-        <label htmlFor="groomingCareComments">
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
           Comments (optional, max 500 characters)
-        </label>
-        <textarea
-          id="groomingCareComments"
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
           value={comments}
           onChange={(e) => onScoreChange('groomingCareComments', e.target.value)}
-          maxLength={500}
-          rows={3}
-          className="comments-textarea"
           placeholder="Add comments about the participant's grooming and care knowledge..."
+          slotProps={{
+            input: {
+              maxLength: 500,
+            },
+          }}
+          helperText={`${comments.length}/500 characters`}
         />
-        <div className="character-count">
-          {comments.length}/500 characters
-        </div>
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 };

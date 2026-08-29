@@ -1,4 +1,6 @@
 import React from 'react';
+import { Box, Typography, TextField, Paper } from '@mui/material';
+import { ScoreInput } from './ScoreInput';
 
 interface HandlingScoringProps {
   controlEquipment: number;
@@ -16,81 +18,49 @@ export const HandlingScoring: React.FC<HandlingScoringProps> = ({
   onScoreChange
 }) => {
   return (
-    <div className="scoring-section handling-scoring">
-      <div className="section-header">
-        <h3>Handling & Control</h3>
-        <div className="section-total">
-          <strong>{total}/14 points</strong>
-        </div>
-      </div>
+    <Paper sx={{ p: 3, mb: 3, backgroundColor: '#fff3e0', border: '2px solid #ff9800' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5">Handling & Control</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/14 points</Typography>
+      </Box>
 
-      <div className="scoring-fields">
-        <div className="score-field">
-          <label htmlFor="controlEquipment">
-            Control, harness fits, leash on wrist (1-10 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="controlEquipment"
-              min="1"
-              max="10"
-              value={controlEquipment}
-              onChange={(e) => onScoreChange('controlEquipment', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(controlEquipment / 10) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-10 points</div>
-        </div>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3, mb: 3 }}>
+        <ScoreInput
+          value={controlEquipment}
+          min={1}
+          max={10}
+          label="Control, harness fits, leash on wrist"
+          onChange={(value) => onScoreChange('controlEquipment', value)}
+        />
 
-        <div className="score-field">
-          <label htmlFor="pickupCarrying">
-            Picking up & carrying of cat (1-4 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="pickupCarrying"
-              min="1"
-              max="4"
-              value={pickupCarrying}
-              onChange={(e) => onScoreChange('pickupCarrying', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(pickupCarrying / 4) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-4 points</div>
-        </div>
-      </div>
+        <ScoreInput
+          value={pickupCarrying}
+          min={1}
+          max={4}
+          label="Picking up & carrying of cat"
+          onChange={(value) => onScoreChange('pickupCarrying', value)}
+        />
+      </Box>
 
-      <div className="comments-section">
-        <label htmlFor="handlingComments">
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
           Comments (optional, max 500 characters)
-        </label>
-        <textarea
-          id="handlingComments"
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
           value={comments}
           onChange={(e) => onScoreChange('handlingComments', e.target.value)}
-          maxLength={500}
-          rows={3}
-          className="comments-textarea"
           placeholder="Add comments about the participant's handling techniques..."
+          slotProps={{
+            input: {
+              maxLength: 500,
+            },
+          }}
+          helperText={`${comments.length}/500 characters`}
         />
-        <div className="character-count">
-          {comments.length}/500 characters
-        </div>
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 };

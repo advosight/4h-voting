@@ -1,4 +1,6 @@
 import React from 'react';
+import { Box, Typography, TextField, Slider, Paper } from '@mui/material';
+import { ScoreInput } from './ScoreInput';
 
 interface AppearanceScoringProps {
   attire: number;
@@ -18,105 +20,54 @@ export const AppearanceScoring: React.FC<AppearanceScoringProps> = ({
   onScoreChange
 }) => {
   return (
-    <div className="scoring-section appearance-scoring">
-      <div className="section-header">
-        <h3>Appearance & Demeanor</h3>
-        <div className="section-total">
-          <strong>{total}/20 points</strong>
-        </div>
-      </div>
+    <Paper sx={{ p: 3, mb: 3, backgroundColor: '#fff3e0', border: '2px solid #ff9800' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" sx={{ color: '#ff9800', fontWeight: 600 }}>
+          Appearance & Demeanor
+        </Typography>
+        <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 600 }}>
+          {total}/20 points
+        </Typography>
+      </Box>
 
-      <div className="scoring-fields">
-        <div className="score-field">
-          <label htmlFor="attire">
-            Neat, clean, appropriate attire (1-10 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="attire"
-              min="1"
-              max="10"
-              value={attire}
-              onChange={(e) => onScoreChange('attire', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(attire / 10) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-10 points</div>
-        </div>
-
-        <div className="score-field">
-          <label htmlFor="attentive">
-            Attentive (1-5 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="attentive"
-              min="1"
-              max="5"
-              value={attentive}
-              onChange={(e) => onScoreChange('attentive', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(attentive / 5) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-5 points</div>
-        </div>
-
-        <div className="score-field">
-          <label htmlFor="courteous">
-            Courteous (1-5 pts)
-          </label>
-          <div className="score-input-container">
-            <input
-              type="number"
-              id="courteous"
-              min="1"
-              max="5"
-              value={courteous}
-              onChange={(e) => onScoreChange('courteous', parseInt(e.target.value) || 1)}
-              className="score-input"
-            />
-            <div className="score-bar">
-              <div 
-                className="score-fill" 
-                style={{ width: `${(courteous / 5) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="score-range">1-5 points</div>
-        </div>
-      </div>
-
-      <div className="comments-section">
-        <label htmlFor="appearanceComments">
-          Comments (optional, max 500 characters)
-        </label>
-        <textarea
-          id="appearanceComments"
-          value={comments}
-          onChange={(e) => onScoreChange('appearanceComments', e.target.value)}
-          maxLength={500}
-          rows={3}
-          className="comments-textarea"
-          placeholder="Add comments about the participant's appearance and demeanor..."
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3 }}>
+        <ScoreInput
+          value={attire}
+          min={1}
+          max={10}
+          label="Neat, clean, appropriate attire"
+          onChange={(value) => onScoreChange('attire', value)}
         />
-        <div className="character-count">
-          {comments.length}/500 characters
-        </div>
-      </div>
-    </div>
+
+        <ScoreInput
+          value={attentive}
+          min={1}
+          max={5}
+          label="Attentive"
+          onChange={(value) => onScoreChange('attentive', value)}
+        />
+
+        <ScoreInput
+          value={courteous}
+          min={1}
+          max={5}
+          label="Courteous"
+          onChange={(value) => onScoreChange('courteous', value)}
+        />
+      </Box>
+
+      <Box sx={{ mt: 3 }}>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
+          label="Comments (optional, max 500 characters)"
+          value={comments}
+          onChange={(e) => onScoreChange('appearanceComments', e.target.value.slice(0, 500))}
+          placeholder="Add comments about the participant's appearance and demeanor..."
+          helperText={`${comments.length}/500 characters`}
+        />
+      </Box>
+    </Paper>
   );
 };

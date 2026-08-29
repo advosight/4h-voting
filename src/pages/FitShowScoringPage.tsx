@@ -18,6 +18,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   School as FitShowIcon,
@@ -31,6 +35,8 @@ import { generateClient } from 'aws-amplify/api';
 import FitShowScoreLeaderboard from '../components/FitShowScoreLeaderboard';
 import FitShowScoreNotifications from '../components/FitShowScoreNotifications';
 import { OWNER_AGE_GROUPS, getOwnerAgeGroupLabel, getCatAgeGroupLabel } from '../utils/ageGroups';
+import { useUserRole } from '../utils/roleUtils';
+import { FitShowScoreAuditHistory } from '../components/FitShowScoreAuditHistory';
 
 const client = generateClient();
 
@@ -68,11 +74,56 @@ const listAllFitShowScores = `
   }
 `;
 
+const onFitShowScoreCreated = `
+  subscription OnFitShowScoreCreated {
+    onFitShowScoreCreated {
+      id
+    }
+  }
+`;
+
+const onFitShowScoreUpdated = `
+  subscription OnFitShowScoreUpdated {
+    onFitShowScoreUpdated {
+      id
+    }
+  }
+`;
+
+const finalizeAllFitShowScores = `
+  mutation FinalizeAllFitShowScores {
+    finalizeAllFitShowScores {
+      success
+    }
+  }
+`;
+
+const getFitShowScoreAuditHistoryQuery = `
+  query GetFitShowScoreAuditHistory($fitShowScoreId: ID!) {
+    getFitShowScoreAuditHistory(fitShowScoreId: $fitShowScoreId) {
+      items {
+        id
+        fitShowScoreId
+        action
+        modifiedBy
+        modifiedAt
+        previousValues
+        newValues
+        reason
+      }
+    }
+  }
+`;
+
 function FitShowScoringPage(): JSX.Element {
   const navigate = useNavigate();
   const [cats, setCats] = useState<any[]>([]);
   const [fitShowScores, setFitShowScores] = useState<any[]>([]);
   const [selectedParticipantGroup, setSelectedParticipantGroup] = useState<string>('all');
+  const [showAlert, setShowAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [auditHistoryDialogOpen, setAuditHistoryDialogOpen] = useState(false);
+  const [auditHistoryScoreId, setAuditHistoryScoreId] = useState<string | null>(null);
+  const { userInfo, loading: roleLoading } = useUserRole();
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -84,6 +135,26 @@ function FitShowScoringPage(): JSX.Element {
 
   useEffect(() => {
     fetchCatsAndScores();
+
+    // Subscribe to fit & show score changes
+    const createdSub = client.graphql({ query: onFitShowScoreCreated }).subscribe({
+      next: () => fetchCatsAndScores(),
+      error: (err) => console.error('Fit and show score created subscription error:', err),
+    });
+    const updatedSub = client.graphql({ query: onFitShowScoreUpdated }).subscribe({
+      next: () => fetchCatsAndScores(),
+      error: (err) => console.error('Fit and show score updated subscription error:', err),
+    });
+
+    // Poll for updates every 30 seconds as a fallback
+    const intervalId = setInterval(() => fetchCatsAndScores(), 30000);
+
+    // Cleanup subscriptions and interval on unmount
+    return () => {
+      createdSub.unsubscribe();
+      updatedSub.unsubscribe();
+      clearInterval(intervalId);
+    };
   }, []);
 
   const fetchCatsAndScores = async () => {
@@ -109,6 +180,75 @@ function FitShowScoringPage(): JSX.Element {
     return fitShowScores.find(score => score.catId === catId);
   };
 
+  // Task 1: Handle finalize all scores
+  const handleFinalizeAllScores = async () => {
+    const confirmed = window.confirm(
+      'This will lock every currently-submitted fit & show score. This cannot be undone by judges — only an admin override can change a locked score afterward. Continue?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await client.graphql({
+        query: finalizeAllFitShowScores
+      });
+
+      setShowAlert({
+        type: 'success',
+        message: 'All fit & show scores have been finalized successfully!'
+      });
+
+      // Refresh the scores immediately
+      await fetchCatsAndScores();
+
+      // Clear alert after 5 seconds
+      setTimeout(() => setShowAlert(null), 5000);
+    } catch (error) {
+      console.error('Error finalizing all scores:', error);
+      setShowAlert({
+        type: 'error',
+        message: 'Failed to finalize scores. Please try again.'
+      });
+      setTimeout(() => setShowAlert(null), 5000);
+    }
+  };
+
+  // Task 2: Handle override score
+  const handleOverrideScore = (catId: string) => {
+    const reason = window.prompt('Reason for overriding this finalized score (required):');
+
+    if (reason && reason.trim()) {
+      const fitShowScore = getFitShowScoreForCat(catId);
+      navigate(`/fit-show-score/${catId}`, {
+        state: {
+          overrideScoreId: fitShowScore?.id,
+          overrideReason: reason.trim()
+        }
+      });
+    }
+  };
+
+  // Task 3: Handle audit history
+  const handleOpenAuditHistory = (scoreId: string) => {
+    setAuditHistoryScoreId(scoreId);
+    setAuditHistoryDialogOpen(true);
+  };
+
+  const handleLoadAuditHistory = async (scoreId: string) => {
+    try {
+      const result = await client.graphql({
+        query: getFitShowScoreAuditHistoryQuery,
+        variables: { fitShowScoreId: scoreId }
+      });
+      return (result as any).data.getFitShowScoreAuditHistory.items;
+    } catch (error) {
+      console.error('Error loading audit history:', error);
+      return [];
+    }
+  };
+
   return (
     <Box sx={{ pb: isMobile ? 10 : 2 }}>
       <Box sx={{ mb: 3, px: isMobile ? 1 : 0 }}>
@@ -121,7 +261,12 @@ function FitShowScoringPage(): JSX.Element {
         </Typography>
       </Box>
 
-
+      {/* Admin Action Alerts */}
+      {showAlert && (
+        <Alert severity={showAlert.type} sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+          {showAlert.message}
+        </Alert>
+      )}
 
       {/* Quick Cage Access */}
       <Paper elevation={1} sx={{ p: 3, bgcolor: '#fff8e1', mb: 4, border: '1px solid #ffcc02' }}>
@@ -301,6 +446,44 @@ function FitShowScoringPage(): JSX.Element {
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                         Judge: {fitShowScore.judgeName}
                       </Typography>
+
+                      {/* Admin-only controls for finalized scores */}
+                      {!roleLoading && userInfo?.role === 'admin' && isFinalized && (
+                        <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              color: '#ff9800',
+                              borderColor: '#ff9800',
+                              '&:hover': { borderColor: '#f57c00', backgroundColor: '#fff3e0' },
+                              fontSize: '0.75rem'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOverrideScore(cat.id);
+                            }}
+                          >
+                            Override
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              color: '#4caf50',
+                              borderColor: '#4caf50',
+                              '&:hover': { borderColor: '#388e3c', backgroundColor: '#f1f8e9' },
+                              fontSize: '0.75rem'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAuditHistory(fitShowScore.id);
+                            }}
+                          >
+                            View History
+                          </Button>
+                        </Box>
+                      )}
                     </Box>
                   ) : (
                     <Box sx={{ mt: 2, p: 1, backgroundColor: 'rgba(158, 158, 158, 0.1)', borderRadius: 1 }}>
@@ -318,11 +501,11 @@ function FitShowScoringPage(): JSX.Element {
                       />
                     </Box>
                   )}
-                  
+
                   <Box sx={{ mt: 1 }}>
-                    <Chip 
-                      label={`${cat.ownerAgeGroup} • ${cat.catAgeGroup}`} 
-                      size="small" 
+                    <Chip
+                      label={`${cat.ownerAgeGroup} • ${cat.catAgeGroup}`}
+                      size="small"
                       sx={{ backgroundColor: '#ff9800', color: 'white' }}
                     />
                   </Box>
@@ -445,7 +628,7 @@ function FitShowScoringPage(): JSX.Element {
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
-            sx={{ 
+            sx={{
               backgroundColor: '#ff9800',
               '&:hover': { backgroundColor: '#f57c00' },
               minWidth: 200
@@ -456,7 +639,7 @@ function FitShowScoringPage(): JSX.Element {
           </Button>
           <Button
             variant="outlined"
-            sx={{ 
+            sx={{
               borderColor: '#ff9800',
               color: '#e65100',
               '&:hover': { borderColor: '#f57c00', backgroundColor: '#fff3e0' },
@@ -466,6 +649,19 @@ function FitShowScoringPage(): JSX.Element {
           >
             View Fit & Show Leaderboard
           </Button>
+          {!roleLoading && userInfo?.role === 'admin' && (
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: '#4caf50',
+                '&:hover': { backgroundColor: '#388e3c' },
+                minWidth: 200
+              }}
+              onClick={handleFinalizeAllScores}
+            >
+              Finalize All Scores
+            </Button>
+          )}
         </Box>
       </Paper>
 
@@ -474,6 +670,27 @@ function FitShowScoringPage(): JSX.Element {
         Judges assess how well participants present their cats, demonstrate proper handling techniques, and show knowledge of cat care.
         This interface requires judge authentication to access scoring forms.
       </Alert>
+
+      {/* Audit History Dialog */}
+      <Dialog
+        open={auditHistoryDialogOpen}
+        onClose={() => setAuditHistoryDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Score Audit History</DialogTitle>
+        <DialogContent sx={{ py: 3 }}>
+          {auditHistoryScoreId && (
+            <FitShowScoreAuditHistory
+              scoreId={auditHistoryScoreId}
+              onLoadAuditHistory={handleLoadAuditHistory}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAuditHistoryDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

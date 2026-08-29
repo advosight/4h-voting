@@ -1,9 +1,11 @@
+import { vi } from "vitest";
+
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { FitShowScoreDataAccess, CreateFitShowScoreInput } from '../fitShowScoreDataAccess';
 
-jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'test-uuid-123')
+vi.mock('uuid', () => ({
+  v4: vi.fn(() => 'test-uuid-123')
 }));
 
 const ddbMock = mockClient(DynamoDBDocumentClient);

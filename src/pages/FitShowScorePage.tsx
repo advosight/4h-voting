@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -26,8 +26,9 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { FitShowScoringForm } from '../components/FitShowScoringForm';
 import { FitShowScoringErrorBoundary } from '../components/FitShowScoringErrorBoundary';
-import { CreateFitShowScoreInput } from '../types/scoring';
+import { FitShowScore } from '../types/scoring';
 import { parseError, getUserFriendlyMessage, logError } from '../utils/errorHandling';
+import { getJudgeId } from '../utils/roleUtils';
 
 const client = generateClient();
 
@@ -76,10 +77,129 @@ const getCatByCage = `
   }
 `;
 
+const getFitShowScoresByCat = `
+  query GetFitShowScoresByCat($catId: ID!) {
+    getFitShowScoresByCat(catId: $catId) {
+      items {
+        id
+        catId
+        participantName
+        judgeId
+        judgeName
+        attire
+        attentive
+        courteous
+        controlEquipment
+        pickupCarrying
+        showingHeadShape
+        showingBodyType
+        showingTail
+        showingCoatTexture
+        showingMouthTeethGums
+        conditionMouthTeethGums
+        showingNose
+        showingEyes
+        conditionNoseEyes
+        showingEars
+        earsClean
+        showingToenailsClaws
+        toenailsClipped
+        showingBellyCoatCleanliness
+        coatCleanWellGroomed
+        catHealthCare
+        generalKnowledge
+        catBreedsShowing
+        catAnatomy
+        fourHKnowledge
+        appearanceTotal
+        handlingTotal
+        demonstrationTotal
+        healthExaminationTotal
+        groomingCareTotal
+        knowledgeTotal
+        totalScore
+        appearanceComments
+        handlingComments
+        demonstrationComments
+        healthExaminationComments
+        groomingCareComments
+        knowledgeComments
+        createdAt
+        updatedAt
+        isFinalized
+        modificationCount
+        lastModifiedBy
+        lastModifiedAt
+      }
+    }
+  }
+`;
+
+const getFitShowScore = `
+  query GetFitShowScore($id: ID!) {
+    getFitShowScore(id: $id) {
+      id
+      catId
+      participantName
+      judgeId
+      judgeName
+      attire
+      attentive
+      courteous
+      controlEquipment
+      pickupCarrying
+      showingHeadShape
+      showingBodyType
+      showingTail
+      showingCoatTexture
+      showingMouthTeethGums
+      conditionMouthTeethGums
+      showingNose
+      showingEyes
+      conditionNoseEyes
+      showingEars
+      earsClean
+      showingToenailsClaws
+      toenailsClipped
+      showingBellyCoatCleanliness
+      coatCleanWellGroomed
+      catHealthCare
+      generalKnowledge
+      catBreedsShowing
+      catAnatomy
+      fourHKnowledge
+      appearanceTotal
+      handlingTotal
+      demonstrationTotal
+      healthExaminationTotal
+      groomingCareTotal
+      knowledgeTotal
+      totalScore
+      appearanceComments
+      handlingComments
+      demonstrationComments
+      healthExaminationComments
+      groomingCareComments
+      knowledgeComments
+      createdAt
+      updatedAt
+      isFinalized
+      modificationCount
+      lastModifiedBy
+      lastModifiedAt
+    }
+  }
+`;
+
 function FitShowScorePage(): JSX.Element {
   const { catId, cageNumber } = useParams<{ catId?: string; cageNumber?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const overrideScoreId = (location.state as any)?.overrideScoreId;
+  const overrideReason = (location.state as any)?.overrideReason;
   const [cat, setCat] = useState<any>(null);
+  const [existingScore, setExistingScore] = useState<FitShowScore | undefined>(undefined);
+  const [resolvedJudgeId, setResolvedJudgeId] = useState<string>('unknown');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -96,6 +216,10 @@ function FitShowScorePage(): JSX.Element {
       // Load current user
       const user = await getCurrentUser();
       setCurrentUser(user);
+
+      // Resolve judge ID using roleUtils
+      const judgeId = await getJudgeId();
+      setResolvedJudgeId(judgeId || user?.userId || 'unknown');
 
       // Load cat data
       let catData: any;
@@ -118,6 +242,30 @@ function FitShowScorePage(): JSX.Element {
       }
 
       setCat(catData);
+
+      // Load existing score
+      if (catData.id) {
+        // If this is an admin override, fetch the specific score by ID
+        if (overrideScoreId) {
+          const scoreResult = await client.graphql({
+            query: getFitShowScore,
+            variables: { id: overrideScoreId }
+          });
+          const score = (scoreResult as any).data.getFitShowScore;
+          setExistingScore(score);
+        } else {
+          // Otherwise, find the score for the current judge
+          const scoresResult = await client.graphql({
+            query: getFitShowScoresByCat,
+            variables: { catId: catData.id }
+          });
+          const scores = (scoresResult as any).data.getFitShowScoresByCat?.items || [];
+
+          // Find the score for the current judge
+          const myScore = scores.find((score: FitShowScore) => score.judgeId === (judgeId || user?.userId));
+          setExistingScore(myScore);
+        }
+      }
     } catch (err) {
       console.error('Error loading cat data:', err);
       const errorMessage = parseError(err);
@@ -128,7 +276,7 @@ function FitShowScorePage(): JSX.Element {
     }
   };
 
-  const handleScoreSubmit = async (scoreData: CreateFitShowScoreInput) => {
+  const handleScoreSubmit = async (scoreData: FitShowScore) => {
     try {
       // The FitShowScoringForm handles the actual submission
       console.log('Score submitted successfully:', scoreData);
@@ -193,11 +341,11 @@ function FitShowScorePage(): JSX.Element {
                 <Typography variant="body1" sx={{ color: '#f44336', mb: 3, fontSize: '1.1rem' }}>
                   {error}
                 </Typography>
-                <Button 
+                <Button
                   variant="contained"
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
-                  sx={{ 
+                  sx={{
                     backgroundColor: '#ff9800',
                     '&:hover': { backgroundColor: '#f57c00' },
                     padding: '12px 24px',
@@ -235,11 +383,11 @@ function FitShowScorePage(): JSX.Element {
                 <Typography variant="body1" sx={{ mb: 3, fontSize: '1.1rem' }}>
                   {catId ? `No cat found with ID: ${catId}` : `No cat found in cage: ${cageNumber}`}
                 </Typography>
-                <Button 
+                <Button
                   variant="contained"
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
-                  sx={{ 
+                  sx={{
                     backgroundColor: '#ff9800',
                     '&:hover': { backgroundColor: '#f57c00' },
                     padding: '12px 24px',
@@ -262,9 +410,9 @@ function FitShowScorePage(): JSX.Element {
         <FitShowScoringPaper elevation={4}>
           {/* Fit & Show Scoring Breadcrumbs */}
           <Box sx={{ mb: 3 }}>
-            <Breadcrumbs 
-              separator="›" 
-              sx={{ 
+            <Breadcrumbs
+              separator="›"
+              sx={{
                 '& .MuiBreadcrumbs-separator': { color: '#ff9800', fontWeight: 'bold' },
                 mb: 2
               }}
@@ -306,10 +454,10 @@ function FitShowScorePage(): JSX.Element {
           </FitShowScoringHeader>
 
           {/* Cat & Judge Information */}
-          <Card 
-            elevation={3} 
-            sx={{ 
-              mb: 3, 
+          <Card
+            elevation={3}
+            sx={{
+              mb: 3,
               backgroundColor: 'white',
               border: '3px solid #ff9800',
               borderRadius: '15px',
@@ -325,9 +473,9 @@ function FitShowScorePage(): JSX.Element {
                       {cat.name}
                     </Typography>
                   </Box>
-                  <Box sx={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                  <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                     gap: 3,
                     background: 'linear-gradient(135deg, #fff8f0, #fff3e0)',
                     padding: '20px',
@@ -354,9 +502,9 @@ function FitShowScorePage(): JSX.Element {
                     </Box>
                   </Box>
                 </Box>
-                
-                <Box sx={{ 
-                  ml: 3, 
+
+                <Box sx={{
+                  ml: 3,
                   textAlign: 'right',
                   background: 'linear-gradient(135deg, #fff3e0, #fff8f0)',
                   padding: '20px',
@@ -377,7 +525,7 @@ function FitShowScorePage(): JSX.Element {
                     label="🎓 Fit & Show Judge"
                     color="warning"
                     size="medium"
-                    sx={{ 
+                    sx={{
                       mt: 1,
                       fontWeight: 600,
                       fontSize: '0.9rem'
@@ -385,10 +533,10 @@ function FitShowScorePage(): JSX.Element {
                   />
                 </Box>
               </Box>
-              
-              <Alert 
-                severity="info" 
-                sx={{ 
+
+              <Alert
+                severity="info"
+                sx={{
                   mt: 2,
                   borderRadius: '10px',
                   border: '2px solid #ff9800',
@@ -398,7 +546,7 @@ function FitShowScorePage(): JSX.Element {
                   }
                 }}
               >
-                <strong>🎓 Fit & Show Evaluation:</strong> Assess showmanship, handling, knowledge, and overall care demonstration. 
+                <strong>🎓 Fit & Show Evaluation:</strong> Assess showmanship, handling, knowledge, and overall care demonstration.
                 Focus on the participant's ability to present their cat and demonstrate proper care techniques.
               </Alert>
             </CardContent>
@@ -408,8 +556,10 @@ function FitShowScorePage(): JSX.Element {
           <FitShowScoringForm
             catId={cat.id}
             participantName={cat.owner}
-            judgeId={currentUser?.userId || 'unknown'}
+            judgeId={resolvedJudgeId}
             judgeName={currentUser?.signInDetails?.loginId || 'Judge'}
+            existingScore={existingScore}
+            modificationReason={overrideReason}
             onScoreSubmitted={handleScoreSubmit}
             onError={(error) => {
               console.error('Scoring form error:', error);
