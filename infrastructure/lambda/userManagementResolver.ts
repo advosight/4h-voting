@@ -301,7 +301,7 @@ async function sendInviteEmail(record: InvitationRecord): Promise<void> {
  * Invite a new judge or admin by email
  */
 async function inviteUser(event: AppSyncResolverEvent<{ input: InviteUserInput }>): Promise<Invitation> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const { email, name, role, cageScoring, classScoring, fitShowScoring } = event.arguments.input;
@@ -362,7 +362,7 @@ async function inviteUser(event: AppSyncResolverEvent<{ input: InviteUserInput }
  * Resend an existing pending invitation, rotating its token and extending its expiry
  */
 async function resendInvitation(event: AppSyncResolverEvent<{ email: string }>): Promise<Invitation> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const normalizedEmail = event.arguments.email.trim().toLowerCase();
@@ -400,7 +400,7 @@ async function resendInvitation(event: AppSyncResolverEvent<{ email: string }>):
  * Revoke a pending invitation
  */
 async function revokeInvitation(event: AppSyncResolverEvent<{ email: string }>): Promise<boolean> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const normalizedEmail = event.arguments.email.trim().toLowerCase();
@@ -417,7 +417,7 @@ async function revokeInvitation(event: AppSyncResolverEvent<{ email: string }>):
  * List all pending invitations
  */
 async function listInvitations(event: AppSyncResolverEvent<{}>): Promise<{ items: Invitation[] }> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const result = await docClient.send(new ScanCommand({
@@ -474,7 +474,7 @@ async function validateInvitation(event: AppSyncResolverEvent<{ email: string; t
  * Update user role
  */
 async function updateUserRole(event: AppSyncResolverEvent<{ userId: string; role: string }>): Promise<UserRoleUpdate> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const { userId, role } = event.arguments;
@@ -539,7 +539,7 @@ async function updateUserPermissions(event: AppSyncResolverEvent<{
   classScoring: boolean;
   fitShowScoring: boolean;
 }>): Promise<UserAccount> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const { userId, cageScoring, classScoring, fitShowScoring } = event.arguments;
@@ -591,7 +591,7 @@ async function updateUserPermissions(event: AppSyncResolverEvent<{
  * reactivateUser.
  */
 async function revokeUser(event: AppSyncResolverEvent<{ userId: string }>): Promise<boolean> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const { userId } = event.arguments;
@@ -618,7 +618,7 @@ async function revokeUser(event: AppSyncResolverEvent<{ userId: string }>): Prom
  * Reactivate a previously revoked user's account.
  */
 async function reactivateUser(event: AppSyncResolverEvent<{ userId: string }>): Promise<boolean> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const { userId } = event.arguments;
@@ -635,7 +635,7 @@ async function reactivateUser(event: AppSyncResolverEvent<{ userId: string }>): 
  * List all accounts (judges, admins, and participants)
  */
 async function listAccounts(event: AppSyncResolverEvent<{}>): Promise<{ items: UserAccount[] }> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   try {
@@ -662,7 +662,7 @@ async function listAccounts(event: AppSyncResolverEvent<{}>): Promise<{ items: U
  * Get a specific account
  */
 async function getAccount(event: AppSyncResolverEvent<{ userId: string }>): Promise<UserAccount | null> {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin');
 
   const { userId } = event.arguments;

@@ -173,7 +173,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
  * Create a new fit and show score
  */
 async function createFitShowScore(event: AppSyncResolverEvent<{ input: CreateFitShowScoreInput }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
   requireScoringPermission(userContext, 'fitShowScoring');
 
@@ -207,7 +207,7 @@ async function createFitShowScore(event: AppSyncResolverEvent<{ input: CreateFit
  * Update an existing fit and show score
  */
 async function updateFitShowScore(event: AppSyncResolverEvent<{ id: string; input: UpdateFitShowScoreInput }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
   requireScoringPermission(userContext, 'fitShowScoring');
 
@@ -237,7 +237,7 @@ async function updateFitShowScore(event: AppSyncResolverEvent<{ id: string; inpu
  * Get a single fit and show score by ID
  */
 async function getFitShowScore(event: AppSyncResolverEvent<{ id: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin', 'participant']);
 
   const { id } = event.arguments;
@@ -267,7 +267,7 @@ async function getFitShowScore(event: AppSyncResolverEvent<{ id: string }>) {
  * Get all fit and show scores for a specific cat
  */
 async function getFitShowScoresByCat(event: AppSyncResolverEvent<{ catId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin', 'participant']);
 
   const { catId } = event.arguments;
@@ -294,7 +294,7 @@ async function getFitShowScoresByCat(event: AppSyncResolverEvent<{ catId: string
  * Get all fit and show scores for a specific cage number
  */
 async function getFitShowScoresByCage(event: AppSyncResolverEvent<{ cageNumber: number }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin', 'participant']);
 
   const { cageNumber } = event.arguments;
@@ -309,7 +309,7 @@ async function getFitShowScoresByCage(event: AppSyncResolverEvent<{ cageNumber: 
  * List all fit and show scores in the system
  */
 async function listAllFitShowScores(event: AppSyncResolverEvent<{}>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']); // Judges and admins can list all scores for the leaderboard
 
   const scores = await fitShowScoreDataAccess.listFitShowScores();
@@ -320,7 +320,7 @@ async function listAllFitShowScores(event: AppSyncResolverEvent<{}>) {
  * List fit and show scores (alias for listAllFitShowScores for backward compatibility)
  */
 async function listFitShowScores(event: AppSyncResolverEvent<{}>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']); // Judges and admins can list all scores for the leaderboard
 
   const scores = await fitShowScoreDataAccess.listFitShowScores();
@@ -331,7 +331,7 @@ async function listFitShowScores(event: AppSyncResolverEvent<{}>) {
  * Get all fit and show scores by a specific judge
  */
 async function getFitShowScoresByJudge(event: AppSyncResolverEvent<{ judgeId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
 
   const { judgeId } = event.arguments;
@@ -347,7 +347,7 @@ async function getFitShowScoresByJudge(event: AppSyncResolverEvent<{ judgeId: st
  * Finalize a fit and show score (prevent further modifications)
  */
 async function finalizeFitShowScore(event: AppSyncResolverEvent<{ id: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
 
   const { id } = event.arguments;
@@ -373,7 +373,7 @@ async function finalizeFitShowScore(event: AppSyncResolverEvent<{ id: string }>)
  * Finalize all currently-unfinalized fit and show scores (admin only)
  */
 async function finalizeAllFitShowScores(event: AppSyncResolverEvent<any>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['admin']);
 
   const adminId = userContext?.claims?.sub || userContext?.userId || 'unknown-admin';
@@ -387,7 +387,7 @@ async function finalizeAllFitShowScores(event: AppSyncResolverEvent<any>) {
  * Get audit history for a fit and show score
  */
 async function getFitShowScoreAuditHistory(event: AppSyncResolverEvent<{ fitShowScoreId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
 
   const { fitShowScoreId } = event.arguments;

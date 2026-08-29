@@ -206,7 +206,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
  * Create a new class score
  */
 async function createClassScore(event: AppSyncResolverEvent<{ input: CreateClassScoreInput }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   
   try {
     // Validate permissions
@@ -267,7 +267,7 @@ async function createClassScore(event: AppSyncResolverEvent<{ input: CreateClass
  * Update an existing class score
  */
 async function updateClassScore(event: AppSyncResolverEvent<{ id: string; input: UpdateClassScoreInput }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   
   try {
     // Validate permissions
@@ -332,7 +332,7 @@ async function updateClassScore(event: AppSyncResolverEvent<{ id: string; input:
  * Get a single class score by ID
  */
 async function getClassScore(event: AppSyncResolverEvent<{ id: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin', 'participant']);
 
   const { id } = event.arguments;
@@ -362,7 +362,7 @@ async function getClassScore(event: AppSyncResolverEvent<{ id: string }>) {
  * Get all class scores for a specific cat
  */
 async function getClassScoresByCat(event: AppSyncResolverEvent<{ catId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   
   // If no user context, return empty connection instead of throwing error
   if (!userContext) {
@@ -401,7 +401,7 @@ async function getClassScoresByCat(event: AppSyncResolverEvent<{ catId: string }
  * Get all class scores for a specific cage number
  */
 async function getClassScoresByCage(event: AppSyncResolverEvent<{ cageNumber: number }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   
   // If no user context, return empty connection instead of throwing error
   if (!userContext) {
@@ -437,7 +437,7 @@ async function getClassScoresByCage(event: AppSyncResolverEvent<{ cageNumber: nu
  * List all class scores in the system
  */
 async function listAllClassScores(event: AppSyncResolverEvent<{}>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']); // Judges and admins can list all scores for the leaderboard
 
   const scores = await classScoreDataAccess.listAllClassScores();
@@ -448,7 +448,7 @@ async function listAllClassScores(event: AppSyncResolverEvent<{}>) {
  * Get all class scores by a specific judge
  */
 async function getClassScoresByJudge(event: AppSyncResolverEvent<{ judgeId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   
   // If no user context, return empty connection instead of throwing error
   if (!userContext) {
@@ -479,7 +479,7 @@ async function getClassScoresByJudge(event: AppSyncResolverEvent<{ judgeId: stri
  * Finalize a class score (prevent further modifications)
  */
 async function finalizeClassScore(event: AppSyncResolverEvent<{ id: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireAnyRole(userContext, ['judge', 'admin']);
 
   const { id } = event.arguments;
@@ -512,7 +512,7 @@ async function finalizeClassScore(event: AppSyncResolverEvent<{ id: string }>) {
  * Get audit history for a class score
  */
 async function getClassScoreAuditHistory(event: AppSyncResolverEvent<{ classScoreId: string }>) {
-  const userContext = getUserContext(event);
+  const userContext = await getUserContext(event);
   requireRole(userContext, 'admin'); // Only admins can view audit history
 
   const { classScoreId } = event.arguments;

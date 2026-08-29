@@ -1,3 +1,5 @@
+import { CognitoIdentityProviderClient, AdminGetUserCommand, UserType } from '@aws-sdk/client-cognito-identity-provider';
+
 export type UserRole = 'admin' | 'judge' | 'participant';
 
 export type ScoringType = 'cageScoring' | 'classScoring' | 'fitShowScoring';
@@ -11,13 +13,49 @@ export interface UserContext {
   permissions: Record<ScoringType, boolean>;
 }
 
+const USER_POOL_ID = process.env.USER_POOL_ID || '';
+const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION || 'us-west-2' });
+
+/**
+ * Get user's custom:role attribute from Cognito
+ * Used as fallback when role isn't in JWT claims
+ */
+async function getUserRoleFromCognito(userId: string): Promise<UserRole | null> {
+  try {
+    if (!USER_POOL_ID) {
+      console.warn('USER_POOL_ID not configured, cannot lookup role from Cognito');
+      return null;
+    }
+
+    const command = new AdminGetUserCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: userId,
+    });
+
+    const result = await cognitoClient.send(command);
+    if (!result.UserAttributes) return null;
+
+    const attributes = result.UserAttributes.reduce((acc, attr) => {
+      if (attr.Name && attr.Value) {
+        acc[attr.Name] = attr.Value;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+    return (attributes['custom:role'] as UserRole) || null;
+  } catch (error) {
+    console.error('Error getting user role from Cognito:', error);
+    return null;
+  }
+}
+
 /**
  * Extract user context from AppSync event
  */
-export function getUserContext(event: any): UserContext | null {
+export async function getUserContext(event: any): Promise<UserContext | null> {
   try {
     const identity = event.identity;
-    
+
     if (!identity || !identity.claims) {
       return null;
     }
@@ -25,17 +63,24 @@ export function getUserContext(event: any): UserContext | null {
     const claims = identity.claims;
     const userId = claims.sub || claims['cognito:username'];
     const email = claims.email || claims['cognito:username'];
-    
+
     console.log('Extracting user context:', { userId, email, claims });
-    
+
     // Get custom attributes and Cognito groups
-    const customRole = claims['custom:role'] as UserRole;
-    const judgeId = claims['custom:judgeId'];
+    let customRole = claims['custom:role'] as UserRole;
+    let judgeId = claims['custom:judgeId'];
     const cognitoGroups = claims['cognito:groups'] as string[] || [];
-    
+
+    // If custom:role isn't in claims, try to fetch it from Cognito
+    // This handles cases where the ID token isn't configured to include custom attributes
+    if (!customRole) {
+      console.log('custom:role not in token claims, fetching from Cognito...');
+      customRole = await getUserRoleFromCognito(userId) || undefined;
+    }
+
     // Default role logic
     let role: UserRole = customRole || 'participant';
-    
+
     // Cognito groups are the source of truth when present; fall back to custom:role otherwise
     if (cognitoGroups.includes('admin')) {
       role = 'admin';

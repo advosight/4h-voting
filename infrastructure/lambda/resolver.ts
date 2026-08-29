@@ -19,33 +19,45 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
       return await getCatByCage(event.arguments.cageNumber);
     case 'getVotesByDay':
       return await getVotesByDay(event.arguments.catId);
-    case 'createCat':
-      requireRole(getUserContext(event), 'admin');
+    case 'createCat': {
+      const userContext = await getUserContext(event);
+      requireRole(userContext, 'admin');
       return await createCat(event.arguments.input);
+    }
     case 'updateVotes':
       // Called by the public voting Lambda via API key auth; no Cognito role check applies.
       return await updateVotes(event.arguments.id, event.arguments.votes);
-    case 'updateCat':
-      requireRole(getUserContext(event), 'admin');
+    case 'updateCat': {
+      const userContext = await getUserContext(event);
+      requireRole(userContext, 'admin');
       return await updateCat(event.arguments.id, event.arguments.input);
-    case 'listEmails':
-      requireRole(getUserContext(event), 'admin');
+    }
+    case 'listEmails': {
+      const userContext = await getUserContext(event);
+      requireRole(userContext, 'admin');
       return await listEmails();
+    }
     case 'addEmail':
       return await addEmail(event.arguments.email, event.arguments.context);
-    case 'deleteCat':
-      requireRole(getUserContext(event), 'admin');
+    case 'deleteCat': {
+      const userContext = await getUserContext(event);
+      requireRole(userContext, 'admin');
       return await deleteCat(event.arguments.id);
+    }
     case 'getVotingStatus':
       return await getVotingStatus();
-    case 'setVotingStatus':
-      requireRole(getUserContext(event), 'admin');
+    case 'setVotingStatus': {
+      const userContext = await getUserContext(event);
+      requireRole(userContext, 'admin');
       return await setVotingStatus(event.arguments.isActive);
+    }
     case 'getDeviceLimitStatus':
       return await getDeviceLimitStatus();
-    case 'setDeviceLimitStatus':
-      requireRole(getUserContext(event), 'admin');
+    case 'setDeviceLimitStatus': {
+      const userContext = await getUserContext(event);
+      requireRole(userContext, 'admin');
       return await setDeviceLimitStatus(event.arguments.enabled);
+    }
     default:
       throw new Error(`Unknown field: ${fieldName}`);
   }
