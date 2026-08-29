@@ -175,7 +175,7 @@ describe('FitShowScoringForm', () => {
     expect(screen.getByText('cat-123')).toBeInTheDocument();
   });
 
-  it('displays initial total score of 100 (default/max scores)', () => {
+  it('displays initial total score of 100 (default to maximum scores)', () => {
     render(<FitShowScoringForm {...defaultProps} />);
 
     expect(screen.getByText('Total Score: 100/100')).toBeInTheDocument();

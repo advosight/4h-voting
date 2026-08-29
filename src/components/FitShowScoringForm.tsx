@@ -88,7 +88,7 @@ interface FitShowScoreData {
 }
 
 const initialScoreData: FitShowScoreData = {
-  // All numeric fields default to their maximum values
+  // All numeric fields default to their maximum values (judges deduct points)
   attire: 10,
   attentive: 5,
   courteous: 5,

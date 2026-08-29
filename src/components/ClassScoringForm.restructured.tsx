@@ -74,17 +74,18 @@ interface ClassScoreData {
 }
 
 const initialScoreData: ClassScoreData = {
-  beautyScore: 8,
+  // All scores default to maximum (judges deduct points)
+  beautyScore: 15,
   beautyComments: '',
-  personalityScore: 10,
+  personalityScore: 20,
   personalityComments: '',
-  balanceProportionScore: 8,
+  balanceProportionScore: 15,
   balanceProportionComments: '',
-  coatCleanGroomed: 12,
-  teethGumsHealthy: 4,
-  eyesNoseClear: 4,
-  earsCleanMiteFree: 8,
-  toenailsClipped: 12,
+  coatCleanGroomed: 15,
+  teethGumsHealthy: 5,
+  eyesNoseClear: 5,
+  earsCleanMiteFree: 10,
+  toenailsClipped: 15,
   fleaIssues: false,
   conditionHealthComments: ''
 };
