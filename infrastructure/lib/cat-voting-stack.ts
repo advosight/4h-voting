@@ -655,6 +655,11 @@ export class CatVotingStack extends cdk.Stack {
       fieldName: 'finalizeFitShowScore',
     });
 
+    fitShowScoreDataSource.createResolver('finalizeAllFitShowScoresResolver', {
+      typeName: 'Mutation',
+      fieldName: 'finalizeAllFitShowScores',
+    });
+
     fitShowScoreDataSource.createResolver('getFitShowScoreAuditHistoryResolver', {
       typeName: 'Query',
       fieldName: 'getFitShowScoreAuditHistory',

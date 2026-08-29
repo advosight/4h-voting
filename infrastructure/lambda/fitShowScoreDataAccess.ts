@@ -308,28 +308,29 @@ export class FitShowScoreDataAccess {
       lastModifiedAt: timestamp
     };
 
-    // Update main record with optimistic locking. Unless the caller has confirmed an
-    // admin override, also require the score to still be unfinalized at write time,
-    // closing the gap between the resolver's finalized check and this write.
-    let conditionExpression = 'modificationCount = :expectedModificationCount';
-    const expressionAttributeValues: Record<string, any> = {
-      ':expectedModificationCount': existing.modificationCount,
-    };
-    if (!allowFinalizedEdit) {
-      conditionExpression += ' AND isFinalized = :expectedNotFinalized';
-      expressionAttributeValues[':expectedNotFinalized'] = false;
-    }
-
-    await getDocClient().send(new PutCommand({
+    // Update main record using last-write-wins strategy. When the caller has confirmed an
+    // admin override, the write is unconditional. Otherwise, require the score to still be
+    // unfinalized at write time, closing the gap between the resolver's finalized check and
+    // this write. The modificationCount no longer gates the write (D-02: concurrent edits
+    // both succeed with last write winning).
+    const putParams: any = {
       TableName: this.tableName,
       Item: {
         PK: `FIT_SHOW_SCORE#${input.id}`,
         SK: 'METADATA',
         ...updatedScore
-      },
-      ConditionExpression: conditionExpression,
-      ExpressionAttributeValues: expressionAttributeValues
-    }));
+      }
+    };
+
+    // Only add condition when not allowing finalized edits
+    if (!allowFinalizedEdit) {
+      putParams.ConditionExpression = 'isFinalized = :expectedNotFinalized';
+      putParams.ExpressionAttributeValues = {
+        ':expectedNotFinalized': false
+      };
+    }
+
+    await getDocClient().send(new PutCommand(putParams));
 
     // Update cat index
     await getDocClient().send(new PutCommand({
@@ -492,8 +493,9 @@ export class FitShowScoreDataAccess {
 
   /**
    * Finalize a fit and show score
+   * @param reason optional reason for finalization; defaults to "Score finalized by judge"
    */
-  async finalizeFitShowScore(id: string, judgeId: string): Promise<FitShowScore> {
+  async finalizeFitShowScore(id: string, judgeId: string, reason?: string): Promise<FitShowScore> {
     const existing = await this.getFitShowScore(id);
     if (!existing) {
       throw new Error('Fit and show score not found');
@@ -516,7 +518,7 @@ export class FitShowScoreDataAccess {
       modifiedAt: timestamp,
       previousValues: { isFinalized: existing.isFinalized },
       newValues: { isFinalized: true },
-      reason: 'Score finalized by judge'
+      reason: reason || 'Score finalized by judge'
     });
 
     // Update main record
@@ -561,6 +563,25 @@ export class FitShowScoreDataAccess {
     }));
 
     return finalizedScore;
+  }
+
+  /**
+   * Finalize all currently-unfinalized fit and show scores
+   * @param adminId the admin user performing the bulk finalization
+   * @param reason optional reason for bulk finalization; defaults to "Bulk finalized by admin"
+   * @returns array of newly-finalized scores (excludes already-finalized scores)
+   */
+  async finalizeAllFitShowScores(adminId: string, reason: string = 'Bulk finalized by admin'): Promise<FitShowScore[]> {
+    const allScores = await this.listFitShowScores();
+    const unfinalizedScores = allScores.filter(score => !score.isFinalized);
+
+    const finalizedScores: FitShowScore[] = [];
+    for (const score of unfinalizedScores) {
+      const finalized = await this.finalizeFitShowScore(score.id, adminId, reason);
+      finalizedScores.push(finalized);
+    }
+
+    return finalizedScores;
   }
 
   /**

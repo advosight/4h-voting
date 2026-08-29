@@ -133,6 +133,8 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
         return await getFitShowScoresByJudge(event);
       case 'finalizeFitShowScore':
         return await finalizeFitShowScore(event);
+      case 'finalizeAllFitShowScores':
+        return await finalizeAllFitShowScores(event);
       case 'getFitShowScoreAuditHistory':
         return await getFitShowScoreAuditHistory(event);
       default:
@@ -365,6 +367,20 @@ async function finalizeFitShowScore(event: AppSyncResolverEvent<{ id: string }>)
   }
 
   return await fitShowScoreDataAccess.finalizeFitShowScore(id, existingScore.judgeId);
+}
+
+/**
+ * Finalize all currently-unfinalized fit and show scores (admin only)
+ */
+async function finalizeAllFitShowScores(event: AppSyncResolverEvent<any>) {
+  const userContext = getUserContext(event);
+  requireAnyRole(userContext, ['admin']);
+
+  const adminId = userContext?.claims?.sub || userContext?.userId || 'unknown-admin';
+
+  const results = await fitShowScoreDataAccess.finalizeAllFitShowScores(adminId, 'Bulk finalized by admin');
+
+  return { items: results };
 }
 
 /**

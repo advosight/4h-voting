@@ -360,6 +360,126 @@ describe('FitShowScoreDataAccess', () => {
 
       await expect(dataAccess.updateFitShowScore(updateInput)).rejects.toThrow('Fit and show score not found');
     });
+
+    it('should accept concurrent stale writes (last-write-wins) when modificationCount differs', async () => {
+      const existingScore = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        totalScore: 85,
+        modificationCount: 2, // Already been modified twice
+        isFinalized: false
+      };
+
+      const updateInput: UpdateFitShowScoreInput = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        attire: 9, attentive: 5, courteous: 5,
+        controlEquipment: 10, pickupCarrying: 4,
+        showingHeadShape: 4, showingBodyType: 4, showingTail: 4, showingCoatTexture: 4,
+        showingMouthTeethGums: 3, conditionMouthTeethGums: 2, showingNose: 2, showingEyes: 2,
+        conditionNoseEyes: 2, showingEars: 2, earsClean: 2, showingToenailsClaws: 3, toenailsClipped: 6,
+        showingBellyCoatCleanliness: 3, coatCleanWellGroomed: 8, catHealthCare: 3,
+        generalKnowledge: 3, catBreedsShowing: 3, catAnatomy: 3, fourHKnowledge: 3
+      };
+
+      // Mock getFitShowScore call with current version
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...existingScore } });
+      // Mock update operations - should succeed despite stale modificationCount
+      mockSend.mockResolvedValue({});
+
+      const result = await dataAccess.updateFitShowScore(updateInput);
+
+      expect(result.totalScore).toBe(99);
+      expect(result.modificationCount).toBe(3); // Incremented from 2
+      expect(result.updatedAt).toBeDefined();
+
+      // Should have succeeded without ConditionalCheckFailedException
+      expect(mockSend).toHaveBeenCalledTimes(4);
+    });
+
+    it('should still reject updates to finalized scores when allowFinalizedEdit is false', async () => {
+      const existingScore = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        totalScore: 85,
+        modificationCount: 1,
+        isFinalized: true // Score is finalized
+      };
+
+      const updateInput: UpdateFitShowScoreInput = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        attire: 9, attentive: 5, courteous: 5,
+        controlEquipment: 10, pickupCarrying: 4,
+        showingHeadShape: 4, showingBodyType: 4, showingTail: 4, showingCoatTexture: 4,
+        showingMouthTeethGums: 3, conditionMouthTeethGums: 2, showingNose: 2, showingEyes: 2,
+        conditionNoseEyes: 2, showingEars: 2, earsClean: 2, showingToenailsClaws: 3, toenailsClipped: 6,
+        showingBellyCoatCleanliness: 3, coatCleanWellGroomed: 8, catHealthCare: 3,
+        generalKnowledge: 3, catBreedsShowing: 3, catAnatomy: 3, fourHKnowledge: 3
+      };
+
+      // Mock getFitShowScore call
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...existingScore } });
+      // Mock the PutCommand to throw ConditionalCheckFailedException for finalized check
+      mockSend.mockRejectedValueOnce({ name: 'ConditionalCheckFailedException' });
+
+      await expect(dataAccess.updateFitShowScore(updateInput, false)).rejects.toThrow();
+    });
+
+    it('should allow updates to finalized scores when allowFinalizedEdit is true', async () => {
+      const existingScore = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        totalScore: 85,
+        modificationCount: 1,
+        isFinalized: true // Score is finalized
+      };
+
+      const updateInput: UpdateFitShowScoreInput = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        attire: 9, attentive: 5, courteous: 5,
+        controlEquipment: 10, pickupCarrying: 4,
+        showingHeadShape: 4, showingBodyType: 4, showingTail: 4, showingCoatTexture: 4,
+        showingMouthTeethGums: 3, conditionMouthTeethGums: 2, showingNose: 2, showingEyes: 2,
+        conditionNoseEyes: 2, showingEars: 2, earsClean: 2, showingToenailsClaws: 3, toenailsClipped: 6,
+        showingBellyCoatCleanliness: 3, coatCleanWellGroomed: 8, catHealthCare: 3,
+        generalKnowledge: 3, catBreedsShowing: 3, catAnatomy: 3, fourHKnowledge: 3
+      };
+
+      // Mock getFitShowScore call
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...existingScore } });
+      // Mock update operations - should succeed with no ConditionExpression
+      mockSend.mockResolvedValue({});
+
+      const result = await dataAccess.updateFitShowScore(updateInput, true);
+
+      expect(result.totalScore).toBe(99);
+      expect(result.modificationCount).toBe(2);
+      expect(result.updatedAt).toBeDefined();
+      expect(result.isFinalized).toBe(true);
+
+      // Verify it succeeded
+      expect(mockSend).toHaveBeenCalledTimes(4);
+    });
   });
 
   describe('deleteFitShowScore', () => {
@@ -505,6 +625,84 @@ describe('FitShowScoreDataAccess', () => {
       mockSend.mockResolvedValue({});
 
       await expect(dataAccess.finalizeFitShowScore('non-existent', 'judge-123')).rejects.toThrow('Fit and show score not found');
+    });
+  });
+
+  describe('finalizeAllFitShowScores', () => {
+    it('should finalize all unfinalized scores and return the finalized list', async () => {
+      const unfinalizedScores = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: false, totalScore: 85 },
+        { id: 'score-2', catId: 'cat-456', judgeId: 'judge-456', isFinalized: false, totalScore: 92 },
+      ];
+
+      const finalizedScores = unfinalizedScores.map(s => ({ ...s, isFinalized: true }));
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: unfinalizedScores.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      // Mock individual getFitShowScore calls for each score
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...unfinalizedScores[0] } });
+      mockSend.mockResolvedValueOnce({}); // audit entry
+      mockSend.mockResolvedValue({}); // subsequent updates
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Bulk finalized by admin');
+
+      expect(result).toHaveLength(2);
+      expect(result[0].isFinalized).toBe(true);
+      expect(result[1].isFinalized).toBe(true);
+    });
+
+    it('should skip already-finalized scores and only finalize unfinalized ones', async () => {
+      const mixedScores = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: false, totalScore: 85 },
+        { id: 'score-2', catId: 'cat-456', judgeId: 'judge-456', isFinalized: true, totalScore: 92 }, // Already finalized
+      ];
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: mixedScores.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      // Mock getFitShowScore for unfinalized score only
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...mixedScores[0] } });
+      mockSend.mockResolvedValue({}); // audit entry and updates
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Bulk finalized by admin');
+
+      // Should only return the finalized one (the unfinalized score)
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('score-1');
+      expect(result[0].isFinalized).toBe(true);
+    });
+
+    it('should return empty array when all scores are already finalized', async () => {
+      const allFinalized = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: true, totalScore: 85 },
+        { id: 'score-2', catId: 'cat-456', judgeId: 'judge-456', isFinalized: true, totalScore: 92 },
+      ];
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: allFinalized.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Bulk finalized by admin');
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should accept optional reason parameter and pass it to finalizeFitShowScore', async () => {
+      const unfinalizedScores = [
+        { id: 'score-1', catId: 'cat-123', judgeId: 'judge-123', isFinalized: false, totalScore: 85 },
+      ];
+
+      // Mock listFitShowScores call
+      mockSend.mockResolvedValueOnce({ Items: unfinalizedScores.map(s => ({ PK: `FIT_SHOW_SCORE#${s.id}`, SK: 'METADATA', ...s })) });
+
+      // Mock getFitShowScore
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...unfinalizedScores[0] } });
+      mockSend.mockResolvedValue({}); // audit entry and updates
+
+      const result = await dataAccess.finalizeAllFitShowScores('admin-123', 'Custom finalization reason');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isFinalized).toBe(true);
     });
   });
 });

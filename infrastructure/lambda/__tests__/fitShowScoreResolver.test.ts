@@ -12,6 +12,7 @@ const mockFitShowScoreDataAccess = {
   listFitShowScores: jest.fn(),
   getFitShowScoresByJudge: jest.fn(),
   finalizeFitShowScore: jest.fn(),
+  finalizeAllFitShowScores: jest.fn(),
   getFitShowScoreAuditHistory: jest.fn(),
 };
 
@@ -592,6 +593,47 @@ describe('Fit and Show Score Resolver', () => {
       const event = createMockEvent('getFitShowScoreAuditHistory', { fitShowScoreId: 'nonexistent' });
 
       await expect(handler(event)).rejects.toThrow('Fit and show score with ID nonexistent not found');
+    });
+  });
+
+  describe('finalizeAllFitShowScores', () => {
+    beforeEach(() => {
+      mockFitShowScoreDataAccess.finalizeAllFitShowScores = jest.fn();
+    });
+
+    it('should finalize all scores for admin user', async () => {
+      const finalizedScores = [
+        { ...mockFitShowScore, id: 'score-1', isFinalized: true },
+        { ...mockFitShowScore, id: 'score-2', isFinalized: true },
+      ];
+
+      mockFitShowScoreDataAccess.finalizeAllFitShowScores.mockResolvedValue(finalizedScores);
+
+      const event = createMockEvent('finalizeAllFitShowScores', {}, 'admin', 'admin-123');
+
+      const result = await handler(event);
+
+      expect(result).toEqual({ items: finalizedScores });
+      expect(mockFitShowScoreDataAccess.finalizeAllFitShowScores).toHaveBeenCalledWith(
+        'admin-123',
+        'Bulk finalized by admin'
+      );
+    });
+
+    it('should throw PermissionError for non-admin user', async () => {
+      const event = createMockEvent('finalizeAllFitShowScores', {}, 'judge', 'judge-123');
+
+      await expect(handler(event)).rejects.toThrow('Access Denied');
+    });
+
+    it('should return empty items array when no scores to finalize', async () => {
+      mockFitShowScoreDataAccess.finalizeAllFitShowScores.mockResolvedValue([]);
+
+      const event = createMockEvent('finalizeAllFitShowScores', {}, 'admin', 'admin-123');
+
+      const result = await handler(event);
+
+      expect(result).toEqual({ items: [] });
     });
   });
 
