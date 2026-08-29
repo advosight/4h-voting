@@ -80,55 +80,57 @@ const getCatByCage = `
 const getFitShowScoresByCat = `
   query GetFitShowScoresByCat($catId: ID!) {
     getFitShowScoresByCat(catId: $catId) {
-      id
-      catId
-      participantName
-      judgeId
-      judgeName
-      attire
-      attentive
-      courteous
-      controlEquipment
-      pickupCarrying
-      showingHeadShape
-      showingBodyType
-      showingTail
-      showingCoatTexture
-      showingMouthTeethGums
-      conditionMouthTeethGums
-      showingNose
-      showingEyes
-      conditionNoseEyes
-      showingEars
-      earsClean
-      showingToenailsClaws
-      toenailsClipped
-      showingBellyCoatCleanliness
-      coatCleanWellGroomed
-      catHealthCare
-      generalKnowledge
-      catBreedsShowing
-      catAnatomy
-      fourHKnowledge
-      appearanceTotal
-      handlingTotal
-      demonstrationTotal
-      healthExaminationTotal
-      groomingCareTotal
-      knowledgeTotal
-      totalScore
-      appearanceComments
-      handlingComments
-      demonstrationComments
-      healthExaminationComments
-      groomingCareComments
-      knowledgeComments
-      createdAt
-      updatedAt
-      isFinalized
-      modificationCount
-      lastModifiedBy
-      lastModifiedAt
+      items {
+        id
+        catId
+        participantName
+        judgeId
+        judgeName
+        attire
+        attentive
+        courteous
+        controlEquipment
+        pickupCarrying
+        showingHeadShape
+        showingBodyType
+        showingTail
+        showingCoatTexture
+        showingMouthTeethGums
+        conditionMouthTeethGums
+        showingNose
+        showingEyes
+        conditionNoseEyes
+        showingEars
+        earsClean
+        showingToenailsClaws
+        toenailsClipped
+        showingBellyCoatCleanliness
+        coatCleanWellGroomed
+        catHealthCare
+        generalKnowledge
+        catBreedsShowing
+        catAnatomy
+        fourHKnowledge
+        appearanceTotal
+        handlingTotal
+        demonstrationTotal
+        healthExaminationTotal
+        groomingCareTotal
+        knowledgeTotal
+        totalScore
+        appearanceComments
+        handlingComments
+        demonstrationComments
+        healthExaminationComments
+        groomingCareComments
+        knowledgeComments
+        createdAt
+        updatedAt
+        isFinalized
+        modificationCount
+        lastModifiedBy
+        lastModifiedAt
+      }
     }
   }
 `;
@@ -257,7 +259,7 @@ function FitShowScorePage(): JSX.Element {
             query: getFitShowScoresByCat,
             variables: { catId: catData.id }
           });
-          const scores = (scoresResult as any).data.getFitShowScoresByCat || [];
+          const scores = (scoresResult as any).data.getFitShowScoresByCat?.items || [];
 
           // Find the score for the current judge
           const myScore = scores.find((score: FitShowScore) => score.judgeId === (judgeId || user?.userId));
