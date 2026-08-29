@@ -493,8 +493,9 @@ export class FitShowScoreDataAccess {
 
   /**
    * Finalize a fit and show score
+   * @param reason optional reason for finalization; defaults to "Score finalized by judge"
    */
-  async finalizeFitShowScore(id: string, judgeId: string): Promise<FitShowScore> {
+  async finalizeFitShowScore(id: string, judgeId: string, reason?: string): Promise<FitShowScore> {
     const existing = await this.getFitShowScore(id);
     if (!existing) {
       throw new Error('Fit and show score not found');
@@ -517,7 +518,7 @@ export class FitShowScoreDataAccess {
       modifiedAt: timestamp,
       previousValues: { isFinalized: existing.isFinalized },
       newValues: { isFinalized: true },
-      reason: 'Score finalized by judge'
+      reason: reason || 'Score finalized by judge'
     });
 
     // Update main record
@@ -562,6 +563,25 @@ export class FitShowScoreDataAccess {
     }));
 
     return finalizedScore;
+  }
+
+  /**
+   * Finalize all currently-unfinalized fit and show scores
+   * @param adminId the admin user performing the bulk finalization
+   * @param reason optional reason for bulk finalization; defaults to "Bulk finalized by admin"
+   * @returns array of newly-finalized scores (excludes already-finalized scores)
+   */
+  async finalizeAllFitShowScores(adminId: string, reason: string = 'Bulk finalized by admin'): Promise<FitShowScore[]> {
+    const allScores = await this.listFitShowScores();
+    const unfinalizedScores = allScores.filter(score => !score.isFinalized);
+
+    const finalizedScores: FitShowScore[] = [];
+    for (const score of unfinalizedScores) {
+      const finalized = await this.finalizeFitShowScore(score.id, adminId, reason);
+      finalizedScores.push(finalized);
+    }
+
+    return finalizedScores;
   }
 
   /**
