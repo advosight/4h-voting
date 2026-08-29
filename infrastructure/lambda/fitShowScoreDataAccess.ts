@@ -308,28 +308,29 @@ export class FitShowScoreDataAccess {
       lastModifiedAt: timestamp
     };
 
-    // Update main record with optimistic locking. Unless the caller has confirmed an
-    // admin override, also require the score to still be unfinalized at write time,
-    // closing the gap between the resolver's finalized check and this write.
-    let conditionExpression = 'modificationCount = :expectedModificationCount';
-    const expressionAttributeValues: Record<string, any> = {
-      ':expectedModificationCount': existing.modificationCount,
-    };
-    if (!allowFinalizedEdit) {
-      conditionExpression += ' AND isFinalized = :expectedNotFinalized';
-      expressionAttributeValues[':expectedNotFinalized'] = false;
-    }
-
-    await getDocClient().send(new PutCommand({
+    // Update main record using last-write-wins strategy. When the caller has confirmed an
+    // admin override, the write is unconditional. Otherwise, require the score to still be
+    // unfinalized at write time, closing the gap between the resolver's finalized check and
+    // this write. The modificationCount no longer gates the write (D-02: concurrent edits
+    // both succeed with last write winning).
+    const putParams: any = {
       TableName: this.tableName,
       Item: {
         PK: `FIT_SHOW_SCORE#${input.id}`,
         SK: 'METADATA',
         ...updatedScore
-      },
-      ConditionExpression: conditionExpression,
-      ExpressionAttributeValues: expressionAttributeValues
-    }));
+      }
+    };
+
+    // Only add condition when not allowing finalized edits
+    if (!allowFinalizedEdit) {
+      putParams.ConditionExpression = 'isFinalized = :expectedNotFinalized';
+      putParams.ExpressionAttributeValues = {
+        ':expectedNotFinalized': false
+      };
+    }
+
+    await getDocClient().send(new PutCommand(putParams));
 
     // Update cat index
     await getDocClient().send(new PutCommand({
