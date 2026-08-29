@@ -68,6 +68,22 @@ const listAllFitShowScores = `
   }
 `;
 
+const onFitShowScoreCreated = `
+  subscription OnFitShowScoreCreated {
+    onFitShowScoreCreated {
+      id
+    }
+  }
+`;
+
+const onFitShowScoreUpdated = `
+  subscription OnFitShowScoreUpdated {
+    onFitShowScoreUpdated {
+      id
+    }
+  }
+`;
+
 function FitShowScoringPage(): JSX.Element {
   const navigate = useNavigate();
   const [cats, setCats] = useState<any[]>([]);
@@ -84,6 +100,26 @@ function FitShowScoringPage(): JSX.Element {
 
   useEffect(() => {
     fetchCatsAndScores();
+
+    // Subscribe to fit & show score changes
+    const createdSub = client.graphql({ query: onFitShowScoreCreated }).subscribe({
+      next: () => fetchCatsAndScores(),
+      error: (err) => console.error('Fit and show score created subscription error:', err),
+    });
+    const updatedSub = client.graphql({ query: onFitShowScoreUpdated }).subscribe({
+      next: () => fetchCatsAndScores(),
+      error: (err) => console.error('Fit and show score updated subscription error:', err),
+    });
+
+    // Poll for updates every 30 seconds as a fallback
+    const intervalId = setInterval(() => fetchCatsAndScores(), 30000);
+
+    // Cleanup subscriptions and interval on unmount
+    return () => {
+      createdSub.unsubscribe();
+      updatedSub.unsubscribe();
+      clearInterval(intervalId);
+    };
   }, []);
 
   const fetchCatsAndScores = async () => {

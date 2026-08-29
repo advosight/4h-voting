@@ -34,7 +34,7 @@ export const HealthExaminationScoring: React.FC<HealthExaminationScoringProps> =
       <div className="section-header">
         <h3>Health Examination</h3>
         <div className="section-total">
-          <strong>{total}/21 points</strong>
+          <strong>{total}/24 points</strong>
         </div>
       </div>
 

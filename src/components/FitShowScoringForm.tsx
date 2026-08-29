@@ -7,7 +7,6 @@ import {
   TextField,
   Button,
   Chip,
-  Slider,
   Grid,
   Paper,
   Alert,
@@ -16,6 +15,12 @@ import {
 import { generateClient } from 'aws-amplify/api';
 import { FitShowScore, CreateFitShowScoreInput, UpdateFitShowScoreInput } from '../types/scoring';
 import { ValidationSummary } from './ValidationErrorDisplay';
+import { AppearanceScoring } from './AppearanceScoring';
+import { HandlingScoring } from './HandlingScoring';
+import { DemonstrationScoring } from './DemonstrationScoring';
+import { HealthExaminationScoring } from './HealthExaminationScoring';
+import { GroomingCareScoring } from './GroomingCareScoring';
+import { KnowledgeScoring } from './KnowledgeScoring';
 
 const client = generateClient();
 
@@ -45,7 +50,7 @@ interface FitShowScoreData {
   showingTail: number;
   showingCoatTexture: number;
 
-  // Health Examination (21 points)
+  // Health Examination (24 points)
   showingMouthTeethGums: number;
   conditionMouthTeethGums: number;
   showingNose: number;
@@ -77,42 +82,37 @@ interface FitShowScoreData {
 }
 
 const initialScoreData: FitShowScoreData = {
-  // Appearance & Demeanor (20 points max)
-  attire: 10,        // max 10
-  attentive: 5,      // max 5
-  courteous: 5,      // max 5
+  // All numeric fields default to 1 (minimum)
+  attire: 1,
+  attentive: 1,
+  courteous: 1,
 
-  // Handling & Control (14 points max)
-  controlEquipment: 10,  // max 10
-  pickupCarrying: 4,     // max 4
+  controlEquipment: 1,
+  pickupCarrying: 1,
 
-  // Demonstration Skills (16 points max)
-  showingHeadShape: 4,     // max 4
-  showingBodyType: 4,      // max 4
-  showingTail: 4,          // max 4
-  showingCoatTexture: 4,   // max 4
+  showingHeadShape: 1,
+  showingBodyType: 1,
+  showingTail: 1,
+  showingCoatTexture: 1,
 
-  // Health Examination (21 points max)
-  showingMouthTeethGums: 3,    // max 3
-  conditionMouthTeethGums: 2,  // max 2
-  showingNose: 2,              // max 2
-  showingEyes: 2,              // max 2
-  conditionNoseEyes: 2,        // max 2
-  showingEars: 2,              // max 2
-  earsClean: 2,                // max 2
-  showingToenailsClaws: 3,     // max 3
-  toenailsClipped: 6,          // max 6
+  showingMouthTeethGums: 1,
+  conditionMouthTeethGums: 1,
+  showingNose: 1,
+  showingEyes: 1,
+  conditionNoseEyes: 1,
+  showingEars: 1,
+  earsClean: 1,
+  showingToenailsClaws: 1,
+  toenailsClipped: 1,
 
-  // Grooming & Care (14 points max)
-  showingBellyCoatCleanliness: 3,  // max 3
-  coatCleanWellGroomed: 8,         // max 8
-  catHealthCare: 3,                // max 3
+  showingBellyCoatCleanliness: 1,
+  coatCleanWellGroomed: 1,
+  catHealthCare: 1,
 
-  // Knowledge (12 points max)
-  generalKnowledge: 3,    // max 3
-  catBreedsShowing: 3,    // max 3
-  catAnatomy: 3,          // max 3
-  fourHKnowledge: 3,      // max 3
+  generalKnowledge: 1,
+  catBreedsShowing: 1,
+  catAnatomy: 1,
+  fourHKnowledge: 1,
 
   // Comments
   appearanceComments: '',
@@ -454,27 +454,6 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
     setAutoSaveStatus('idle');
   };
 
-  const handleSaveDraft = async () => {
-    const errors = validateScoreData();
-    setValidationErrors(errors);
-
-    if (errors.length > 0) {
-      onError?.('Please correct the validation errors before saving.');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      await saveScore(false); // Save as draft (isFinalized: false)
-    } catch (error) {
-      console.error('Error saving fit and show score draft:', error);
-      onError?.('Failed to save draft. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -489,7 +468,7 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
     setIsSubmitting(true);
 
     try {
-      await saveScore(true); // Submit as finalized (isFinalized: true)
+      await saveScore(false); // Never finalize from judge action
     } catch (error) {
       console.error('Error submitting fit and show score:', error);
       onError?.('Failed to submit score. Please try again.');
@@ -536,7 +515,7 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
         healthExaminationComments: scoreData.healthExaminationComments,
         groomingCareComments: scoreData.groomingCareComments,
         knowledgeComments: scoreData.knowledgeComments,
-        isFinalized
+        isFinalized: false  // Always false for judge action
       };
 
       const result = await client.graphql({ query: updateFitShowScore, variables: { id: existingScore.id, input: updateInput } });
@@ -584,7 +563,7 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
         healthExaminationComments: scoreData.healthExaminationComments,
         groomingCareComments: scoreData.groomingCareComments,
         knowledgeComments: scoreData.knowledgeComments,
-        isFinalized
+        isFinalized: false  // Always false for judge action
       };
 
       const result = await client.graphql({ query: createFitShowScore, variables: { input: createInput } });
@@ -598,28 +577,22 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
       {/* Sticky Header with Totals */}
       <Paper elevation={3} sx={{ p: 3, mb: 3, bgcolor: '#fff8f0', border: '2px solid #ff9800', position: 'sticky', top: 0, zIndex: 100 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Box sx={{
-            bgcolor: '#ff9800',
-            color: 'white',
-            borderRadius: '50%',
-            width: 56,
-            height: 56,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.5rem'
-          }}>
-            🎓
-          </Box>
-          <Box>
-            <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-              Fit & Show Scoring
-            </Typography>
-            <Typography variant="h6" color="text.secondary">
-              Participant: {participantName} • Judge: {judgeName}
-            </Typography>
-          </Box>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 'bold', mb: 1 }}>
+            Fit and Show Scoring
+          </Typography>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body1">
+            Participant: <Box component="span">{participantName}</Box>
+          </Typography>
+          <Typography variant="body1">
+            Judge: <Box component="span">{judgeName}</Box>
+          </Typography>
+          <Typography variant="body1">
+            Cat ID: <Box component="span">{catId}</Box>
+          </Typography>
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -645,7 +618,7 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
             variant="outlined"
           />
           <Chip
-            label={`Health: ${totals.healthExaminationTotal}/21`}
+            label={`Health: ${totals.healthExaminationTotal}/24`}
             color="warning"
             variant="outlined"
           />
@@ -683,221 +656,94 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
 
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Appearance & Demeanor Section */}
+          {/* Appearance Scoring */}
           <Grid size={{ xs: 12 }}>
-            <Card elevation={2} sx={{ border: '2px solid #ff9800' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ mr: 2, fontSize: '2rem' }}>👔</Box>
-                  <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                    Appearance & Demeanor ({totals.appearanceTotal}/20)
-                  </Typography>
-                </Box>
-
-                <Grid container spacing={3}>
-                  {/* Attire */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Neat, Clean, Appropriate Attire (1-10)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.attire}
-                        onChange={(e) => handleScoreChange('attire', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 10 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.attire}
-                        onChange={(_, value) => handleScoreChange('attire', value as number)}
-                        min={1}
-                        max={10}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Attentive */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Attentive (1-5)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.attentive}
-                        onChange={(e) => handleScoreChange('attentive', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 5 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.attentive}
-                        onChange={(_, value) => handleScoreChange('attentive', value as number)}
-                        min={1}
-                        max={5}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Courteous */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Courteous (1-5)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.courteous}
-                        onChange={(e) => handleScoreChange('courteous', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 5 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.courteous}
-                        onChange={(_, value) => handleScoreChange('courteous', value as number)}
-                        min={1}
-                        max={5}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Comments */}
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      multiline
-                      rows={3}
-                      label="Appearance Comments (optional, max 500 characters)"
-                      value={scoreData.appearanceComments}
-                      onChange={(e) => handleScoreChange('appearanceComments', e.target.value)}
-                      placeholder="Add comments about the participant's appearance and demeanor..."
-                      fullWidth
-                      slotProps={{ htmlInput: { maxLength: 500 } }}
-                      helperText={`${scoreData.appearanceComments.length}/500 characters`}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+            <AppearanceScoring
+              data-testid="appearance-scoring"
+              attire={scoreData.attire}
+              attentive={scoreData.attentive}
+              courteous={scoreData.courteous}
+              comments={scoreData.appearanceComments}
+              total={totals.appearanceTotal}
+              onScoreChange={handleScoreChange}
+            />
           </Grid>
 
-          {/* Handling & Control Section */}
+          {/* Handling Scoring */}
           <Grid size={{ xs: 12 }}>
-            <Card elevation={2} sx={{ border: '2px solid #ff9800' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ mr: 2, fontSize: '2rem' }}>🤲</Box>
-                  <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                    Handling & Control ({totals.handlingTotal}/14)
-                  </Typography>
-                </Box>
-
-                <Grid container spacing={3}>
-                  {/* Control Equipment */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Control/Equipment (1-10)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.controlEquipment}
-                        onChange={(e) => handleScoreChange('controlEquipment', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 10 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.controlEquipment}
-                        onChange={(_, value) => handleScoreChange('controlEquipment', value as number)}
-                        min={1}
-                        max={10}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Pickup Carrying */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ p: 2, border: '1px solid #ff9800' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#ff9800' }}>
-                        Pickup/Carrying (1-4)
-                      </Typography>
-                      <TextField
-                        type="number"
-                        label="Score"
-                        value={scoreData.pickupCarrying}
-                        onChange={(e) => handleScoreChange('pickupCarrying', parseInt(e.target.value) || 1)}
-                        slotProps={{ htmlInput: { min: 1, max: 4 } }}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      />
-                      <Slider
-                        value={scoreData.pickupCarrying}
-                        onChange={(_, value) => handleScoreChange('pickupCarrying', value as number)}
-                        min={1}
-                        max={4}
-                        marks
-                        step={1}
-                        valueLabelDisplay="auto"
-                        sx={{ color: '#ff9800' }}
-                      />
-                    </Card>
-                  </Grid>
-
-                  {/* Comments */}
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      multiline
-                      rows={3}
-                      label="Handling Comments (optional, max 500 characters)"
-                      value={scoreData.handlingComments}
-                      onChange={(e) => handleScoreChange('handlingComments', e.target.value)}
-                      placeholder="Add comments about handling and control..."
-                      fullWidth
-                      slotProps={{ htmlInput: { maxLength: 500 } }}
-                      helperText={`${scoreData.handlingComments.length}/500 characters`}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+            <HandlingScoring
+              data-testid="handling-scoring"
+              controlEquipment={scoreData.controlEquipment}
+              pickupCarrying={scoreData.pickupCarrying}
+              comments={scoreData.handlingComments}
+              total={totals.handlingTotal}
+              onScoreChange={handleScoreChange}
+            />
           </Grid>
 
-          {/* Action Buttons */}
+          {/* Demonstration Scoring */}
+          <Grid size={{ xs: 12 }}>
+            <DemonstrationScoring
+              data-testid="demonstration-scoring"
+              showingHeadShape={scoreData.showingHeadShape}
+              showingBodyType={scoreData.showingBodyType}
+              showingTail={scoreData.showingTail}
+              showingCoatTexture={scoreData.showingCoatTexture}
+              comments={scoreData.demonstrationComments}
+              total={totals.demonstrationTotal}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          {/* Health Examination Scoring */}
+          <Grid size={{ xs: 12 }}>
+            <HealthExaminationScoring
+              data-testid="health-examination-scoring"
+              showingMouthTeethGums={scoreData.showingMouthTeethGums}
+              conditionMouthTeethGums={scoreData.conditionMouthTeethGums}
+              showingNose={scoreData.showingNose}
+              showingEyes={scoreData.showingEyes}
+              conditionNoseEyes={scoreData.conditionNoseEyes}
+              showingEars={scoreData.showingEars}
+              earsClean={scoreData.earsClean}
+              showingToenailsClaws={scoreData.showingToenailsClaws}
+              toenailsClipped={scoreData.toenailsClipped}
+              comments={scoreData.healthExaminationComments}
+              total={totals.healthExaminationTotal}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          {/* Grooming Care Scoring */}
+          <Grid size={{ xs: 12 }}>
+            <GroomingCareScoring
+              data-testid="grooming-care-scoring"
+              showingBellyCoatCleanliness={scoreData.showingBellyCoatCleanliness}
+              coatCleanWellGroomed={scoreData.coatCleanWellGroomed}
+              catHealthCare={scoreData.catHealthCare}
+              comments={scoreData.groomingCareComments}
+              total={totals.groomingCareTotal}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          {/* Knowledge Scoring */}
+          <Grid size={{ xs: 12 }}>
+            <KnowledgeScoring
+              data-testid="knowledge-scoring"
+              generalKnowledge={scoreData.generalKnowledge}
+              catBreedsShowing={scoreData.catBreedsShowing}
+              catAnatomy={scoreData.catAnatomy}
+              fourHKnowledge={scoreData.fourHKnowledge}
+              comments={scoreData.knowledgeComments}
+              total={totals.knowledgeTotal}
+              onScoreChange={handleScoreChange}
+            />
+          </Grid>
+
+          {/* Action Button */}
           <Grid size={{ xs: 12 }}>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4 }}>
-              <Button
-                variant="outlined"
-                color="warning"
-                disabled={isSubmitting}
-                size="large"
-                onClick={handleSaveDraft}
-                startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
-              >
-                {isSubmitting ? 'Saving...' : 'Save Draft'}
-              </Button>
               <Button
                 type="submit"
                 variant="contained"
@@ -907,7 +753,7 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
                 sx={{ fontWeight: 'bold' }}
                 startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit & Finalize Score'}
+                {isSubmitting ? 'Submitting...' : (existingScore ? 'Update Score' : 'Submit Score')}
               </Button>
             </Box>
           </Grid>
