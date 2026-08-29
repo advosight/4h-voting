@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -133,9 +133,68 @@ const getFitShowScoresByCat = `
   }
 `;
 
+const getFitShowScore = `
+  query GetFitShowScore($id: ID!) {
+    getFitShowScore(id: $id) {
+      id
+      catId
+      participantName
+      judgeId
+      judgeName
+      attire
+      attentive
+      courteous
+      controlEquipment
+      pickupCarrying
+      showingHeadShape
+      showingBodyType
+      showingTail
+      showingCoatTexture
+      showingMouthTeethGums
+      conditionMouthTeethGums
+      showingNose
+      showingEyes
+      conditionNoseEyes
+      showingEars
+      earsClean
+      showingToenailsClaws
+      toenailsClipped
+      showingBellyCoatCleanliness
+      coatCleanWellGroomed
+      catHealthCare
+      generalKnowledge
+      catBreedsShowing
+      catAnatomy
+      fourHKnowledge
+      appearanceTotal
+      handlingTotal
+      demonstrationTotal
+      healthExaminationTotal
+      groomingCareTotal
+      knowledgeTotal
+      totalScore
+      appearanceComments
+      handlingComments
+      demonstrationComments
+      healthExaminationComments
+      groomingCareComments
+      knowledgeComments
+      createdAt
+      updatedAt
+      isFinalized
+      modificationCount
+      lastModifiedBy
+      lastModifiedAt
+    }
+  }
+`;
+
 function FitShowScorePage(): JSX.Element {
   const { catId, cageNumber } = useParams<{ catId?: string; cageNumber?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const overrideScoreId = (location.state as any)?.overrideScoreId;
+  const overrideReason = (location.state as any)?.overrideReason;
   const [cat, setCat] = useState<any>(null);
   const [existingScore, setExistingScore] = useState<FitShowScore | undefined>(undefined);
   const [resolvedJudgeId, setResolvedJudgeId] = useState<string>('unknown');
@@ -182,17 +241,28 @@ function FitShowScorePage(): JSX.Element {
 
       setCat(catData);
 
-      // Load existing scores for this cat
+      // Load existing score
       if (catData.id) {
-        const scoresResult = await client.graphql({
-          query: getFitShowScoresByCat,
-          variables: { catId: catData.id }
-        });
-        const scores = (scoresResult as any).data.getFitShowScoresByCat || [];
+        // If this is an admin override, fetch the specific score by ID
+        if (overrideScoreId) {
+          const scoreResult = await client.graphql({
+            query: getFitShowScore,
+            variables: { id: overrideScoreId }
+          });
+          const score = (scoreResult as any).data.getFitShowScore;
+          setExistingScore(score);
+        } else {
+          // Otherwise, find the score for the current judge
+          const scoresResult = await client.graphql({
+            query: getFitShowScoresByCat,
+            variables: { catId: catData.id }
+          });
+          const scores = (scoresResult as any).data.getFitShowScoresByCat || [];
 
-        // Find the score for the current judge
-        const myScore = scores.find((score: FitShowScore) => score.judgeId === (judgeId || user?.userId));
-        setExistingScore(myScore);
+          // Find the score for the current judge
+          const myScore = scores.find((score: FitShowScore) => score.judgeId === (judgeId || user?.userId));
+          setExistingScore(myScore);
+        }
       }
     } catch (err) {
       console.error('Error loading cat data:', err);
@@ -487,6 +557,7 @@ function FitShowScorePage(): JSX.Element {
             judgeId={resolvedJudgeId}
             judgeName={currentUser?.signInDetails?.loginId || 'Judge'}
             existingScore={existingScore}
+            modificationReason={overrideReason}
             onScoreSubmitted={handleScoreSubmit}
             onError={(error) => {
               console.error('Scoring form error:', error);
