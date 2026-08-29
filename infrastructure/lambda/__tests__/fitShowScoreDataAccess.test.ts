@@ -360,6 +360,126 @@ describe('FitShowScoreDataAccess', () => {
 
       await expect(dataAccess.updateFitShowScore(updateInput)).rejects.toThrow('Fit and show score not found');
     });
+
+    it('should accept concurrent stale writes (last-write-wins) when modificationCount differs', async () => {
+      const existingScore = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        totalScore: 85,
+        modificationCount: 2, // Already been modified twice
+        isFinalized: false
+      };
+
+      const updateInput: UpdateFitShowScoreInput = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        attire: 9, attentive: 5, courteous: 5,
+        controlEquipment: 10, pickupCarrying: 4,
+        showingHeadShape: 4, showingBodyType: 4, showingTail: 4, showingCoatTexture: 4,
+        showingMouthTeethGums: 3, conditionMouthTeethGums: 2, showingNose: 2, showingEyes: 2,
+        conditionNoseEyes: 2, showingEars: 2, earsClean: 2, showingToenailsClaws: 3, toenailsClipped: 6,
+        showingBellyCoatCleanliness: 3, coatCleanWellGroomed: 8, catHealthCare: 3,
+        generalKnowledge: 3, catBreedsShowing: 3, catAnatomy: 3, fourHKnowledge: 3
+      };
+
+      // Mock getFitShowScore call with current version
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...existingScore } });
+      // Mock update operations - should succeed despite stale modificationCount
+      mockSend.mockResolvedValue({});
+
+      const result = await dataAccess.updateFitShowScore(updateInput);
+
+      expect(result.totalScore).toBe(99);
+      expect(result.modificationCount).toBe(3); // Incremented from 2
+      expect(result.updatedAt).toBeDefined();
+
+      // Should have succeeded without ConditionalCheckFailedException
+      expect(mockSend).toHaveBeenCalledTimes(4);
+    });
+
+    it('should still reject updates to finalized scores when allowFinalizedEdit is false', async () => {
+      const existingScore = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        totalScore: 85,
+        modificationCount: 1,
+        isFinalized: true // Score is finalized
+      };
+
+      const updateInput: UpdateFitShowScoreInput = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        attire: 9, attentive: 5, courteous: 5,
+        controlEquipment: 10, pickupCarrying: 4,
+        showingHeadShape: 4, showingBodyType: 4, showingTail: 4, showingCoatTexture: 4,
+        showingMouthTeethGums: 3, conditionMouthTeethGums: 2, showingNose: 2, showingEyes: 2,
+        conditionNoseEyes: 2, showingEars: 2, earsClean: 2, showingToenailsClaws: 3, toenailsClipped: 6,
+        showingBellyCoatCleanliness: 3, coatCleanWellGroomed: 8, catHealthCare: 3,
+        generalKnowledge: 3, catBreedsShowing: 3, catAnatomy: 3, fourHKnowledge: 3
+      };
+
+      // Mock getFitShowScore call
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...existingScore } });
+      // Mock the PutCommand to throw ConditionalCheckFailedException for finalized check
+      mockSend.mockRejectedValueOnce({ name: 'ConditionalCheckFailedException' });
+
+      await expect(dataAccess.updateFitShowScore(updateInput, false)).rejects.toThrow();
+    });
+
+    it('should allow updates to finalized scores when allowFinalizedEdit is true', async () => {
+      const existingScore = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        totalScore: 85,
+        modificationCount: 1,
+        isFinalized: true // Score is finalized
+      };
+
+      const updateInput: UpdateFitShowScoreInput = {
+        id: 'test-id',
+        catId: 'cat-123',
+        participantName: 'John Doe',
+        judgeId: 'judge-123',
+        judgeName: 'Judge Smith',
+        attire: 9, attentive: 5, courteous: 5,
+        controlEquipment: 10, pickupCarrying: 4,
+        showingHeadShape: 4, showingBodyType: 4, showingTail: 4, showingCoatTexture: 4,
+        showingMouthTeethGums: 3, conditionMouthTeethGums: 2, showingNose: 2, showingEyes: 2,
+        conditionNoseEyes: 2, showingEars: 2, earsClean: 2, showingToenailsClaws: 3, toenailsClipped: 6,
+        showingBellyCoatCleanliness: 3, coatCleanWellGroomed: 8, catHealthCare: 3,
+        generalKnowledge: 3, catBreedsShowing: 3, catAnatomy: 3, fourHKnowledge: 3
+      };
+
+      // Mock getFitShowScore call
+      mockSend.mockResolvedValueOnce({ Item: { PK: 'test', SK: 'test', ...existingScore } });
+      // Mock update operations - should succeed with no ConditionExpression
+      mockSend.mockResolvedValue({});
+
+      const result = await dataAccess.updateFitShowScore(updateInput, true);
+
+      expect(result.totalScore).toBe(99);
+      expect(result.modificationCount).toBe(2);
+      expect(result.updatedAt).toBeDefined();
+      expect(result.isFinalized).toBe(true);
+
+      // Verify it succeeded
+      expect(mockSend).toHaveBeenCalledTimes(4);
+    });
   });
 
   describe('deleteFitShowScore', () => {
