@@ -21,6 +21,7 @@ import { DemonstrationScoring } from './DemonstrationScoring';
 import { HealthExaminationScoring } from './HealthExaminationScoring';
 import { GroomingCareScoring } from './GroomingCareScoring';
 import { KnowledgeScoring } from './KnowledgeScoring';
+import { FitShowNetworkErrorHandler, NetworkError } from './FitShowNetworkErrorHandler';
 
 const client = generateClient();
 
@@ -137,6 +138,8 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitted' | 'success' | 'error'>('idle');
+  const [networkError, setNetworkError] = useState<NetworkError | null>(null);
 
   // Initialize form with existing score data
   useEffect(() => {
@@ -176,6 +179,64 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
       });
     }
   }, [existingScore]);
+
+  // Check localStorage for queued submission on mount and retry if safe
+  const retryQueued = useCallback(async () => {
+    const queueKey = `fitshow-queue-${catId}-${judgeId}`;
+    const queuedData = localStorage.getItem(queueKey);
+
+    if (!queuedData) {
+      return;
+    }
+
+    try {
+      const queued = JSON.parse(queuedData);
+
+      // Check if queued entry is newer than current server score
+      if (existingScore) {
+        const queuedTimestamp = new Date(queued.timestamp).getTime();
+        const serverTimestamp = new Date(existingScore.updatedAt).getTime();
+
+        if (queuedTimestamp < serverTimestamp) {
+          // Queued entry is older - discard it to avoid clobbering newer save
+          console.warn(
+            `Discarding stale queued submission (${new Date(queued.timestamp).toISOString()}) ` +
+            `— server has newer save (${existingScore.updatedAt})`
+          );
+          localStorage.removeItem(queueKey);
+          return;
+        }
+      }
+
+      // Safe to replay - seed form and retry
+      if (queued.scoreData) {
+        setScoreData(queued.scoreData);
+      }
+
+      // Retry the submission
+      await saveScore(false);
+    } catch (error) {
+      console.error('Error replaying queued submission:', error);
+    }
+  }, [catId, judgeId, existingScore]);
+
+  useEffect(() => {
+    // On mount, check for queued entry and retry if online
+    if (navigator.onLine) {
+      retryQueued();
+    }
+
+    // Add listener for online event
+    const handleOnline = () => {
+      retryQueued();
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [retryQueued]);
 
   // Calculate category totals
   const calculateCategoryTotals = useCallback(() => {
@@ -465,7 +526,20 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
       return;
     }
 
+    // Show optimistic feedback immediately
+    setSubmitStatus('submitted');
+    setNetworkError(null);
     setIsSubmitting(true);
+
+    // Persist to localStorage before mutation
+    const queueKey = `fitshow-queue-${catId}-${judgeId}`;
+    const queuedEntry = {
+      catId,
+      judgeId,
+      timestamp: new Date().toISOString(),
+      scoreData
+    };
+    localStorage.setItem(queueKey, JSON.stringify(queuedEntry));
 
     try {
       await saveScore(false); // Never finalize from judge action
@@ -478,98 +552,124 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
   };
 
   const saveScore = async (isFinalized: boolean) => {
-    if (existingScore) {
-      // Update existing score
-      const updateInput: UpdateFitShowScoreInput = {
-        participantName,
-        // Individual scores
-        attire: scoreData.attire,
-        attentive: scoreData.attentive,
-        courteous: scoreData.courteous,
-        controlEquipment: scoreData.controlEquipment,
-        pickupCarrying: scoreData.pickupCarrying,
-        showingHeadShape: scoreData.showingHeadShape,
-        showingBodyType: scoreData.showingBodyType,
-        showingTail: scoreData.showingTail,
-        showingCoatTexture: scoreData.showingCoatTexture,
-        showingMouthTeethGums: scoreData.showingMouthTeethGums,
-        conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
-        showingNose: scoreData.showingNose,
-        showingEyes: scoreData.showingEyes,
-        conditionNoseEyes: scoreData.conditionNoseEyes,
-        showingEars: scoreData.showingEars,
-        earsClean: scoreData.earsClean,
-        showingToenailsClaws: scoreData.showingToenailsClaws,
-        toenailsClipped: scoreData.toenailsClipped,
-        showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
-        coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
-        catHealthCare: scoreData.catHealthCare,
-        generalKnowledge: scoreData.generalKnowledge,
-        catBreedsShowing: scoreData.catBreedsShowing,
-        catAnatomy: scoreData.catAnatomy,
-        fourHKnowledge: scoreData.fourHKnowledge,
-        // Comments
-        appearanceComments: scoreData.appearanceComments,
-        handlingComments: scoreData.handlingComments,
-        demonstrationComments: scoreData.demonstrationComments,
-        healthExaminationComments: scoreData.healthExaminationComments,
-        groomingCareComments: scoreData.groomingCareComments,
-        knowledgeComments: scoreData.knowledgeComments,
-        isFinalized: false  // Always false for judge action
+    const queueKey = `fitshow-queue-${catId}-${judgeId}`;
+
+    try {
+      if (existingScore) {
+        // Update existing score
+        const updateInput: UpdateFitShowScoreInput = {
+          participantName,
+          // Individual scores
+          attire: scoreData.attire,
+          attentive: scoreData.attentive,
+          courteous: scoreData.courteous,
+          controlEquipment: scoreData.controlEquipment,
+          pickupCarrying: scoreData.pickupCarrying,
+          showingHeadShape: scoreData.showingHeadShape,
+          showingBodyType: scoreData.showingBodyType,
+          showingTail: scoreData.showingTail,
+          showingCoatTexture: scoreData.showingCoatTexture,
+          showingMouthTeethGums: scoreData.showingMouthTeethGums,
+          conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
+          showingNose: scoreData.showingNose,
+          showingEyes: scoreData.showingEyes,
+          conditionNoseEyes: scoreData.conditionNoseEyes,
+          showingEars: scoreData.showingEars,
+          earsClean: scoreData.earsClean,
+          showingToenailsClaws: scoreData.showingToenailsClaws,
+          toenailsClipped: scoreData.toenailsClipped,
+          showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
+          coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
+          catHealthCare: scoreData.catHealthCare,
+          generalKnowledge: scoreData.generalKnowledge,
+          catBreedsShowing: scoreData.catBreedsShowing,
+          catAnatomy: scoreData.catAnatomy,
+          fourHKnowledge: scoreData.fourHKnowledge,
+          // Comments
+          appearanceComments: scoreData.appearanceComments,
+          handlingComments: scoreData.handlingComments,
+          demonstrationComments: scoreData.demonstrationComments,
+          healthExaminationComments: scoreData.healthExaminationComments,
+          groomingCareComments: scoreData.groomingCareComments,
+          knowledgeComments: scoreData.knowledgeComments,
+          isFinalized: false  // Always false for judge action
+        };
+
+        const result = await client.graphql({ query: updateFitShowScore, variables: { id: existingScore.id, input: updateInput } });
+        const updatedScore = (result as any).data.updateFitShowScore;
+
+        console.log('Updated score result:', updatedScore);
+        console.log('isFinalized in result:', updatedScore.isFinalized);
+
+        // Success - remove from queue and update status
+        localStorage.removeItem(queueKey);
+        setSubmitStatus('success');
+        setTimeout(() => setSubmitStatus('idle'), 2000);
+
+        onScoreSubmitted?.(updatedScore);
+      } else {
+        // Create new score
+        const createInput: CreateFitShowScoreInput = {
+          catId,
+          participantName,
+          // Individual scores
+          attire: scoreData.attire,
+          attentive: scoreData.attentive,
+          courteous: scoreData.courteous,
+          controlEquipment: scoreData.controlEquipment,
+          pickupCarrying: scoreData.pickupCarrying,
+          showingHeadShape: scoreData.showingHeadShape,
+          showingBodyType: scoreData.showingBodyType,
+          showingTail: scoreData.showingTail,
+          showingCoatTexture: scoreData.showingCoatTexture,
+          showingMouthTeethGums: scoreData.showingMouthTeethGums,
+          conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
+          showingNose: scoreData.showingNose,
+          showingEyes: scoreData.showingEyes,
+          conditionNoseEyes: scoreData.conditionNoseEyes,
+          showingEars: scoreData.showingEars,
+          earsClean: scoreData.earsClean,
+          showingToenailsClaws: scoreData.showingToenailsClaws,
+          toenailsClipped: scoreData.toenailsClipped,
+          showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
+          coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
+          catHealthCare: scoreData.catHealthCare,
+          generalKnowledge: scoreData.generalKnowledge,
+          catBreedsShowing: scoreData.catBreedsShowing,
+          catAnatomy: scoreData.catAnatomy,
+          fourHKnowledge: scoreData.fourHKnowledge,
+          // Comments
+          appearanceComments: scoreData.appearanceComments,
+          handlingComments: scoreData.handlingComments,
+          demonstrationComments: scoreData.demonstrationComments,
+          healthExaminationComments: scoreData.healthExaminationComments,
+          groomingCareComments: scoreData.groomingCareComments,
+          knowledgeComments: scoreData.knowledgeComments,
+          isFinalized: false  // Always false for judge action
+        };
+
+        const result = await client.graphql({ query: createFitShowScore, variables: { input: createInput } });
+        const newScore = (result as any).data.createFitShowScore;
+
+        // Success - remove from queue and update status
+        localStorage.removeItem(queueKey);
+        setSubmitStatus('success');
+        setTimeout(() => setSubmitStatus('idle'), 2000);
+
+        onScoreSubmitted?.(newScore);
+      }
+    } catch (error) {
+      // Failure - keep in queue and show error handler
+      setSubmitStatus('error');
+      const networkErr: NetworkError = {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        code: 'NETWORK_ERROR',
+        operation: 'submit score',
+        timestamp: new Date(),
+        retryCount: 0
       };
-
-      const result = await client.graphql({ query: updateFitShowScore, variables: { id: existingScore.id, input: updateInput } });
-      const updatedScore = (result as any).data.updateFitShowScore;
-
-      console.log('Updated score result:', updatedScore);
-      console.log('isFinalized in result:', updatedScore.isFinalized);
-
-      onScoreSubmitted?.(updatedScore);
-    } else {
-      // Create new score
-      const createInput: CreateFitShowScoreInput = {
-        catId,
-        participantName,
-        // Individual scores
-        attire: scoreData.attire,
-        attentive: scoreData.attentive,
-        courteous: scoreData.courteous,
-        controlEquipment: scoreData.controlEquipment,
-        pickupCarrying: scoreData.pickupCarrying,
-        showingHeadShape: scoreData.showingHeadShape,
-        showingBodyType: scoreData.showingBodyType,
-        showingTail: scoreData.showingTail,
-        showingCoatTexture: scoreData.showingCoatTexture,
-        showingMouthTeethGums: scoreData.showingMouthTeethGums,
-        conditionMouthTeethGums: scoreData.conditionMouthTeethGums,
-        showingNose: scoreData.showingNose,
-        showingEyes: scoreData.showingEyes,
-        conditionNoseEyes: scoreData.conditionNoseEyes,
-        showingEars: scoreData.showingEars,
-        earsClean: scoreData.earsClean,
-        showingToenailsClaws: scoreData.showingToenailsClaws,
-        toenailsClipped: scoreData.toenailsClipped,
-        showingBellyCoatCleanliness: scoreData.showingBellyCoatCleanliness,
-        coatCleanWellGroomed: scoreData.coatCleanWellGroomed,
-        catHealthCare: scoreData.catHealthCare,
-        generalKnowledge: scoreData.generalKnowledge,
-        catBreedsShowing: scoreData.catBreedsShowing,
-        catAnatomy: scoreData.catAnatomy,
-        fourHKnowledge: scoreData.fourHKnowledge,
-        // Comments
-        appearanceComments: scoreData.appearanceComments,
-        handlingComments: scoreData.handlingComments,
-        demonstrationComments: scoreData.demonstrationComments,
-        healthExaminationComments: scoreData.healthExaminationComments,
-        groomingCareComments: scoreData.groomingCareComments,
-        knowledgeComments: scoreData.knowledgeComments,
-        isFinalized: false  // Always false for judge action
-      };
-
-      const result = await client.graphql({ query: createFitShowScore, variables: { input: createInput } });
-      const newScore = (result as any).data.createFitShowScore;
-
-      onScoreSubmitted?.(newScore);
+      setNetworkError(networkErr);
+      throw error;
     }
   };
 
@@ -643,6 +743,23 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
         )}
       </Paper>
 
+      {submitStatus === 'submitted' && (
+        <Alert severity="success" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CircularProgress size={20} sx={{ color: 'success.main' }} />
+          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+            Score submitted! Syncing to server...
+          </Typography>
+        </Alert>
+      )}
+
+      {submitStatus === 'success' && (
+        <Alert severity="success" sx={{ mb: 3 }}>
+          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+            ✅ Score submitted successfully!
+          </Typography>
+        </Alert>
+      )}
+
       {validationErrors.length > 0 && (
         <Alert severity="error" sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>Please correct the following errors:</Typography>
@@ -652,6 +769,23 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
             ))}
           </ul>
         </Alert>
+      )}
+
+      {networkError && (
+        <Box sx={{ mb: 3 }}>
+          <FitShowNetworkErrorHandler
+            error={networkError}
+            onRetry={async () => {
+              try {
+                await saveScore(false);
+              } catch (error) {
+                // Error handler will update networkError state
+              }
+            }}
+            autoRetry
+            maxRetries={3}
+          />
+        </Box>
       )}
 
       <form onSubmit={handleSubmit}>

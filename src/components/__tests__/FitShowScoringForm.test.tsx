@@ -5,6 +5,28 @@ import { FitShowScoringForm } from '../FitShowScoringForm';
 import { FitShowScore } from '../../types/scoring';
 import type { Mocked, Mock } from 'vitest';
 
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    }
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
+});
+
 // Mock AWS Amplify v6
 const mockGraphql = vi.fn();
 vi.mock('aws-amplify/api', () => ({
@@ -88,6 +110,7 @@ describe('FitShowScoringForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   const mockExistingScore: FitShowScore = {
