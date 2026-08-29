@@ -1,19 +1,21 @@
+import { vi } from "vitest";
+
 import { FitShowScoreDataAccess, CreateFitShowScoreInput, UpdateFitShowScoreInput, setDocClient } from '../fitShowScoreDataAccess';
 import { DynamoDBDocumentClient, PutCommand, GetCommand, DeleteCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 // Mock AWS SDK
-jest.mock('@aws-sdk/client-dynamodb');
-jest.mock('@aws-sdk/lib-dynamodb');
-jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'test-uuid-123')
+vi.mock('@aws-sdk/client-dynamodb');
+vi.mock('@aws-sdk/lib-dynamodb');
+vi.mock('uuid', () => ({
+  v4: vi.fn(() => 'test-uuid-123')
 }));
 
-const mockSend = jest.fn();
+const mockSend = vi.fn();
 const mockDocClient = {
   send: mockSend
 };
 
-(DynamoDBDocumentClient.from as jest.Mock) = jest.fn(() => mockDocClient);
+(DynamoDBDocumentClient.from as vi.Mock) = vi.fn(() => mockDocClient);
 
 describe('FitShowScoreDataAccess', () => {
   let dataAccess: FitShowScoreDataAccess;

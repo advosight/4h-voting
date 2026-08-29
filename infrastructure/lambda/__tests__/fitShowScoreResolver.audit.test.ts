@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 import { AppSyncResolverEvent } from 'aws-lambda';
 
 // Mock the data access layer. The mock instance must exist before the resolver
@@ -5,41 +7,41 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 // `new FitShowScoreDataAccess(...)` at import time, so reassigning the mock's
 // return value afterwards (e.g. in beforeEach) would never reach that singleton.
 const mockDataAccess = {
-  createFitShowScoreWithAudit: jest.fn(),
-  updateFitShowScoreWithAudit: jest.fn(),
-  getFitShowScore: jest.fn(),
-  getFitShowScoreAuditHistory: jest.fn(),
-  finalizeFitShowScore: jest.fn()
+  createFitShowScoreWithAudit: vi.fn(),
+  updateFitShowScoreWithAudit: vi.fn(),
+  getFitShowScore: vi.fn(),
+  getFitShowScoreAuditHistory: vi.fn(),
+  finalizeFitShowScore: vi.fn()
 } as any;
 
-jest.mock('../fitShowScoreDataAccess', () => ({
-  FitShowScoreDataAccess: jest.fn().mockImplementation(() => mockDataAccess),
+vi.mock('../fitShowScoreDataAccess', () => ({
+  FitShowScoreDataAccess: vi.fn().mockImplementation(() => mockDataAccess),
 }));
 
 // Mock role validation
-jest.mock('../roleValidation', () => ({
-  getUserContext: jest.fn(),
-  requireAnyRole: jest.fn(),
-  requireRole: jest.fn(),
-  getJudgeId: jest.fn(),
-  requireScoreAccess: jest.fn(),
-  requireScoringPermission: jest.fn()
+vi.mock('../roleValidation', () => ({
+  getUserContext: vi.fn(),
+  requireAnyRole: vi.fn(),
+  requireRole: vi.fn(),
+  getJudgeId: vi.fn(),
+  requireScoreAccess: vi.fn(),
+  requireScoringPermission: vi.fn()
 }));
 
 import { getUserContext, getJudgeId, requireAnyRole, requireScoreAccess, requireScoringPermission } from '../roleValidation';
 
-const mockGetUserContext = getUserContext as jest.MockedFunction<typeof getUserContext>;
-const mockGetJudgeId = getJudgeId as jest.MockedFunction<typeof getJudgeId>;
-const mockRequireAnyRole = requireAnyRole as jest.MockedFunction<typeof requireAnyRole>;
-const mockRequireScoreAccess = requireScoreAccess as jest.MockedFunction<typeof requireScoreAccess>;
-const mockRequireScoringPermission = requireScoringPermission as jest.MockedFunction<typeof requireScoringPermission>;
+const mockGetUserContext = getUserContext as vi.MockedFunction<typeof getUserContext>;
+const mockGetJudgeId = getJudgeId as vi.MockedFunction<typeof getJudgeId>;
+const mockRequireAnyRole = requireAnyRole as vi.MockedFunction<typeof requireAnyRole>;
+const mockRequireScoreAccess = requireScoreAccess as vi.MockedFunction<typeof requireScoreAccess>;
+const mockRequireScoringPermission = requireScoringPermission as vi.MockedFunction<typeof requireScoringPermission>;
 
 // Import the handler after all mocks above are configured.
 import { handler } from '../fitShowScoreResolver';
 
 describe('FitShowScoreResolver - Audit Functionality', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default mocks
     mockGetUserContext.mockReturnValue({

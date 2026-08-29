@@ -1,33 +1,35 @@
+import { vi } from "vitest";
+
 import { AppSyncResolverEvent } from 'aws-lambda';
 
 // Mock the FitShowScoreDataAccess before importing the handler
 const mockFitShowScoreDataAccess = {
-  createFitShowScore: jest.fn(),
-  createFitShowScoreWithAudit: jest.fn(),
-  updateFitShowScore: jest.fn(),
-  updateFitShowScoreWithAudit: jest.fn(),
-  getFitShowScore: jest.fn(),
-  getFitShowScoresByCat: jest.fn(),
-  getFitShowScoresByCage: jest.fn(),
-  listFitShowScores: jest.fn(),
-  getFitShowScoresByJudge: jest.fn(),
-  finalizeFitShowScore: jest.fn(),
-  finalizeAllFitShowScores: jest.fn(),
-  getFitShowScoreAuditHistory: jest.fn(),
+  createFitShowScore: vi.fn(),
+  createFitShowScoreWithAudit: vi.fn(),
+  updateFitShowScore: vi.fn(),
+  updateFitShowScoreWithAudit: vi.fn(),
+  getFitShowScore: vi.fn(),
+  getFitShowScoresByCat: vi.fn(),
+  getFitShowScoresByCage: vi.fn(),
+  listFitShowScores: vi.fn(),
+  getFitShowScoresByJudge: vi.fn(),
+  finalizeFitShowScore: vi.fn(),
+  finalizeAllFitShowScores: vi.fn(),
+  getFitShowScoreAuditHistory: vi.fn(),
 };
 
-jest.mock('../fitShowScoreDataAccess', () => ({
-  FitShowScoreDataAccess: jest.fn().mockImplementation(() => mockFitShowScoreDataAccess),
+vi.mock('../fitShowScoreDataAccess', () => ({
+  FitShowScoreDataAccess: vi.fn().mockImplementation(() => mockFitShowScoreDataAccess),
 }));
 
 // Mock AWS SDK
-jest.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: jest.fn(),
+vi.mock('@aws-sdk/client-dynamodb', () => ({
+  DynamoDBClient: vi.fn(),
 }));
 
-jest.mock('@aws-sdk/lib-dynamodb', () => ({
+vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: {
-    from: jest.fn(),
+    from: vi.fn(),
   },
 }));
 
@@ -36,7 +38,7 @@ import { handler } from '../fitShowScoreResolver';
 
 describe('Fit and Show Score Resolver', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const createMockEvent = (
@@ -598,7 +600,7 @@ describe('Fit and Show Score Resolver', () => {
 
   describe('finalizeAllFitShowScores', () => {
     beforeEach(() => {
-      mockFitShowScoreDataAccess.finalizeAllFitShowScores = jest.fn();
+      mockFitShowScoreDataAccess.finalizeAllFitShowScores = vi.fn();
     });
 
     it('should finalize all scores for admin user', async () => {

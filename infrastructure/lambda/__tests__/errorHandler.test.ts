@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 import {
   ErrorType,
   AppError,
@@ -13,7 +15,7 @@ import {
 // Mock console.error to avoid noise in tests
 const originalConsoleError = console.error;
 beforeAll(() => {
-  console.error = jest.fn();
+  console.error = vi.fn();
 });
 
 afterAll(() => {
@@ -132,7 +134,7 @@ describe('SystemError', () => {
 
 describe('handleError', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('handles AppError instances', () => {

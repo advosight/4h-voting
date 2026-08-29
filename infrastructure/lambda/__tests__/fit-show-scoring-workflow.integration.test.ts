@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 // Mock environment. This must be set before the resolver module below is imported:
 // it constructs a module-level FitShowScoreDataAccess singleton at import time using
 // process.env.TABLE_NAME, so setting it afterwards would be too late.
@@ -11,7 +13,7 @@ import { FitShowScoreDataAccess, setDocClient } from '../fitShowScoreDataAccess'
 // command payload), inject a fake doc client directly via setDocClient(). Real Command
 // classes are used, so `call.args[0].input` reflects the actual constructed command.
 const mockDocClient = {
-  send: jest.fn(),
+  send: vi.fn(),
 };
 
 // Test data
@@ -88,7 +90,7 @@ describe('Fit and Show Scoring Workflow Integration Tests', () => {
   let dataAccess: FitShowScoreDataAccess;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     dataAccess = new FitShowScoreDataAccess('test-table');
     setDocClient(mockDocClient as any);
   });

@@ -1,29 +1,31 @@
+import { vi } from "vitest";
+
 import { AppSyncResolverEvent } from 'aws-lambda';
 
 // Mock the ScoreDataAccess before importing the handler
 const mockScoreDataAccess = {
-  createScore: jest.fn(),
-  updateScore: jest.fn(),
-  getScore: jest.fn(),
-  getScoresByCat: jest.fn(),
-  getScoresByCage: jest.fn(),
-  listAllScores: jest.fn(),
-  getScoresByJudge: jest.fn(),
-  deleteScore: jest.fn(),
+  createScore: vi.fn(),
+  updateScore: vi.fn(),
+  getScore: vi.fn(),
+  getScoresByCat: vi.fn(),
+  getScoresByCage: vi.fn(),
+  listAllScores: vi.fn(),
+  getScoresByJudge: vi.fn(),
+  deleteScore: vi.fn(),
 };
 
-jest.mock('../scoreDataAccess', () => ({
-  ScoreDataAccess: jest.fn().mockImplementation(() => mockScoreDataAccess),
+vi.mock('../scoreDataAccess', () => ({
+  ScoreDataAccess: vi.fn().mockImplementation(() => mockScoreDataAccess),
 }));
 
 // Mock AWS SDK
-jest.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: jest.fn(),
+vi.mock('@aws-sdk/client-dynamodb', () => ({
+  DynamoDBClient: vi.fn(),
 }));
 
-jest.mock('@aws-sdk/lib-dynamodb', () => ({
+vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: {
-    from: jest.fn(),
+    from: vi.fn(),
   },
 }));
 
@@ -32,7 +34,7 @@ import { handler } from '../scoreResolver';
 
 describe('Score Resolver', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const createMockEvent = (

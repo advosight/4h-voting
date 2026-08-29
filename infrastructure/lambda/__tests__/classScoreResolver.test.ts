@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 /**
  * Unit tests for classScoreResolver
  */
@@ -8,31 +10,31 @@ import { getUserContext, requireAnyRole, getJudgeId } from '../roleValidation';
 import { ValidationError, PermissionError, NotFoundError, ConflictError } from '../errorHandler';
 
 // Mock dependencies
-jest.mock('../classScoreDataAccess');
-jest.mock('../roleValidation');
-jest.mock('@aws-sdk/client-dynamodb');
-jest.mock('@aws-sdk/lib-dynamodb');
+vi.mock('../classScoreDataAccess');
+vi.mock('../roleValidation');
+vi.mock('@aws-sdk/client-dynamodb');
+vi.mock('@aws-sdk/lib-dynamodb');
 
-const mockClassScoreDataAccess = ClassScoreDataAccess as jest.MockedClass<typeof ClassScoreDataAccess>;
-const mockGetUserContext = getUserContext as jest.MockedFunction<typeof getUserContext>;
-const mockRequireAnyRole = requireAnyRole as jest.MockedFunction<typeof requireAnyRole>;
-const mockGetJudgeId = getJudgeId as jest.MockedFunction<typeof getJudgeId>;
+const mockClassScoreDataAccess = ClassScoreDataAccess as vi.MockedClass<typeof ClassScoreDataAccess>;
+const mockGetUserContext = getUserContext as vi.MockedFunction<typeof getUserContext>;
+const mockRequireAnyRole = requireAnyRole as vi.MockedFunction<typeof requireAnyRole>;
+const mockGetJudgeId = getJudgeId as vi.MockedFunction<typeof getJudgeId>;
 
 // The mock instance must exist and be wired up before the resolver module is
 // imported below: the resolver constructs a module-level singleton via
 // `new ClassScoreDataAccess(...)` at import time, so reassigning the mock's
 // return value afterwards (e.g. in beforeEach) would never reach that singleton.
 const mockDataAccess = {
-  createClassScore: jest.fn(),
-  updateClassScore: jest.fn(),
-  getClassScore: jest.fn(),
-  getClassScoresByCat: jest.fn(),
-  getClassScoresByCage: jest.fn(),
-  listAllClassScores: jest.fn(),
-  getClassScoresByJudge: jest.fn(),
-  deleteClassScore: jest.fn(),
-  finalizeClassScore: jest.fn(),
-  getClassScoreAuditHistory: jest.fn(),
+  createClassScore: vi.fn(),
+  updateClassScore: vi.fn(),
+  getClassScore: vi.fn(),
+  getClassScoresByCat: vi.fn(),
+  getClassScoresByCage: vi.fn(),
+  listAllClassScores: vi.fn(),
+  getClassScoresByJudge: vi.fn(),
+  deleteClassScore: vi.fn(),
+  finalizeClassScore: vi.fn(),
+  getClassScoreAuditHistory: vi.fn(),
 } as any;
 mockClassScoreDataAccess.mockImplementation(() => mockDataAccess);
 
@@ -41,7 +43,7 @@ import { handler } from '../classScoreResolver';
 
 describe('classScoreResolver', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Default mock implementations
     mockGetUserContext.mockReturnValue({

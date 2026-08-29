@@ -1,14 +1,57 @@
+# IDEs and Editors
 .amazonq
 .kiro
 .vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build outputs
 /build
 /dist
 cdk.out
 cdk.out.temp
-/coverage
-node_modules
-.env
-cdk.context.json
-.DS_Store
 
+# Test and coverage
+/coverage
+*.lcov
+
+# Dependencies
+node_modules
+infrastructure/node_modules
+
+# Environment
+.env
 .env.local
+.env.*.local
+
+# CDK
+cdk.context.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code / GSD personal files (not shared across team)
+.claude/hooks/
+.claude/commands/
+.claude/scripts/
+.claude/agents/
+.claude/gsd-core/
+.claude/.gsd-profile
+.claude/gsd-install-state.json
+.claude/gsd-migration-journal/
+.claude/gsd-file-manifest.json
+
+# Planning ephemeral files
+.planning/config.json
+.planning/intel/
+.planning/research/
+.planning/.session-*
+
+# Temporary and scratch files
+/scratch
+.turbo/
+*.tmp
+*.temp

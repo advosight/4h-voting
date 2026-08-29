@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, TextField, Slider, Paper } from '@mui/material';
+import { Box, Typography, TextField, Paper } from '@mui/material';
+import { ScoreInput } from './ScoreInput';
 
 interface HandlingScoringProps {
   controlEquipment: number;
@@ -23,52 +24,22 @@ export const HandlingScoring: React.FC<HandlingScoringProps> = ({
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/14 points</Typography>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 3 }}>
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Control, harness fits, leash on wrist (1-10 pts)
-          </Typography>
-          <Slider
-            value={controlEquipment}
-            onChange={(e, newValue) => onScoreChange('controlEquipment', newValue)}
-            min={1}
-            max={10}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={controlEquipment}
-            onChange={(e) => onScoreChange('controlEquipment', Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 10 }}
-          />
-        </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3, mb: 3 }}>
+        <ScoreInput
+          value={controlEquipment}
+          min={1}
+          max={10}
+          label="Control, harness fits, leash on wrist"
+          onChange={(value) => onScoreChange('controlEquipment', value)}
+        />
 
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Picking up & carrying of cat (1-4 pts)
-          </Typography>
-          <Slider
-            value={pickupCarrying}
-            onChange={(e, newValue) => onScoreChange('pickupCarrying', newValue)}
-            min={1}
-            max={4}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={pickupCarrying}
-            onChange={(e) => onScoreChange('pickupCarrying', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 4 }}
-          />
-        </Box>
+        <ScoreInput
+          value={pickupCarrying}
+          min={1}
+          max={4}
+          label="Picking up & carrying of cat"
+          onChange={(value) => onScoreChange('pickupCarrying', value)}
+        />
       </Box>
 
       <Box>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, TextField, Slider, Paper } from '@mui/material';
+import { Box, Typography, TextField, Paper } from '@mui/material';
+import { ScoreInput } from './ScoreInput';
 
 interface DemonstrationScoringProps {
   showingHeadShape: number;
@@ -27,98 +28,38 @@ export const DemonstrationScoring: React.FC<DemonstrationScoringProps> = ({
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/16 points</Typography>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 3 }}>
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Showing head shape (1-4 pts)
-          </Typography>
-          <Slider
-            value={showingHeadShape}
-            onChange={(e, newValue) => onScoreChange('showingHeadShape', newValue)}
-            min={1}
-            max={4}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={showingHeadShape}
-            onChange={(e) => onScoreChange('showingHeadShape', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 4 }}
-          />
-        </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3, mb: 3 }}>
+        <ScoreInput
+          value={showingHeadShape}
+          min={1}
+          max={4}
+          label="Showing head shape"
+          onChange={(value) => onScoreChange('showingHeadShape', value)}
+        />
 
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Showing body type (1-4 pts)
-          </Typography>
-          <Slider
-            value={showingBodyType}
-            onChange={(e, newValue) => onScoreChange('showingBodyType', newValue)}
-            min={1}
-            max={4}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={showingBodyType}
-            onChange={(e) => onScoreChange('showingBodyType', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 4 }}
-          />
-        </Box>
+        <ScoreInput
+          value={showingBodyType}
+          min={1}
+          max={4}
+          label="Showing body type"
+          onChange={(value) => onScoreChange('showingBodyType', value)}
+        />
 
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Showing tail (1-4 pts)
-          </Typography>
-          <Slider
-            value={showingTail}
-            onChange={(e, newValue) => onScoreChange('showingTail', newValue)}
-            min={1}
-            max={4}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={showingTail}
-            onChange={(e) => onScoreChange('showingTail', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 4 }}
-          />
-        </Box>
+        <ScoreInput
+          value={showingTail}
+          min={1}
+          max={4}
+          label="Showing tail"
+          onChange={(value) => onScoreChange('showingTail', value)}
+        />
 
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Showing coat texture (1-4 pts)
-          </Typography>
-          <Slider
-            value={showingCoatTexture}
-            onChange={(e, newValue) => onScoreChange('showingCoatTexture', newValue)}
-            min={1}
-            max={4}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={showingCoatTexture}
-            onChange={(e) => onScoreChange('showingCoatTexture', Math.max(1, Math.min(4, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 4 }}
-          />
-        </Box>
+        <ScoreInput
+          value={showingCoatTexture}
+          min={1}
+          max={4}
+          label="Showing coat texture"
+          onChange={(value) => onScoreChange('showingCoatTexture', value)}
+        />
       </Box>
 
       <Box>

@@ -1,8 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls -la ~/.claude/CLAUDE.md 2>&1; echo \"---\"; ls -la /Users/nikody/src/advosight/4h-voting/CLAUDE.md 2>&1; echo \"---\"; find /Users/nikody/src/advosight/4h-voting -iname 'CLAUDE*.md' 2>&1)",
-      "Read(//Users/nikody/.claude/**)",
+      "Bash(ls -la ~/.claude/CLAUDE.md 2>&1; echo \"---\"; ls -la ./CLAUDE.md 2>&1; echo \"---\"; find . -iname 'CLAUDE*.md' 2>&1)",
+      "Read(~/.claude/**)",
       "Bash(npm install *)",
       "Bash(git stash *)",
       "Bash(npm outdated *)",
@@ -16,7 +16,9 @@
       "Bash(npm ls *)",
       "Bash(AWS_PROFILE=prod aws cloudformation list-stacks --region us-west-2 --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE --query \"StackSummaries[].StackName\" --output table)",
       "Bash(AWS_PROFILE=prod aws dynamodb list-tables --region us-west-2)",
-      "Bash(AWS_PROFILE=prod aws appsync list-graphql-apis --region us-west-2 --query \"graphqlApis[].{name:name,id:apiId,uris:uris}\" --output json)"
+      "Bash(AWS_PROFILE=prod aws appsync list-graphql-apis --region us-west-2 --query \"graphqlApis[].{name:name,id:apiId,uris:uris}\" --output json)",
+      "Read(~/.claude/gsd-core/workflows/**)",
+      "Read(~/src/gsd-core/gsd-core/workflows/**)"
     ],
     "additionalDirectories": [
       "/tmp",

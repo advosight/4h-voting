@@ -8,10 +8,10 @@
     "build": "tsc --noEmit",
     "watch": "tsc -w",
     "pretest": "cd .. && npm run build",
-    "test": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest",
-    "test:integration": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"integration.test\"",
-    "test:scoring": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"(scoring|score)\"",
-    "test:coverage": "cross-env NODE_OPTIONS=--localstorage-file=/tmp/4h-voting-jest-localstorage.db jest --testPathPattern=\"(scoring|score)\" --coverage",
+    "test": "vitest",
+    "test:integration": "vitest --grep \"integration.test\"",
+    "test:scoring": "vitest --grep \"(scoring|score)\"",
+    "test:coverage": "vitest --grep \"(scoring|score)\" --coverage",
     "cdk": "cdk",
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
@@ -21,16 +21,15 @@
     "backfill:daily-votes:apply": "node scripts/backfill-daily-votes.js --apply"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^26.1.1",
+    "@vitest/ui": "^4.1.10",
     "aws-cdk": "^2.1130.0",
     "aws-sdk-client-mock": "^4.1.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1084.0",
