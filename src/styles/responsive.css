@@ -25,7 +25,7 @@
 
 /* Device-specific base styles */
 .device-mobile {
-  --touch-target-min: 44px;
+  --touch-target-min: 48px;
   --font-scale: 1;
 }
 

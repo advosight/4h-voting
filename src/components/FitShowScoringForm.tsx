@@ -11,7 +11,11 @@ import {
   Paper,
   Alert,
   CircularProgress,
+  Fab,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
+import { Check as CheckIcon } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import { FitShowScore, CreateFitShowScoreInput, UpdateFitShowScoreInput } from '../types/scoring';
 import { ValidationSummary } from './ValidationErrorDisplay';
@@ -135,6 +139,9 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
   onScoreSubmitted,
   onError
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [scoreData, setScoreData] = useState<FitShowScoreData>(initialScoreData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -896,6 +903,31 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
           </Grid>
         </Grid>
       </form>
+
+      {/* Mobile Floating Action Button for Submit */}
+      {isMobile && (
+        <Fab
+          color="warning"
+          aria-label="submit score"
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            zIndex: (theme) => theme.zIndex.speedDial,
+          }}
+          disabled={isSubmitting}
+          onClick={() => {
+            // Trigger form submission
+            const form = document.querySelector('form');
+            if (form) {
+              const event = new Event('submit', { bubbles: true, cancelable: true });
+              form.dispatchEvent(event);
+            }
+          }}
+        >
+          <CheckIcon />
+        </Fab>
+      )}
     </Box>
   );
 };

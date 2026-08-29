@@ -344,6 +344,22 @@
   .btn-control {
     width: 100%;
   }
+
+  /* Guarantee single-column layout on mobile (D-05) */
+  .scoring-fields {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 48px touch targets for mobile interactive elements (D-07) */
+  input[type="number"],
+  input[type="text"],
+  textarea,
+  select,
+  button {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+  }
 }
 
 /* Tablet Responsive Adjustments */
