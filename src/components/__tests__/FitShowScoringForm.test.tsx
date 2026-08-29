@@ -175,10 +175,10 @@ describe('FitShowScoringForm', () => {
     expect(screen.getByText('cat-123')).toBeInTheDocument();
   });
 
-  it('displays initial total score of 25 (minimum scores)', () => {
+  it('displays initial total score of 100 (default/max scores)', () => {
     render(<FitShowScoringForm {...defaultProps} />);
-    
-    expect(screen.getByText('Total Score: 25/100')).toBeInTheDocument();
+
+    expect(screen.getByText('Total Score: 100/100')).toBeInTheDocument();
   });
 
   it('renders all scoring section components', () => {
@@ -201,31 +201,31 @@ describe('FitShowScoringForm', () => {
 
   it('calculates totals correctly when scores change', async () => {
     render(<FitShowScoringForm {...defaultProps} />);
-    
-    // Initial totals should be minimum values
-    expect(screen.getByTestId('appearance-total')).toHaveTextContent('3'); // 1+1+1
-    expect(screen.getByTestId('handling-total')).toHaveTextContent('2'); // 1+1
-    
+
+    // Initial totals should match initialized values
+    expect(screen.getByTestId('appearance-total')).toHaveTextContent('20'); // 10+5+5
+    expect(screen.getByTestId('handling-total')).toHaveTextContent('14'); // 10+4
+
     // Change a score
     fireEvent.click(screen.getByText('Change Attire'));
-    
+
     // Total should update
     await waitFor(() => {
-      expect(screen.getByTestId('appearance-total')).toHaveTextContent('7'); // 5+1+1
+      expect(screen.getByTestId('appearance-total')).toHaveTextContent('15'); // 5+5+5
     });
   });
 
   it('updates total score when individual scores change', async () => {
     render(<FitShowScoringForm {...defaultProps} />);
-    
-    expect(screen.getByText('Total Score: 25/100')).toBeInTheDocument();
-    
+
+    expect(screen.getByText('Total Score: 100/100')).toBeInTheDocument();
+
     // Change scores
-    fireEvent.click(screen.getByText('Change Attire')); // +4 points
-    fireEvent.click(screen.getByText('Change Control')); // +7 points
-    
+    fireEvent.click(screen.getByText('Change Attire')); // 10 -> 5: -5 points
+    fireEvent.click(screen.getByText('Change Control')); // 10 -> 8: -2 points
+
     await waitFor(() => {
-      expect(screen.getByText('Total Score: 36/100')).toBeInTheDocument();
+      expect(screen.getByText('Total Score: 93/100')).toBeInTheDocument();
     });
   });
 
@@ -301,27 +301,27 @@ describe('FitShowScoringForm', () => {
 
   it('passes correct props to sub-components', () => {
     render(<FitShowScoringForm {...defaultProps} existingScore={mockExistingScore} />);
-    
+
     // Verify that sub-components receive the correct totals
-    expect(screen.getByTestId('appearance-total')).toHaveTextContent('15');
-    expect(screen.getByTestId('handling-total')).toHaveTextContent('10');
-    expect(screen.getByTestId('demonstration-total')).toHaveTextContent('12');
-    expect(screen.getByTestId('health-examination-total')).toHaveTextContent('17');
-    expect(screen.getByTestId('grooming-care-total')).toHaveTextContent('10');
-    expect(screen.getByTestId('knowledge-total')).toHaveTextContent('9');
+    expect(screen.getByTestId('appearance-total')).toHaveTextContent('15'); // Exhibitor
+    expect(screen.getByTestId('handling-total')).toHaveTextContent('10'); // Part of Showmanship
+    expect(screen.getByTestId('demonstration-total')).toHaveTextContent('12'); // Part of Showmanship
+    expect(screen.getByTestId('health-examination-total')).toHaveTextContent('17'); // Part of Presentation
+    expect(screen.getByTestId('grooming-care-total')).toHaveTextContent('8'); // Part of Presentation (excludes catHealthCare)
+    expect(screen.getByTestId('knowledge-total')).toHaveTextContent('11'); // Includes catHealthCare now
   });
 
   it('handles score changes from sub-components', async () => {
     const user = userEvent.setup();
     render(<FitShowScoringForm {...defaultProps} />);
-    
+
     // Simulate score change from sub-component
     const changeButton = screen.getByText('Change Attire');
     await user.click(changeButton);
-    
-    // Verify the total updates
+
+    // Verify the total updates (attire changed from 10 to 5)
     await waitFor(() => {
-      expect(screen.getByTestId('appearance-total')).toHaveTextContent('7');
+      expect(screen.getByTestId('appearance-total')).toHaveTextContent('15'); // 5+5+5
     });
   });
 

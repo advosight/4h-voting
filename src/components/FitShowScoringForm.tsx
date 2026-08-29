@@ -88,37 +88,37 @@ interface FitShowScoreData {
 }
 
 const initialScoreData: FitShowScoreData = {
-  // All numeric fields default to 1 (minimum)
-  attire: 1,
-  attentive: 1,
-  courteous: 1,
+  // All numeric fields default to their maximum values
+  attire: 10,
+  attentive: 5,
+  courteous: 5,
 
-  controlEquipment: 1,
-  pickupCarrying: 1,
+  controlEquipment: 10,
+  pickupCarrying: 4,
 
-  showingHeadShape: 1,
-  showingBodyType: 1,
-  showingTail: 1,
-  showingCoatTexture: 1,
+  showingHeadShape: 4,
+  showingBodyType: 4,
+  showingTail: 4,
+  showingCoatTexture: 4,
 
-  showingMouthTeethGums: 1,
-  conditionMouthTeethGums: 1,
-  showingNose: 1,
-  showingEyes: 1,
-  conditionNoseEyes: 1,
-  showingEars: 1,
-  earsClean: 1,
-  showingToenailsClaws: 1,
-  toenailsClipped: 1,
+  showingMouthTeethGums: 3,
+  conditionMouthTeethGums: 2,
+  showingNose: 2,
+  showingEyes: 2,
+  conditionNoseEyes: 2,
+  showingEars: 2,
+  earsClean: 2,
+  showingToenailsClaws: 3,
+  toenailsClipped: 6,
 
-  showingBellyCoatCleanliness: 1,
-  coatCleanWellGroomed: 1,
-  catHealthCare: 1,
+  showingBellyCoatCleanliness: 3,
+  coatCleanWellGroomed: 8,
+  catHealthCare: 3,
 
-  generalKnowledge: 1,
-  catBreedsShowing: 1,
-  catAnatomy: 1,
-  fourHKnowledge: 1,
+  generalKnowledge: 3,
+  catBreedsShowing: 3,
+  catAnatomy: 3,
+  fourHKnowledge: 3,
 
   // Comments
   appearanceComments: '',
@@ -249,27 +249,22 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
 
   // Calculate category totals
   const calculateCategoryTotals = useCallback(() => {
-    const appearanceTotal = scoreData.attire + scoreData.attentive + scoreData.courteous;
-    const handlingTotal = scoreData.controlEquipment + scoreData.pickupCarrying;
-    const demonstrationTotal = scoreData.showingHeadShape + scoreData.showingBodyType +
+    const exhibitorTotal = scoreData.attire + scoreData.attentive + scoreData.courteous;
+    const showmanshipTotal = scoreData.controlEquipment + scoreData.pickupCarrying +
+      scoreData.showingHeadShape + scoreData.showingBodyType +
       scoreData.showingTail + scoreData.showingCoatTexture;
-    const healthExaminationTotal = scoreData.showingMouthTeethGums + scoreData.conditionMouthTeethGums +
+    const presentationTotal = scoreData.showingMouthTeethGums + scoreData.conditionMouthTeethGums +
       scoreData.showingNose + scoreData.showingEyes + scoreData.conditionNoseEyes +
       scoreData.showingEars + scoreData.earsClean + scoreData.showingToenailsClaws +
-      scoreData.toenailsClipped;
-    const groomingCareTotal = scoreData.showingBellyCoatCleanliness + scoreData.coatCleanWellGroomed +
-      scoreData.catHealthCare;
-    const knowledgeTotal = scoreData.generalKnowledge + scoreData.catBreedsShowing +
-      scoreData.catAnatomy + scoreData.fourHKnowledge;
-    const totalScore = appearanceTotal + handlingTotal + demonstrationTotal +
-      healthExaminationTotal + groomingCareTotal + knowledgeTotal;
+      scoreData.toenailsClipped + scoreData.showingBellyCoatCleanliness + scoreData.coatCleanWellGroomed;
+    const knowledgeTotal = scoreData.catHealthCare + scoreData.generalKnowledge +
+      scoreData.catBreedsShowing + scoreData.catAnatomy + scoreData.fourHKnowledge;
+    const totalScore = exhibitorTotal + showmanshipTotal + presentationTotal + knowledgeTotal;
 
     return {
-      appearanceTotal,
-      handlingTotal,
-      demonstrationTotal,
-      healthExaminationTotal,
-      groomingCareTotal,
+      exhibitorTotal,
+      showmanshipTotal,
+      presentationTotal,
       knowledgeTotal,
       totalScore
     };
@@ -713,32 +708,22 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
             sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}
           />
           <Chip
-            label={`Appearance: ${totals.appearanceTotal}/20`}
+            label={`Exhibitor: ${totals.exhibitorTotal}/20`}
             color="warning"
             variant="outlined"
           />
           <Chip
-            label={`Handling: ${totals.handlingTotal}/14`}
+            label={`Showmanship: ${totals.showmanshipTotal}/30`}
             color="warning"
             variant="outlined"
           />
           <Chip
-            label={`Demo: ${totals.demonstrationTotal}/16`}
+            label={`Presentation: ${totals.presentationTotal}/35`}
             color="warning"
             variant="outlined"
           />
           <Chip
-            label={`Health: ${totals.healthExaminationTotal}/24`}
-            color="warning"
-            variant="outlined"
-          />
-          <Chip
-            label={`Grooming: ${totals.groomingCareTotal}/14`}
-            color="warning"
-            variant="outlined"
-          />
-          <Chip
-            label={`Knowledge: ${totals.knowledgeTotal}/12`}
+            label={`Knowledge: ${totals.knowledgeTotal}/15`}
             color="warning"
             variant="outlined"
           />
@@ -800,32 +785,44 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
 
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Appearance Scoring */}
+          {/* Exhibitor Section */}
           <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Exhibitor (20 pts)
+              </Typography>
+            </Box>
             <AppearanceScoring
               data-testid="appearance-scoring"
               attire={scoreData.attire}
               attentive={scoreData.attentive}
               courteous={scoreData.courteous}
               comments={scoreData.appearanceComments}
-              total={totals.appearanceTotal}
+              total={totals.exhibitorTotal}
               onScoreChange={handleScoreChange}
             />
           </Grid>
 
-          {/* Handling Scoring */}
+          {/* Showing of Cat Showmanship Section */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Showing of Cat Showmanship (30 pts)
+              </Typography>
+            </Box>
+          </Grid>
+
           <Grid size={{ xs: 12 }}>
             <HandlingScoring
               data-testid="handling-scoring"
               controlEquipment={scoreData.controlEquipment}
               pickupCarrying={scoreData.pickupCarrying}
               comments={scoreData.handlingComments}
-              total={totals.handlingTotal}
+              total={scoreData.controlEquipment + scoreData.pickupCarrying}
               onScoreChange={handleScoreChange}
             />
           </Grid>
 
-          {/* Demonstration Scoring */}
           <Grid size={{ xs: 12 }}>
             <DemonstrationScoring
               data-testid="demonstration-scoring"
@@ -834,12 +831,20 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
               showingTail={scoreData.showingTail}
               showingCoatTexture={scoreData.showingCoatTexture}
               comments={scoreData.demonstrationComments}
-              total={totals.demonstrationTotal}
+              total={scoreData.showingHeadShape + scoreData.showingBodyType + scoreData.showingTail + scoreData.showingCoatTexture}
               onScoreChange={handleScoreChange}
             />
           </Grid>
 
-          {/* Health Examination Scoring */}
+          {/* Presentation & Appearance Section */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Presentation & Appearance (35 pts)
+              </Typography>
+            </Box>
+          </Grid>
+
           <Grid size={{ xs: 12 }}>
             <HealthExaminationScoring
               data-testid="health-examination-scoring"
@@ -853,28 +858,32 @@ export const FitShowScoringForm: React.FC<FitShowScoringFormProps> = ({
               showingToenailsClaws={scoreData.showingToenailsClaws}
               toenailsClipped={scoreData.toenailsClipped}
               comments={scoreData.healthExaminationComments}
-              total={totals.healthExaminationTotal}
+              total={scoreData.showingMouthTeethGums + scoreData.conditionMouthTeethGums + scoreData.showingNose + scoreData.showingEyes + scoreData.conditionNoseEyes + scoreData.showingEars + scoreData.earsClean + scoreData.showingToenailsClaws + scoreData.toenailsClipped}
               onScoreChange={handleScoreChange}
             />
           </Grid>
 
-          {/* Grooming Care Scoring */}
           <Grid size={{ xs: 12 }}>
             <GroomingCareScoring
               data-testid="grooming-care-scoring"
               showingBellyCoatCleanliness={scoreData.showingBellyCoatCleanliness}
               coatCleanWellGroomed={scoreData.coatCleanWellGroomed}
-              catHealthCare={scoreData.catHealthCare}
               comments={scoreData.groomingCareComments}
-              total={totals.groomingCareTotal}
+              total={scoreData.showingBellyCoatCleanliness + scoreData.coatCleanWellGroomed}
               onScoreChange={handleScoreChange}
             />
           </Grid>
 
-          {/* Knowledge Scoring */}
+          {/* Knowledge of Exhibitor Section */}
           <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
+                Knowledge of Exhibitor (15 pts)
+              </Typography>
+            </Box>
             <KnowledgeScoring
               data-testid="knowledge-scoring"
+              catHealthCare={scoreData.catHealthCare}
               generalKnowledge={scoreData.generalKnowledge}
               catBreedsShowing={scoreData.catBreedsShowing}
               catAnatomy={scoreData.catAnatomy}

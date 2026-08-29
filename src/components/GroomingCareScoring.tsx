@@ -1,10 +1,10 @@
 import React from 'react';
-import { Box, Typography, TextField, Slider, Paper } from '@mui/material';
+import { Box, Typography, TextField, Paper } from '@mui/material';
+import { ScoreInput } from './ScoreInput';
 
 interface GroomingCareScoringProps {
   showingBellyCoatCleanliness: number;
   coatCleanWellGroomed: number;
-  catHealthCare: number;
   comments: string;
   total: number;
   onScoreChange: (field: string, value: number | string) => void;
@@ -13,7 +13,6 @@ interface GroomingCareScoringProps {
 export const GroomingCareScoring: React.FC<GroomingCareScoringProps> = ({
   showingBellyCoatCleanliness,
   coatCleanWellGroomed,
-  catHealthCare,
   comments,
   total,
   onScoreChange
@@ -21,79 +20,26 @@ export const GroomingCareScoring: React.FC<GroomingCareScoringProps> = ({
   return (
     <Paper sx={{ p: 3, mb: 3, backgroundColor: '#fff3e0', border: '2px solid #ff9800' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">Grooming & Care</Typography>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/14 points</Typography>
+        <Typography variant="h5">Grooming & Presentation</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{total}/11 points</Typography>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 3 }}>
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Showing belly/coat/cleanliness (1-3 pts)
-          </Typography>
-          <Slider
-            value={showingBellyCoatCleanliness}
-            onChange={(e, newValue) => onScoreChange('showingBellyCoatCleanliness', newValue)}
-            min={1}
-            max={3}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={showingBellyCoatCleanliness}
-            onChange={(e) => onScoreChange('showingBellyCoatCleanliness', Math.max(1, Math.min(3, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 3 }}
-          />
-        </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 3, mb: 3 }}>
+        <ScoreInput
+          value={showingBellyCoatCleanliness}
+          min={1}
+          max={3}
+          label="Showing belly/coat/cleanliness"
+          onChange={(value) => onScoreChange('showingBellyCoatCleanliness', value)}
+        />
 
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Coat clean & well groomed (1-8 pts)
-          </Typography>
-          <Slider
-            value={coatCleanWellGroomed}
-            onChange={(e, newValue) => onScoreChange('coatCleanWellGroomed', newValue)}
-            min={1}
-            max={8}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={coatCleanWellGroomed}
-            onChange={(e) => onScoreChange('coatCleanWellGroomed', Math.max(1, Math.min(8, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 8 }}
-          />
-        </Box>
-
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Cat health/care (1-3 pts)
-          </Typography>
-          <Slider
-            value={catHealthCare}
-            onChange={(e, newValue) => onScoreChange('catHealthCare', newValue)}
-            min={1}
-            max={3}
-            marks
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            fullWidth
-            value={catHealthCare}
-            onChange={(e) => onScoreChange('catHealthCare', Math.max(1, Math.min(3, parseInt(e.target.value) || 1)))}
-            inputProps={{ min: 1, max: 3 }}
-          />
-        </Box>
+        <ScoreInput
+          value={coatCleanWellGroomed}
+          min={1}
+          max={8}
+          label="Coat clean & well groomed"
+          onChange={(value) => onScoreChange('coatCleanWellGroomed', value)}
+        />
       </Box>
 
       <Box>
