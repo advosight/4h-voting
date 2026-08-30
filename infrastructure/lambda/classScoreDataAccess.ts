@@ -160,9 +160,19 @@ export class ClassScoreDataAccess {
   private calculateClassTotalScore(
     beautyScore: number,
     personalityScore: number,
-    balanceProportionScore: number
+    balanceProportionScore: number,
+    healthChecklist?: HealthGroomingChecklist
   ): number {
-    return beautyScore + personalityScore + balanceProportionScore;
+    const mainCategoriesScore = beautyScore + personalityScore + balanceProportionScore;
+    let healthScore = 0;
+    if (healthChecklist) {
+      healthScore = (healthChecklist.coatCleanGroomed || 0) +
+                    (healthChecklist.teethGumsHealthy || 0) +
+                    (healthChecklist.eyesNoseClear || 0) +
+                    (healthChecklist.earsCleanMiteFree || 0) +
+                    (healthChecklist.toenailsClipped || 0);
+    }
+    return mainCategoriesScore + healthScore;
   }
 
   /**
@@ -172,24 +182,29 @@ export class ClassScoreDataAccess {
     totalScore: number,
     healthChecklist: HealthGroomingChecklist
   ): RibbonType {
-    // Check if all health items pass (excluding flea issues which is a negative indicator)
-    const healthItemsPassed = healthChecklist.coatCleanGroomed &&
-                             healthChecklist.teethGumsHealthy &&
-                             healthChecklist.eyesNoseClear &&
-                             healthChecklist.earsCleanMiteFree &&
-                             healthChecklist.toenailsClipped;
-
-    // If any health item fails OR flea issues are present, Red Ribbon regardless of score
-    if (!healthItemsPassed || healthChecklist.fleaIssues) {
+    // If flea issues are present, Red Ribbon regardless of score
+    if (healthChecklist.fleaIssues) {
       return 'Red';
     }
 
-    // Determine ribbon based on score thresholds
-    if (totalScore >= 45 && totalScore <= 50) {
-      return 'Blue';
-    } else if (totalScore >= 35 && totalScore <= 44) {
+    // Check if all health items are passing (score > 0)
+    const healthItemsPassed = (healthChecklist.coatCleanGroomed || 0) > 0 &&
+                             (healthChecklist.teethGumsHealthy || 0) > 0 &&
+                             (healthChecklist.eyesNoseClear || 0) > 0 &&
+                             (healthChecklist.earsCleanMiteFree || 0) > 0 &&
+                             (healthChecklist.toenailsClipped || 0) > 0;
+
+    // If any health item fails, Red Ribbon regardless of score
+    if (!healthItemsPassed) {
       return 'Red';
-    } else if (totalScore >= 25 && totalScore <= 34) {
+    }
+
+    // Determine ribbon based on score thresholds (0-100)
+    if (totalScore >= 90) {
+      return 'Blue';
+    } else if (totalScore >= 70 && totalScore < 90) {
+      return 'Red';
+    } else if (totalScore >= 50 && totalScore < 70) {
       return 'White';
     } else {
       return 'Participation';
@@ -202,11 +217,6 @@ export class ClassScoreDataAccess {
   async createClassScore(input: CreateClassScoreInput): Promise<ClassScore> {
     const id = randomUUID();
     const timestamp = new Date().toISOString();
-    const totalScore = this.calculateClassTotalScore(
-      input.beautyScore,
-      input.personalityScore,
-      input.balanceProportionScore
-    );
 
     const healthChecklist: HealthGroomingChecklist = {
       coatCleanGroomed: input.coatCleanGroomed,
@@ -216,6 +226,13 @@ export class ClassScoreDataAccess {
       toenailsClipped: input.toenailsClipped,
       fleaIssues: input.fleaIssues
     };
+
+    const totalScore = this.calculateClassTotalScore(
+      input.beautyScore,
+      input.personalityScore,
+      input.balanceProportionScore,
+      healthChecklist
+    );
 
     const ribbonEligibility = this.calculateRibbonEligibility(totalScore, healthChecklist);
 
@@ -356,11 +373,6 @@ export class ClassScoreDataAccess {
 
     // Calculate new total score and ribbon eligibility if any category scores are being updated
     const updatedScore = { ...existingScore, ...input };
-    const newTotalScore = this.calculateClassTotalScore(
-      updatedScore.beautyScore,
-      updatedScore.personalityScore,
-      updatedScore.balanceProportionScore
-    );
 
     const healthChecklist: HealthGroomingChecklist = {
       coatCleanGroomed: updatedScore.coatCleanGroomed,
@@ -370,6 +382,13 @@ export class ClassScoreDataAccess {
       toenailsClipped: updatedScore.toenailsClipped,
       fleaIssues: updatedScore.fleaIssues
     };
+
+    const newTotalScore = this.calculateClassTotalScore(
+      updatedScore.beautyScore,
+      updatedScore.personalityScore,
+      updatedScore.balanceProportionScore,
+      healthChecklist
+    );
 
     const newRibbonEligibility = this.calculateRibbonEligibility(newTotalScore, healthChecklist);
 
