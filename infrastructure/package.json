@@ -21,6 +21,7 @@
     "backfill:daily-votes:apply": "node scripts/backfill-daily-votes.js --apply"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.0",
     "@types/node": "^26.1.1",
     "@vitest/ui": "^4.1.10",
     "aws-cdk": "^2.1130.0",
