@@ -88,6 +88,34 @@ export interface HealthGroomingChecklist {
 
 export type RibbonType = 'Blue' | 'Red' | 'White' | 'Participation';
 
+/**
+ * Convert boolean health field values to numeric scores for backward compatibility.
+ * When the system transitioned from boolean checklist to numeric scoring,
+ * existing data stored booleans. This converts them to numeric scores.
+ */
+function convertHealthFieldToNumber(field: string, value: any): number {
+  // If already a number, return as-is
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  // Convert boolean to numeric score based on field
+  if (typeof value === 'boolean') {
+    const defaultScores: { [key: string]: number } = {
+      coatCleanGroomed: 15,
+      teethGumsHealthy: 5,
+      eyesNoseClear: 5,
+      earsCleanMiteFree: 10,
+      toenailsClipped: 15,
+    };
+
+    // true = full score, false = 0
+    return value ? (defaultScores[field] || 0) : 0;
+  }
+
+  return 0;
+}
+
 export class ClassScoreDataAccess {
   constructor(private docClient: DynamoDBDocumentClient, private tableName: string) {}
 
@@ -294,11 +322,11 @@ export class ClassScoreDataAccess {
       personalityComments: result.Item.personalityComments,
       balanceProportionScore: parseInt(result.Item.balanceProportionScore) || 0,
       balanceProportionComments: result.Item.balanceProportionComments,
-      coatCleanGroomed: result.Item.coatCleanGroomed,
-      teethGumsHealthy: result.Item.teethGumsHealthy,
-      eyesNoseClear: result.Item.eyesNoseClear,
-      earsCleanMiteFree: result.Item.earsCleanMiteFree,
-      toenailsClipped: result.Item.toenailsClipped,
+      coatCleanGroomed: convertHealthFieldToNumber('coatCleanGroomed', result.Item.coatCleanGroomed),
+      teethGumsHealthy: convertHealthFieldToNumber('teethGumsHealthy', result.Item.teethGumsHealthy),
+      eyesNoseClear: convertHealthFieldToNumber('eyesNoseClear', result.Item.eyesNoseClear),
+      earsCleanMiteFree: convertHealthFieldToNumber('earsCleanMiteFree', result.Item.earsCleanMiteFree),
+      toenailsClipped: convertHealthFieldToNumber('toenailsClipped', result.Item.toenailsClipped),
       fleaIssues: result.Item.fleaIssues,
       healthGroomingComments: result.Item.healthGroomingComments,
       totalScore: parseInt(result.Item.totalScore) || 0,
