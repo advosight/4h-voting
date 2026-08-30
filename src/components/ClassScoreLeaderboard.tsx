@@ -474,7 +474,7 @@ function ClassScoreLeaderboard({
                         fontWeight: 'bold',
                         color: category.color
                       }}>
-                        {entry.highestScore}/50
+                        {entry.highestScore}/100
                       </div>
                       <div style={{ fontSize: '0.7em', color: '#666' }}>
                         Avg: {entry.averageScore} ({entry.scoreCount} score{entry.scoreCount !== 1 ? 's' : ''})
@@ -562,7 +562,7 @@ function ClassScoreLeaderboard({
                   fontWeight: 'bold',
                   color: getRibbonColor(entry.ribbonEligibility)
                 }}>
-                  {entry.highestScore}/50
+                  {entry.highestScore}/100
                 </div>
                 <div style={{ fontSize: '0.8em', color: '#666' }}>
                   Avg: {entry.averageScore} ({entry.scoreCount} score{entry.scoreCount !== 1 ? 's' : ''})
