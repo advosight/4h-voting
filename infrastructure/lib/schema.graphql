@@ -346,11 +346,11 @@ input CreateClassScoreInput {
   personalityComments: String
   balanceProportionScore: Int!
   balanceProportionComments: String
-  coatCleanGroomed: Boolean!
-  teethGumsHealthy: Boolean!
-  eyesNoseClear: Boolean!
-  earsCleanMiteFree: Boolean!
-  toenailsClipped: Boolean!
+  coatCleanGroomed: Int!
+  teethGumsHealthy: Int!
+  eyesNoseClear: Int!
+  earsCleanMiteFree: Int!
+  toenailsClipped: Int!
   fleaIssues: Boolean!
   healthGroomingComments: String
   isFinalized: Boolean
@@ -363,11 +363,11 @@ input UpdateClassScoreInput {
   personalityComments: String
   balanceProportionScore: Int
   balanceProportionComments: String
-  coatCleanGroomed: Boolean
-  teethGumsHealthy: Boolean
-  eyesNoseClear: Boolean
-  earsCleanMiteFree: Boolean
-  toenailsClipped: Boolean
+  coatCleanGroomed: Int
+  teethGumsHealthy: Int
+  eyesNoseClear: Int
+  earsCleanMiteFree: Int
+  toenailsClipped: Int
   fleaIssues: Boolean
   healthGroomingComments: String
   isFinalized: Boolean

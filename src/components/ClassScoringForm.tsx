@@ -74,11 +74,11 @@ interface ClassScoreFormData {
   personalityComments: string;
   balanceProportionScore: number;
   balanceProportionComments: string;
-  coatCleanGroomed: boolean;
-  teethGumsHealthy: boolean;
-  eyesNoseClear: boolean;
-  earsCleanMiteFree: boolean;
-  toenailsClipped: boolean;
+  coatCleanGroomed: number;
+  teethGumsHealthy: number;
+  eyesNoseClear: number;
+  earsCleanMiteFree: number;
+  toenailsClipped: number;
   fleaIssues: boolean;
   healthGroomingComments: string;
 }
@@ -133,11 +133,11 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
     personalityComments: existingScore?.personalityComments || '',
     balanceProportionScore: existingScore?.balanceProportionScore ?? 15,
     balanceProportionComments: existingScore?.balanceProportionComments || '',
-    coatCleanGroomed: existingScore?.coatCleanGroomed ?? true,
-    teethGumsHealthy: existingScore?.teethGumsHealthy ?? true,
-    eyesNoseClear: existingScore?.eyesNoseClear ?? true,
-    earsCleanMiteFree: existingScore?.earsCleanMiteFree ?? true,
-    toenailsClipped: existingScore?.toenailsClipped ?? true,
+    coatCleanGroomed: existingScore?.coatCleanGroomed ?? 15,
+    teethGumsHealthy: existingScore?.teethGumsHealthy ?? 5,
+    eyesNoseClear: existingScore?.eyesNoseClear ?? 5,
+    earsCleanMiteFree: existingScore?.earsCleanMiteFree ?? 10,
+    toenailsClipped: existingScore?.toenailsClipped ?? 15,
     fleaIssues: existingScore?.fleaIssues ?? false,
     healthGroomingComments: existingScore?.healthGroomingComments || ''
   });
@@ -146,14 +146,9 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
 
   // Calculate total score and ribbon eligibility
   const mainCategoriesScore = formData.beautyScore + formData.personalityScore + formData.balanceProportionScore;
-  const healthChecksPassed = [
-    formData.coatCleanGroomed,
-    formData.teethGumsHealthy,
-    formData.eyesNoseClear,
-    formData.earsCleanMiteFree,
-    formData.toenailsClipped
-  ].filter(v => v).length;
-  const healthGroomingScore = healthChecksPassed;
+  const healthGroomingScore = formData.coatCleanGroomed + formData.teethGumsHealthy +
+    formData.eyesNoseClear + formData.earsCleanMiteFree +
+    formData.toenailsClipped;
   const totalScore = mainCategoriesScore + healthGroomingScore;
   const ribbonEligibility = calculateRibbonEligibility(totalScore, formData.fleaIssues);
 
@@ -315,9 +310,9 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
               }}
             />
             <Chip
-              label={`Health/Grooming Checks: ${healthGroomingScore}/5`}
+              label={`Health/Grooming: ${healthGroomingScore}/${HEALTH_GROOMING_MAX_SCORE}`}
               sx={{
-                backgroundColor: healthGroomingScore === 5 ? '#4caf50' : healthGroomingScore >= 3 ? '#ff9800' : '#f44336',
+                backgroundColor: healthGroomingScore >= 40 ? '#4caf50' : healthGroomingScore >= 30 ? '#ff9800' : '#f44336',
                 color: '#fff',
                 fontWeight: 'bold'
               }}
@@ -481,83 +476,63 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
 
           <Grid container spacing={3}>
             <Grid size={{ xs: 12 }}>
-              <Card sx={{ p: 2, border: formData.coatCleanGroomed ? '2px solid #4caf50' : '1px solid #e0e0e0', mb: 3 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.coatCleanGroomed}
-                      onChange={(e) => handleInputChange('coatCleanGroomed', e.target.checked)}
-                      color="success"
-                    />
-                  }
-                  label="✓ Coat Clean & Well Groomed"
-                  sx={{ color: formData.coatCleanGroomed ? '#4caf50' : 'inherit' }}
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.coatCleanGroomed}
+                  min={0}
+                  max={COAT_CLEAN_GROOMED_MAX_SCORE}
+                  label="Coat Clean & Well Groomed"
+                  onChange={(value) => handleInputChange('coatCleanGroomed', value)}
                 />
-              </Card>
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <Card sx={{ p: 2, border: formData.teethGumsHealthy ? '2px solid #4caf50' : '1px solid #e0e0e0', mb: 3 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.teethGumsHealthy}
-                      onChange={(e) => handleInputChange('teethGumsHealthy', e.target.checked)}
-                      color="success"
-                    />
-                  }
-                  label="✓ Teeth/Gums Clean & Healthy"
-                  sx={{ color: formData.teethGumsHealthy ? '#4caf50' : 'inherit' }}
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.teethGumsHealthy}
+                  min={0}
+                  max={TEETH_GUMS_MAX_SCORE}
+                  label="Teeth/Gums Clean & Healthy"
+                  onChange={(value) => handleInputChange('teethGumsHealthy', value)}
                 />
-              </Card>
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <Card sx={{ p: 2, border: formData.eyesNoseClear ? '2px solid #4caf50' : '1px solid #e0e0e0', mb: 3 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.eyesNoseClear}
-                      onChange={(e) => handleInputChange('eyesNoseClear', e.target.checked)}
-                      color="success"
-                    />
-                  }
-                  label="✓ Eyes & Nose Clear"
-                  sx={{ color: formData.eyesNoseClear ? '#4caf50' : 'inherit' }}
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.eyesNoseClear}
+                  min={0}
+                  max={EYES_NOSE_MAX_SCORE}
+                  label="Eyes & Nose Clear"
+                  onChange={(value) => handleInputChange('eyesNoseClear', value)}
                 />
-              </Card>
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <Card sx={{ p: 2, border: formData.earsCleanMiteFree ? '2px solid #4caf50' : '1px solid #e0e0e0', mb: 3 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.earsCleanMiteFree}
-                      onChange={(e) => handleInputChange('earsCleanMiteFree', e.target.checked)}
-                      color="success"
-                    />
-                  }
-                  label="✓ Ears Clean Free of Mites"
-                  sx={{ color: formData.earsCleanMiteFree ? '#4caf50' : 'inherit' }}
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.earsCleanMiteFree}
+                  min={0}
+                  max={EARS_CLEAN_MAX_SCORE}
+                  label="Ears Clean Free of Mites"
+                  onChange={(value) => handleInputChange('earsCleanMiteFree', value)}
                 />
-              </Card>
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <Card sx={{ p: 2, border: formData.toenailsClipped ? '2px solid #4caf50' : '1px solid #e0e0e0', mb: 3 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.toenailsClipped}
-                      onChange={(e) => handleInputChange('toenailsClipped', e.target.checked)}
-                      color="success"
-                    />
-                  }
-                  label="✓ Toenails/Claws Clipped"
-                  sx={{ color: formData.toenailsClipped ? '#4caf50' : 'inherit' }}
+              <Box sx={{ mb: 3 }}>
+                <ScoreInput
+                  value={formData.toenailsClipped}
+                  min={0}
+                  max={TOENAILS_CLIPPED_MAX_SCORE}
+                  label="Toenails/Claws Clipped"
+                  onChange={(value) => handleInputChange('toenailsClipped', value)}
                 />
-              </Card>
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12 }}>

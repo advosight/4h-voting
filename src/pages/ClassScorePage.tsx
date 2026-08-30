@@ -158,11 +158,11 @@ interface ClassScore {
   personalityComments?: string;
   balanceProportionScore: number;
   balanceProportionComments?: string;
-  coatCleanGroomed: boolean;
-  teethGumsHealthy: boolean;
-  eyesNoseClear: boolean;
-  earsCleanMiteFree: boolean;
-  toenailsClipped: boolean;
+  coatCleanGroomed: number;
+  teethGumsHealthy: number;
+  eyesNoseClear: number;
+  earsCleanMiteFree: number;
+  toenailsClipped: number;
   fleaIssues: boolean;
   healthGroomingComments?: string;
   totalScore?: number;
