@@ -75,7 +75,10 @@ export async function getUserContext(event: any): Promise<UserContext | null> {
     // This handles cases where the ID token isn't configured to include custom attributes
     if (!customRole) {
       console.log('custom:role not in token claims, fetching from Cognito...');
-      customRole = await getUserRoleFromCognito(userId) || undefined;
+      const fetchedRole = await getUserRoleFromCognito(userId);
+      if (fetchedRole) {
+        customRole = fetchedRole;
+      }
     }
 
     // Default role logic
