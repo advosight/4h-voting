@@ -165,9 +165,9 @@ interface ClassScore {
   toenailsClipped: boolean;
   fleaIssues: boolean;
   healthGroomingComments?: string;
-  totalScore: number;
-  ribbonEligibility: string;
-  timestamp: string;
+  totalScore?: number;
+  ribbonEligibility?: string;
+  timestamp?: string;
   isFinalized: boolean;
 }
 
