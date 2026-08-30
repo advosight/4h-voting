@@ -328,26 +328,48 @@ export class ClassScoreDataAccess {
 
     if (!result.Item) return null;
 
+    const beautyScore = parseInt(result.Item.beautyScore) || 0;
+    const personalityScore = parseInt(result.Item.personalityScore) || 0;
+    const balanceProportionScore = parseInt(result.Item.balanceProportionScore) || 0;
+    const coatCleanGroomed = convertHealthFieldToNumber('coatCleanGroomed', result.Item.coatCleanGroomed);
+    const teethGumsHealthy = convertHealthFieldToNumber('teethGumsHealthy', result.Item.teethGumsHealthy);
+    const eyesNoseClear = convertHealthFieldToNumber('eyesNoseClear', result.Item.eyesNoseClear);
+    const earsCleanMiteFree = convertHealthFieldToNumber('earsCleanMiteFree', result.Item.earsCleanMiteFree);
+    const toenailsClipped = convertHealthFieldToNumber('toenailsClipped', result.Item.toenailsClipped);
+    const fleaIssues = result.Item.fleaIssues;
+
+    const healthChecklist: HealthGroomingChecklist = {
+      coatCleanGroomed,
+      teethGumsHealthy,
+      eyesNoseClear,
+      earsCleanMiteFree,
+      toenailsClipped,
+      fleaIssues
+    };
+
+    const totalScore = this.calculateClassTotalScore(beautyScore, personalityScore, balanceProportionScore, healthChecklist);
+    const ribbonEligibility = this.calculateRibbonEligibility(totalScore, healthChecklist);
+
     return {
       id: result.Item.id,
       catId: result.Item.catId,
       judgeId: result.Item.judgeId,
       judgeName: result.Item.judgeName,
-      beautyScore: parseInt(result.Item.beautyScore) || 0,
+      beautyScore,
       beautyComments: result.Item.beautyComments,
-      personalityScore: parseInt(result.Item.personalityScore) || 0,
+      personalityScore,
       personalityComments: result.Item.personalityComments,
-      balanceProportionScore: parseInt(result.Item.balanceProportionScore) || 0,
+      balanceProportionScore,
       balanceProportionComments: result.Item.balanceProportionComments,
-      coatCleanGroomed: convertHealthFieldToNumber('coatCleanGroomed', result.Item.coatCleanGroomed),
-      teethGumsHealthy: convertHealthFieldToNumber('teethGumsHealthy', result.Item.teethGumsHealthy),
-      eyesNoseClear: convertHealthFieldToNumber('eyesNoseClear', result.Item.eyesNoseClear),
-      earsCleanMiteFree: convertHealthFieldToNumber('earsCleanMiteFree', result.Item.earsCleanMiteFree),
-      toenailsClipped: convertHealthFieldToNumber('toenailsClipped', result.Item.toenailsClipped),
-      fleaIssues: result.Item.fleaIssues,
+      coatCleanGroomed,
+      teethGumsHealthy,
+      eyesNoseClear,
+      earsCleanMiteFree,
+      toenailsClipped,
+      fleaIssues,
       healthGroomingComments: result.Item.healthGroomingComments,
-      totalScore: parseInt(result.Item.totalScore) || 0,
-      ribbonEligibility: result.Item.ribbonEligibility,
+      totalScore,
+      ribbonEligibility,
       timestamp: result.Item.timestamp || new Date().toISOString(),
       createdAt: result.Item.createdAt || result.Item.timestamp || new Date().toISOString(),
       updatedAt: result.Item.updatedAt || result.Item.timestamp || new Date().toISOString(),
@@ -632,34 +654,58 @@ export class ClassScoreDataAccess {
       return [];
     }
 
-    return result.Items.map(item => ({
-      id: item.id,
-      catId: item.catId,
-      judgeId: item.judgeId,
-      judgeName: item.judgeName,
-      beautyScore: parseInt(item.beautyScore) || 0,
-      beautyComments: item.beautyComments,
-      personalityScore: parseInt(item.personalityScore) || 0,
-      personalityComments: item.personalityComments,
-      balanceProportionScore: parseInt(item.balanceProportionScore) || 0,
-      balanceProportionComments: item.balanceProportionComments,
-      coatCleanGroomed: convertHealthFieldToNumber('coatCleanGroomed', item.coatCleanGroomed),
-      teethGumsHealthy: convertHealthFieldToNumber('teethGumsHealthy', item.teethGumsHealthy),
-      eyesNoseClear: convertHealthFieldToNumber('eyesNoseClear', item.eyesNoseClear),
-      earsCleanMiteFree: convertHealthFieldToNumber('earsCleanMiteFree', item.earsCleanMiteFree),
-      toenailsClipped: convertHealthFieldToNumber('toenailsClipped', item.toenailsClipped),
-      fleaIssues: item.fleaIssues,
-      healthGroomingComments: item.healthGroomingComments,
-      totalScore: parseInt(item.totalScore) || 0,
-      ribbonEligibility: item.ribbonEligibility,
-      timestamp: item.timestamp || new Date().toISOString(),
-      createdAt: item.createdAt || item.timestamp || new Date().toISOString(),
-      updatedAt: item.updatedAt || item.timestamp || new Date().toISOString(),
-      isFinalized: item.isFinalized,
-      modificationCount: parseInt(item.modificationCount) || 0,
-      lastModifiedBy: item.lastModifiedBy,
-      lastModifiedAt: item.lastModifiedAt,
-    }));
+    return result.Items.map(item => {
+      const beautyScore = parseInt(item.beautyScore) || 0;
+      const personalityScore = parseInt(item.personalityScore) || 0;
+      const balanceProportionScore = parseInt(item.balanceProportionScore) || 0;
+      const coatCleanGroomed = convertHealthFieldToNumber('coatCleanGroomed', item.coatCleanGroomed);
+      const teethGumsHealthy = convertHealthFieldToNumber('teethGumsHealthy', item.teethGumsHealthy);
+      const eyesNoseClear = convertHealthFieldToNumber('eyesNoseClear', item.eyesNoseClear);
+      const earsCleanMiteFree = convertHealthFieldToNumber('earsCleanMiteFree', item.earsCleanMiteFree);
+      const toenailsClipped = convertHealthFieldToNumber('toenailsClipped', item.toenailsClipped);
+      const fleaIssues = item.fleaIssues;
+
+      const healthChecklist: HealthGroomingChecklist = {
+        coatCleanGroomed,
+        teethGumsHealthy,
+        eyesNoseClear,
+        earsCleanMiteFree,
+        toenailsClipped,
+        fleaIssues
+      };
+
+      const totalScore = this.calculateClassTotalScore(beautyScore, personalityScore, balanceProportionScore, healthChecklist);
+      const ribbonEligibility = this.calculateRibbonEligibility(totalScore, healthChecklist);
+
+      return {
+        id: item.id,
+        catId: item.catId,
+        judgeId: item.judgeId,
+        judgeName: item.judgeName,
+        beautyScore,
+        beautyComments: item.beautyComments,
+        personalityScore,
+        personalityComments: item.personalityComments,
+        balanceProportionScore,
+        balanceProportionComments: item.balanceProportionComments,
+        coatCleanGroomed,
+        teethGumsHealthy,
+        eyesNoseClear,
+        earsCleanMiteFree,
+        toenailsClipped,
+        fleaIssues,
+        healthGroomingComments: item.healthGroomingComments,
+        totalScore,
+        ribbonEligibility,
+        timestamp: item.timestamp || new Date().toISOString(),
+        createdAt: item.createdAt || item.timestamp || new Date().toISOString(),
+        updatedAt: item.updatedAt || item.timestamp || new Date().toISOString(),
+        isFinalized: item.isFinalized,
+        modificationCount: parseInt(item.modificationCount) || 0,
+        lastModifiedBy: item.lastModifiedBy,
+        lastModifiedAt: item.lastModifiedAt,
+      };
+    });
   }
 
   /**
