@@ -23,12 +23,13 @@
     "typeRoots": [
       "./node_modules/@types"
     ],
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "skipLibCheck": true
   },
   "exclude": [
     "node_modules",
     "cdk.out",
+    "lambda/__tests__",
     "lambda/scoreResolver.example.ts"
   ]
 }
