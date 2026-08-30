@@ -334,15 +334,19 @@ const ClassScorePage: React.FC = () => {
       setSaving(true);
       setError(null);
 
+      console.log('Saving class score data:', classScoreData);
+
       await handleOptimisticLockConflict(
         async () => {
           const saveWithRetry = withRetry(async () => {
-            return await client.graphql({
+            const response = await client.graphql({
               query: createClassScore,
               variables: { input: classScoreData }
             });
+            console.log('Save response:', response);
+            return response;
           }, { maxRetries: 2 });
-          
+
           return await saveWithRetry();
         },
         async () => {
@@ -374,15 +378,20 @@ const ClassScorePage: React.FC = () => {
       setSaving(true);
       setError(null);
 
+      const submitData = { ...classScoreData, isFinalized: true };
+      console.log('Submitting class score data:', submitData);
+
       await handleOptimisticLockConflict(
         async () => {
           const submitWithRetry = withRetry(async () => {
-            return await client.graphql({
+            const response = await client.graphql({
               query: createClassScore,
-              variables: { input: { ...classScoreData, isFinalized: true } }
+              variables: { input: submitData }
             });
+            console.log('Submit response:', response);
+            return response;
           }, { maxRetries: 2 });
-          
+
           return await submitWithRetry();
         },
         async () => {
@@ -393,8 +402,8 @@ const ClassScorePage: React.FC = () => {
 
       // Navigate back to the class scoring list with success message
       navigate('/class-scoring', {
-        state: { 
-          message: `Class score submitted successfully for ${cat?.name}!` 
+        state: {
+          message: `Class score submitted successfully for ${cat?.name}!`
         }
       });
       

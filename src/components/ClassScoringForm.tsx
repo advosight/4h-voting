@@ -216,6 +216,7 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
       isFinalized: false
     };
 
+    console.log('ClassScoringForm - Save data:', classScoreData);
     await onSave(classScoreData);
   };
 
@@ -228,6 +229,7 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
       isFinalized: true
     };
 
+    console.log('ClassScoringForm - Submit data:', classScoreData);
     await onSubmit(classScoreData);
   };
 
