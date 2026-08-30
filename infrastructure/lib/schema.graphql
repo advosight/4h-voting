@@ -300,11 +300,11 @@ type ClassScore {
   personalityComments: String @aws_cognito_user_pools
   balanceProportionScore: Int! @aws_cognito_user_pools
   balanceProportionComments: String @aws_cognito_user_pools
-  coatCleanGroomed: Boolean! @aws_cognito_user_pools
-  teethGumsHealthy: Boolean! @aws_cognito_user_pools
-  eyesNoseClear: Boolean! @aws_cognito_user_pools
-  earsCleanMiteFree: Boolean! @aws_cognito_user_pools
-  toenailsClipped: Boolean! @aws_cognito_user_pools
+  coatCleanGroomed: Int! @aws_cognito_user_pools
+  teethGumsHealthy: Int! @aws_cognito_user_pools
+  eyesNoseClear: Int! @aws_cognito_user_pools
+  earsCleanMiteFree: Int! @aws_cognito_user_pools
+  toenailsClipped: Int! @aws_cognito_user_pools
   fleaIssues: Boolean! @aws_cognito_user_pools
   healthGroomingComments: String @aws_cognito_user_pools
   totalScore: Int! @aws_cognito_user_pools
