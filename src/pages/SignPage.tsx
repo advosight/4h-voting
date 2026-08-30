@@ -12,6 +12,7 @@ const getCat = `
       name
       owner
       votes
+      cageNumber
     }
   }
 `;
@@ -24,6 +25,7 @@ const listCats = `
         name
         owner
         votes
+        cageNumber
       }
     }
   }
@@ -79,7 +81,7 @@ function SignPage(): JSX.Element {
         <div className="sign-header">
           <h1 className="competition-title">🐈‍⬛ People's Choice Competition 🐈‍⬛</h1>
           <div className="cage-info">
-            <h2 className="cage-number">Cage {cat.cageNumber || (cats.findIndex(c => c.id === cat.id) + 1)}</h2>
+            <h2 className="cage-number">Cage {cat.cageNumber || 'Unknown'}</h2>
           </div>
         </div>
         
