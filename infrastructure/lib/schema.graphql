@@ -427,7 +427,8 @@ type FitShowScore {
   groomingCareTotal: Int! @aws_cognito_user_pools
   knowledgeTotal: Int! @aws_cognito_user_pools
   totalScore: Int! @aws_cognito_user_pools
-  
+  ribbonEligibility: String! @aws_cognito_user_pools
+
   # Comments
   appearanceComments: String @aws_cognito_user_pools
   handlingComments: String @aws_cognito_user_pools

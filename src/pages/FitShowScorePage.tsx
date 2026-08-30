@@ -118,6 +118,7 @@ const getFitShowScoresByCat = `
         groomingCareTotal
         knowledgeTotal
         totalScore
+        ribbonEligibility
         appearanceComments
         handlingComments
         demonstrationComments
@@ -175,6 +176,7 @@ const getFitShowScore = `
       groomingCareTotal
       knowledgeTotal
       totalScore
+      ribbonEligibility
       appearanceComments
       handlingComments
       demonstrationComments

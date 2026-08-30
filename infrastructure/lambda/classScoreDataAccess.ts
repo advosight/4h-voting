@@ -202,9 +202,9 @@ export class ClassScoreDataAccess {
     // Determine ribbon based on score thresholds (0-100)
     if (totalScore >= 90) {
       return 'Blue';
-    } else if (totalScore >= 70 && totalScore < 90) {
+    } else if (totalScore >= 80 && totalScore < 90) {
       return 'Red';
-    } else if (totalScore >= 50 && totalScore < 70) {
+    } else if (totalScore >= 70 && totalScore < 80) {
       return 'White';
     } else {
       return 'Participation';

@@ -70,7 +70,8 @@ export interface FitShowScore {
   groomingCareTotal: number;
   knowledgeTotal: number;
   totalScore: number;
-  
+  ribbonEligibility: string;
+
   // Comments
   appearanceComments?: string;
   handlingComments?: string;
@@ -169,13 +170,13 @@ export class FitShowScoreDataAccess {
     const appearanceTotal = input.attire + input.attentive + input.courteous;
     const handlingTotal = input.controlEquipment + input.pickupCarrying;
     const demonstrationTotal = input.showingHeadShape + input.showingBodyType + input.showingTail + input.showingCoatTexture;
-    const healthExaminationTotal = input.showingMouthTeethGums + input.conditionMouthTeethGums + 
-      input.showingNose + input.showingEyes + input.conditionNoseEyes + 
+    const healthExaminationTotal = input.showingMouthTeethGums + input.conditionMouthTeethGums +
+      input.showingNose + input.showingEyes + input.conditionNoseEyes +
       input.showingEars + input.earsClean + input.showingToenailsClaws + input.toenailsClipped;
     const groomingCareTotal = input.showingBellyCoatCleanliness + input.coatCleanWellGroomed + input.catHealthCare;
     const knowledgeTotal = input.generalKnowledge + input.catBreedsShowing + input.catAnatomy + input.fourHKnowledge;
-    
-    const totalScore = appearanceTotal + handlingTotal + demonstrationTotal + 
+
+    const totalScore = appearanceTotal + handlingTotal + demonstrationTotal +
       healthExaminationTotal + groomingCareTotal + knowledgeTotal;
 
     return {
@@ -189,6 +190,18 @@ export class FitShowScoreDataAccess {
     };
   }
 
+  private calculateRibbonEligibility(totalScore: number): string {
+    if (totalScore >= 90) {
+      return 'Blue';
+    } else if (totalScore >= 80 && totalScore < 90) {
+      return 'Red';
+    } else if (totalScore >= 70 && totalScore < 80) {
+      return 'White';
+    } else {
+      return 'Participation';
+    }
+  }
+
   /**
    * Create a new fit and show score
    */
@@ -196,11 +209,13 @@ export class FitShowScoreDataAccess {
     const id = uuidv4();
     const timestamp = new Date().toISOString();
     const scores = this.calculateScores(input);
+    const ribbonEligibility = this.calculateRibbonEligibility(scores.totalScore);
 
     const fitShowScore: FitShowScore = {
       id,
       ...input,
       ...scores,
+      ribbonEligibility,
       createdAt: timestamp,
       updatedAt: timestamp,
       isFinalized: input.isFinalized || false,
@@ -270,13 +285,16 @@ export class FitShowScoreDataAccess {
     }
 
     const { PK, SK, ...fitShowScore } = result.Item;
-    
+
     // Handle migration for existing records without timestamp field
     if (!fitShowScore.timestamp) {
       // Use createdAt if available, otherwise use current timestamp
       fitShowScore.timestamp = fitShowScore.createdAt || new Date().toISOString();
     }
-    
+
+    // Recalculate ribbon eligibility based on current total score
+    fitShowScore.ribbonEligibility = this.calculateRibbonEligibility(fitShowScore.totalScore);
+
     return fitShowScore as FitShowScore;
   }
 
@@ -298,10 +316,12 @@ export class FitShowScoreDataAccess {
     // the category totals computed below into NaN).
     const merged = { ...existing, ...input };
     const scores = this.calculateScores(merged);
+    const ribbonEligibility = this.calculateRibbonEligibility(scores.totalScore);
 
     const updatedScore: FitShowScore = {
       ...merged,
       ...scores,
+      ribbonEligibility,
       updatedAt: timestamp,
       modificationCount: existing.modificationCount + 1,
       lastModifiedBy: input.judgeId,
@@ -480,13 +500,16 @@ export class FitShowScoreDataAccess {
 
     return result.Items.map(item => {
       const { PK, SK, ...fitShowScore } = item;
-      
+
       // Handle migration for existing records without timestamp field
       if (!fitShowScore.timestamp) {
         // Use createdAt if available, otherwise use current timestamp
         fitShowScore.timestamp = fitShowScore.createdAt || new Date().toISOString();
       }
-      
+
+      // Recalculate ribbon eligibility based on current total score
+      fitShowScore.ribbonEligibility = this.calculateRibbonEligibility(fitShowScore.totalScore);
+
       return fitShowScore as FitShowScore;
     });
   }
