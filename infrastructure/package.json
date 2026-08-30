@@ -21,7 +21,6 @@
     "backfill:daily-votes:apply": "node scripts/backfill-daily-votes.js --apply"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.0",
     "@types/node": "^26.1.1",
     "@vitest/ui": "^4.1.10",
     "aws-cdk": "^2.1130.0",
@@ -39,6 +38,7 @@
     "@aws-sdk/lib-dynamodb": "^3.1084.0",
     "aws-cdk-lib": "^2.261.0",
     "aws-lambda": "^1.0.7",
-    "constructs": "^10.6.0"
+    "constructs": "^10.6.0",
+    "source-map-support": "^0.5.21"
   }
 }
