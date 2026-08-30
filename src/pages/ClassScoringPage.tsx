@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Typography,
   Button,
@@ -92,6 +92,7 @@ const isHealthyClassScore = (classScore: any): boolean =>
 
 function ClassScoringPage(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const [cats, setCats] = useState<any[]>([]);
   const [classScores, setClassScores] = useState<any[]>([]);
   const [filteredCats, setFilteredCats] = useState<any[]>([]);
@@ -99,6 +100,7 @@ function ClassScoringPage(): JSX.Element {
   const [selectedBreedCategory, setSelectedBreedCategory] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(false);
   const [catsLoading, setCatsLoading] = useState<boolean>(true);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -107,11 +109,34 @@ function ClassScoringPage(): JSX.Element {
     fetchCats();
     // Fetch class scores but don't block the UI if it fails
     fetchClassScores().catch(console.error);
+
+    // Refresh scores when page becomes visible (e.g., after returning from submission)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page is now visible, refreshing class scores');
+        fetchClassScores().catch(console.error);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   useEffect(() => {
     filterCats();
   }, [cats, selectedAgeGroup, selectedBreedCategory]);
+
+  // Refresh scores when returning to this page (e.g., after submitting a score)
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear message after 5 seconds
+      const timer = setTimeout(() => setSuccessMessage(null), 5000);
+      // Refresh class scores when returning from submission
+      fetchClassScores().catch(console.error);
+      return () => clearTimeout(timer);
+    }
+  }, [location]);
 
   const fetchCats = async () => {
     try {
@@ -251,11 +276,33 @@ function ClassScoringPage(): JSX.Element {
         </Box>
       </Paper>
 
+      {/* Success Message */}
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 3, borderRadius: '10px' }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
+
       {/* Filter Cats */}
       <Paper elevation={1} sx={{ p: 3, mb: 3, backgroundColor: '#f8f9ff', border: '1px solid #1976d2' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2' }}>
-          Filter Cats
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: '#1976d2' }}>
+            Filter Cats
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            color="primary"
+            onClick={() => {
+              setCatsLoading(true);
+              Promise.all([fetchCats(), fetchClassScores()]).catch(console.error);
+            }}
+            disabled={catsLoading || loading}
+            sx={{ textTransform: 'none' }}
+          >
+            🔄 Refresh
+          </Button>
+        </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <FormControl sx={{ minWidth: 200 }}>
             <InputLabel id="class-age-group-filter-label">Cat Age Group</InputLabel>
