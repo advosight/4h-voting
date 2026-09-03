@@ -2,6 +2,7 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { FitShowScoreDataAccess, CreateFitShowScoreInput, UpdateFitShowScoreInput } from './fitShowScoreDataAccess';
+import { getActiveEventId } from './eventDataAccess';
 import {
   getUserContext,
   requireAnyRole,
@@ -185,19 +186,23 @@ async function createFitShowScore(event: AppSyncResolverEvent<{ input: CreateFit
     throw new ValidationError('Unable to determine judge ID from authentication context');
   }
 
+  // Resolve the active event ID server-side (never trust client)
+  const eventId = await getActiveEventId(docClient, process.env.TABLE_NAME!);
+
   // Add judge information from authenticated user
   const judgeName = userContext?.claims?.['cognito:username'] ||
                    userContext?.claims?.name ||
-                   userContext?.email || 
-                   userContext?.claims?.email || 
+                   userContext?.email ||
+                   userContext?.claims?.email ||
                    'Unknown Judge';
-  
-  console.log('Creating fit and show score with judge info:', { judgeId, judgeName, userContext: userContext });
-  
-  const createInput: CreateFitShowScoreInput = {
+
+  console.log('Creating fit and show score with judge info:', { judgeId, judgeName, eventId, userContext: userContext });
+
+  const createInput: CreateFitShowScoreInput & { eventId: string } = {
     ...input,
     judgeId,
     judgeName,
+    eventId,
   };
 
   return await fitShowScoreDataAccess.createFitShowScoreWithAudit(createInput);

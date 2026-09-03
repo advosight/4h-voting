@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand, DeleteCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
+import { getActiveEventId } from './eventDataAccess';
 
 // Create default client - can be overridden for testing
 let docClient: DynamoDBDocumentClient;
@@ -20,6 +21,7 @@ export function setDocClient(client: DynamoDBDocumentClient): void {
 
 export interface FitShowScore {
   id: string;
+  eventId: string;
   catId: string;
   participantName: string;
   judgeId: string;
@@ -139,6 +141,7 @@ export interface UpdateFitShowScoreInput extends CreateFitShowScoreInput {
 
 export interface FitShowScoreAuditEntry {
   id: string;
+  eventId: string;
   fitShowScoreId: string;
   action: 'CREATE' | 'UPDATE' | 'FINALIZE' | 'DELETE';
   modifiedBy: string;

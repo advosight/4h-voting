@@ -533,6 +533,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry only after the conditional write actually succeeds
     await this.createAuditEntry(
       id,
+      existingScore.eventId,
       'UPDATE',
       modifiedBy,
       existingScore,
@@ -625,13 +626,17 @@ export class ClassScoreDataAccess {
    * Get class scores for a specific cage number (requires looking up cat first)
    */
   async getClassScoresByCage(cageNumber: number): Promise<ClassScore[]> {
-    // First find the cat with this cage number
+    // Get the active event ID to filter cage lookups
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
+    // First find the cat with this cage number, filtered by active event
     const catsResult = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber',
+      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'CAT#',
         ':cageNumber': cageNumber,
+        ':eventId': eventId,
       },
     }));
 
@@ -639,22 +644,26 @@ export class ClassScoreDataAccess {
       return [];
     }
 
-    // Get the cat ID (should only be one cat per cage)
+    // Get the cat ID (should only be one cat per cage per event)
     const catId = catsResult.Items[0].PK.replace('CAT#', '');
-    
+
     return this.getClassScoresByCat(catId);
   }
 
   /**
-   * List all class scores in the system
+   * List all class scores in the system for the active event
    */
   async listAllClassScores(): Promise<ClassScore[]> {
+    // Get the active event ID to filter class scores
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
     const result = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
+      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'CLASS_SCORE#',
         ':sk': 'METADATA',
+        ':eventId': eventId,
       },
     }));
 
@@ -687,6 +696,7 @@ export class ClassScoreDataAccess {
 
       return {
         id: item.id,
+        eventId: item.eventId,
         catId: item.catId,
         judgeId: item.judgeId,
         judgeName: item.judgeName,
@@ -706,8 +716,6 @@ export class ClassScoreDataAccess {
         totalScore,
         ribbonEligibility,
         timestamp: item.timestamp || new Date().toISOString(),
-        createdAt: item.createdAt || item.timestamp || new Date().toISOString(),
-        updatedAt: item.updatedAt || item.timestamp || new Date().toISOString(),
         isFinalized: item.isFinalized,
         modificationCount: parseInt(item.modificationCount) || 0,
         lastModifiedBy: item.lastModifiedBy,
@@ -736,6 +744,7 @@ export class ClassScoreDataAccess {
 
     return result.Items.map(item => ({
       id: item.id,
+      eventId: item.eventId,
       classScoreId: item.classScoreId,
       action: item.action,
       modifiedBy: item.modifiedBy,
@@ -771,6 +780,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry for finalization
     await this.createAuditEntry(
       id,
+      existingScore.eventId,
       'FINALIZE',
       modifiedBy,
       existingScore,
