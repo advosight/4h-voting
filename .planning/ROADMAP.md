@@ -58,10 +58,10 @@ admin has marked as active.
 
 Plans:
 
-- [ ] 02.1-01-PLAN.md — Event Management API: Event GraphQL type, EventDataAccess,
+- [x] 02.1-01-PLAN.md — Event Management API: Event GraphQL type, EventDataAccess,
       eventResolver.ts, and CDK wiring for getActiveEvent/listEvents/archiveAndCreateEvent/
       switchActiveEvent/onActiveEventChange
 - [ ] 02.1-02-PLAN.md — eventId stamping/filtering across Cat, Score, ClassScore,
       FitShowScore, and their audit trails, plus the one-time production backfill script
-- [ ] 02.1-03-PLAN.md — EventContext, EventSelector, ArchiveEventDialog, and App.tsx
+- [x] 02.1-03-PLAN.md — EventContext, EventSelector, ArchiveEventDialog, and App.tsx
       remount-on-switch wiring for real-time, no-reload event switching
