@@ -108,7 +108,7 @@ async function main(): Promise<void> {
     }
 
     // Filter to only items that need eventId (CAT#, SCORE#, CLASS_SCORE#, FIT_SHOW_SCORE# and their audit entries)
-    const itemsNeedingEventId = result.Items.filter((item: Item) => {
+    const itemsNeedingEventId = (result.Items as Item[]).filter((item: Item) => {
       const pk = item.PK || '';
       const isRelevantItem =
         pk.startsWith('CAT#') ||

@@ -216,6 +216,7 @@ export class FitShowScoreDataAccess {
 
     const fitShowScore: FitShowScore = {
       id,
+      eventId: (input as any).eventId || '',
       ...input,
       ...scores,
       ribbonEligibility,
@@ -538,6 +539,7 @@ export class FitShowScoreDataAccess {
 
     // Create audit entry
     await this.createAuditEntry({
+      eventId: existing.eventId,
       fitShowScoreId: id,
       action: 'FINALIZE',
       modifiedBy: judgeId,
@@ -666,6 +668,7 @@ export class FitShowScoreDataAccess {
     const updated = await this.updateFitShowScore(input, allowFinalizedEdit);
 
     await this.createAuditEntry({
+      eventId: existing.eventId,
       fitShowScoreId: input.id,
       action: 'UPDATE',
       modifiedBy: input.judgeId,
@@ -686,6 +689,7 @@ export class FitShowScoreDataAccess {
 
     // Create audit entry after creation
     await this.createAuditEntry({
+      eventId: score.eventId,
       fitShowScoreId: score.id,
       action: 'CREATE',
       modifiedBy: input.judgeId,
@@ -709,6 +713,7 @@ export class FitShowScoreDataAccess {
     // Create audit entry before deletion
     const timestamp = new Date().toISOString();
     await this.createAuditEntry({
+      eventId: existing.eventId,
       fitShowScoreId: id,
       action: 'DELETE',
       modifiedBy: judgeId,
