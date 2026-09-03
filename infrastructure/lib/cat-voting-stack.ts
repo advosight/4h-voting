@@ -224,11 +224,21 @@ export class CatVotingStack extends cdk.Stack {
       },
     });
 
+    const eventResolverFunction = new nodejs.NodejsFunction(this, 'EventResolverFunction', {
+      entry: path.join(__dirname, '..', 'lambda', 'eventResolver.ts'),
+      runtime: lambda.Runtime.NODEJS_LATEST,
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+    });
+
     table.grantReadWriteData(voteFunction);
     table.grantReadWriteData(resolverFunction);
     table.grantReadWriteData(scoreResolverFunction);
     table.grantReadWriteData(classScoreResolverFunction);
     table.grantReadWriteData(fitShowScoreResolverFunction);
+    table.grantReadWriteData(eventResolverFunction);
     table.grantReadWriteData(userManagementResolverFunction);
     table.grantReadWriteData(preSignUpFunction);
     table.grantReadWriteData(postConfirmationFunction);
@@ -388,6 +398,7 @@ export class CatVotingStack extends cdk.Stack {
     const userManagementDataSource = graphqlApi.addLambdaDataSource('UserManagementDataSource', userManagementResolverFunction);
     const classScoreDataSource = graphqlApi.addLambdaDataSource('ClassScoreResolverDataSource', classScoreResolverFunction);
     const fitShowScoreDataSource = graphqlApi.addLambdaDataSource('FitShowScoreResolverDataSource', fitShowScoreResolverFunction);
+    const eventDataSource = graphqlApi.addLambdaDataSource('EventResolverDataSource', eventResolverFunction);
 
     // Resolvers
     dataSource.createResolver('listCatsResolver', {
@@ -663,6 +674,27 @@ export class CatVotingStack extends cdk.Stack {
     fitShowScoreDataSource.createResolver('getFitShowScoreAuditHistoryResolver', {
       typeName: 'Query',
       fieldName: 'getFitShowScoreAuditHistory',
+    });
+
+    // Event Management Resolvers
+    eventDataSource.createResolver('getActiveEventResolver', {
+      typeName: 'Query',
+      fieldName: 'getActiveEvent',
+    });
+
+    eventDataSource.createResolver('listEventsResolver', {
+      typeName: 'Query',
+      fieldName: 'listEvents',
+    });
+
+    eventDataSource.createResolver('switchActiveEventResolver', {
+      typeName: 'Mutation',
+      fieldName: 'switchActiveEvent',
+    });
+
+    eventDataSource.createResolver('archiveAndCreateEventResolver', {
+      typeName: 'Mutation',
+      fieldName: 'archiveAndCreateEvent',
     });
 
     // S3 Bucket for website

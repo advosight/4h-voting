@@ -19,6 +19,20 @@ type DailyVoteCount {
   votes: Int! @aws_cognito_user_pools
 }
 
+type Event {
+  id: ID! @aws_cognito_user_pools
+  name: String! @aws_cognito_user_pools
+  date: String! @aws_cognito_user_pools
+  status: String! @aws_cognito_user_pools
+  archivedAt: String @aws_cognito_user_pools
+  archivedBy: String @aws_cognito_user_pools
+  createdAt: String! @aws_cognito_user_pools
+}
+
+type EventConnection {
+  items: [Event!]! @aws_cognito_user_pools
+}
+
 input CreateCatInput {
   name: String!
   owner: String!
@@ -61,6 +75,8 @@ type Query {
   listEmails: EmailConnection! @aws_cognito_user_pools
   getVotingStatus: VotingStatus! @aws_api_key @aws_cognito_user_pools
   getDeviceLimitStatus: DeviceLimitStatus! @aws_api_key @aws_cognito_user_pools
+  getActiveEvent: Event @aws_cognito_user_pools
+  listEvents: EventConnection! @aws_cognito_user_pools
   getScore(id: ID!): Score @aws_cognito_user_pools
   getScoresByCat(catId: ID!): ScoreConnection! @aws_cognito_user_pools
   getScoresByCage(cageNumber: Int!): ScoreConnection! @aws_cognito_user_pools
@@ -102,6 +118,8 @@ type Mutation {
   addEmail(email: String!, context: AWSJSON): Email! @aws_api_key
   setVotingStatus(isActive: Boolean!): VotingStatus!
   setDeviceLimitStatus(enabled: Boolean!): DeviceLimitStatus!
+  switchActiveEvent(eventId: ID!): Event! @aws_cognito_user_pools
+  archiveAndCreateEvent(newEventName: String!, newEventDate: String!): Event! @aws_cognito_user_pools
   createScore(input: CreateScoreInput!): Score! @aws_cognito_user_pools
   updateScore(id: ID!, input: UpdateScoreInput!): Score! @aws_cognito_user_pools
   finalizeScore(id: ID!): Score! @aws_cognito_user_pools
@@ -217,6 +235,8 @@ type Subscription {
     @aws_subscribe(mutations: ["setVotingStatus"]) @aws_api_key @aws_cognito_user_pools
   onDeviceLimitStatusChange: DeviceLimitStatus
     @aws_subscribe(mutations: ["setDeviceLimitStatus"]) @aws_api_key @aws_cognito_user_pools
+  onActiveEventChange: Event
+    @aws_subscribe(mutations: ["switchActiveEvent", "archiveAndCreateEvent"]) @aws_cognito_user_pools
   onScoreUpdate: Score
     @aws_subscribe(mutations: ["createScore", "updateScore", "finalizeScore"]) @aws_cognito_user_pools
   onClassScoreUpdate: ClassScore
