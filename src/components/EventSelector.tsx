@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useEvent, ActiveEvent } from '../contexts/EventContext';
 import { useUserRole } from '../utils/roleUtils';
+import ArchiveEventDialog from './ArchiveEventDialog';
 
 interface EventSelectorProps {
   onArchiveClick?: () => void;
@@ -45,6 +46,7 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedEventForSwitch, setSelectedEventForSwitch] = useState<ActiveEvent | null>(null);
   const [switchLoading, setSwitchLoading] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   const menuOpen = Boolean(anchorEl);
 
@@ -92,6 +94,7 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
 
   const handleArchiveClick = () => {
     handleMenuClose();
+    setArchiveDialogOpen(true);
     if (onArchiveClick) {
       onArchiveClick();
     }
@@ -312,6 +315,12 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Archive event dialog */}
+      <ArchiveEventDialog
+        open={archiveDialogOpen}
+        onClose={() => setArchiveDialogOpen(false)}
+      />
     </Box>
   );
 };
