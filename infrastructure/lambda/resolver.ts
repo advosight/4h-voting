@@ -3,6 +3,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
 import { getUserContext, requireRole } from './roleValidation';
+import { getActiveEventId } from './eventDataAccess';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -64,6 +65,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
 };
 
 async function listCats() {
+  const eventId = await getActiveEventId(docClient, process.env.TABLE_NAME!);
   let allItems: any[] = [];
   let lastEvaluatedKey: any = undefined;
 
@@ -71,10 +73,11 @@ async function listCats() {
   do {
     const result = await docClient.send(new ScanCommand({
       TableName: process.env.TABLE_NAME,
-      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
-      ExpressionAttributeValues: { 
+      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND eventId = :eventId',
+      ExpressionAttributeValues: {
         ':pk': 'CAT#',
-        ':sk': 'METADATA'
+        ':sk': 'METADATA',
+        ':eventId': eventId
       },
       ConsistentRead: true,
       ExclusiveStartKey: lastEvaluatedKey,
@@ -83,14 +86,15 @@ async function listCats() {
     if (result.Items) {
       allItems.push(...result.Items);
     }
-    
+
     lastEvaluatedKey = result.LastEvaluatedKey;
   } while (lastEvaluatedKey);
 
   console.log(`Found ${allItems.length} raw cat items from DynamoDB`);
-  
+
   const cats = allItems.map(item => ({
     id: item.PK.replace('CAT#', ''),
+    eventId: item.eventId,
     name: item.name || 'Unknown Cat',
     owner: item.owner || 'Unknown Owner',
     votes: parseInt(item.votes) || 0,
@@ -116,6 +120,7 @@ async function getCat(id: string) {
 
   return {
     id,
+    eventId: result.Item.eventId,
     name: result.Item.name || 'Unknown Cat',
     owner: result.Item.owner || 'Unknown Owner',
     votes: parseInt(result.Item.votes) || 0,
@@ -128,13 +133,15 @@ async function getCat(id: string) {
 }
 
 async function getCatByCage(cageNumber: number) {
+  const eventId = await getActiveEventId(docClient, process.env.TABLE_NAME!);
   const result = await docClient.send(new ScanCommand({
     TableName: process.env.TABLE_NAME,
-    FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND cageNumber = :cageNumber',
-    ExpressionAttributeValues: { 
+    FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND cageNumber = :cageNumber AND eventId = :eventId',
+    ExpressionAttributeValues: {
       ':pk': 'CAT#',
       ':sk': 'METADATA',
-      ':cageNumber': cageNumber
+      ':cageNumber': cageNumber,
+      ':eventId': eventId
     },
   }));
 
@@ -143,6 +150,7 @@ async function getCatByCage(cageNumber: number) {
   const item = result.Items[0];
   return {
     id: item.PK.replace('CAT#', ''),
+    eventId: item.eventId,
     name: item.name || 'Unknown Cat',
     owner: item.owner || 'Unknown Owner',
     votes: parseInt(item.votes) || 0,
@@ -156,12 +164,14 @@ async function getCatByCage(cageNumber: number) {
 
 async function createCat(input: { name: string; owner: string; votes: number; cageNumber?: number; ownerAgeGroup?: string; catAgeGroup?: string; peoplesChoiceGroup?: number; breedCategory?: string }) {
   const id = randomUUID();
+  const eventId = await getActiveEventId(docClient, process.env.TABLE_NAME!);
 
   await docClient.send(new PutCommand({
     TableName: process.env.TABLE_NAME,
     Item: {
       PK: `CAT#${id}`,
       SK: 'METADATA',
+      eventId,
       name: input.name,
       owner: input.owner,
       votes: input.votes,
@@ -175,6 +185,7 @@ async function createCat(input: { name: string; owner: string; votes: number; ca
 
   return {
     id,
+    eventId,
     name: input.name,
     owner: input.owner,
     votes: input.votes,
@@ -197,7 +208,7 @@ async function updateCat(id: string, input: { name?: string; owner?: string; cag
   const updatedItem = {
     ...result.Item,
     ...input,
-  };
+  } as any;
 
   await docClient.send(new PutCommand({
     TableName: process.env.TABLE_NAME,
@@ -206,6 +217,7 @@ async function updateCat(id: string, input: { name?: string; owner?: string; cag
 
   return {
     id,
+    eventId: result.Item.eventId as string,
     name: updatedItem.name,
     owner: updatedItem.owner,
     votes: updatedItem.votes,
@@ -252,6 +264,7 @@ async function updateVotes(id: string, votes: number) {
   const item = totalResult.Attributes;
   return {
     id,
+    eventId: item?.eventId,
     name: item?.name,
     owner: item?.owner,
     votes: parseInt(item?.votes) || 0,
@@ -400,6 +413,7 @@ async function deleteCat(id: string) {
 
   return {
     id,
+    eventId: result.Item.eventId,
     name: result.Item.name,
     owner: result.Item.owner,
     votes: result.Item.votes,

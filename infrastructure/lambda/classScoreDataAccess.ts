@@ -1,8 +1,10 @@
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
+import { getActiveEventId } from './eventDataAccess';
 
 export interface ClassScore {
   id: string;
+  eventId: string;
   catId: string;
   judgeId: string;
   judgeName: string;
@@ -30,6 +32,7 @@ export interface ClassScore {
 
 export interface ClassScoreAuditEntry {
   id: string;
+  eventId: string;
   classScoreId: string;
   action: string;
   modifiedBy: string;
@@ -124,6 +127,7 @@ export class ClassScoreDataAccess {
    */
   private async createAuditEntry(
     classScoreId: string,
+    eventId: string,
     action: string,
     modifiedBy: string,
     previousValues?: any,
@@ -135,6 +139,7 @@ export class ClassScoreDataAccess {
 
     const auditEntry: ClassScoreAuditEntry = {
       id: auditId,
+      eventId,
       classScoreId,
       action,
       modifiedBy,
@@ -214,7 +219,7 @@ export class ClassScoreDataAccess {
   /**
    * Create a new class score record
    */
-  async createClassScore(input: CreateClassScoreInput): Promise<ClassScore> {
+  async createClassScore(input: CreateClassScoreInput & { eventId: string }): Promise<ClassScore> {
     const id = randomUUID();
     const timestamp = new Date().toISOString();
 
@@ -238,6 +243,7 @@ export class ClassScoreDataAccess {
 
     const classScore: ClassScore = {
       id,
+      eventId: (input as any).eventId,
       catId: input.catId,
       judgeId: input.judgeId,
       judgeName: input.judgeName,
@@ -279,6 +285,7 @@ export class ClassScoreDataAccess {
       Item: {
         PK: `CAT#${input.catId}`,
         SK: `CLASS_SCORE#${id}`,
+        eventId: input.eventId,
         classScoreId: id,
         judgeId: input.judgeId,
         judgeName: input.judgeName,
@@ -295,6 +302,7 @@ export class ClassScoreDataAccess {
       Item: {
         PK: `JUDGE#${input.judgeId}`,
         SK: `CLASS_SCORE#${id}`,
+        eventId: input.eventId,
         classScoreId: id,
         catId: input.catId,
         totalScore,
@@ -307,6 +315,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry for creation
     await this.createAuditEntry(
       id,
+      (input as any).eventId,
       'CREATE',
       input.judgeName,
       null,
@@ -371,8 +380,6 @@ export class ClassScoreDataAccess {
       totalScore,
       ribbonEligibility,
       timestamp: result.Item.timestamp || new Date().toISOString(),
-      createdAt: result.Item.createdAt || result.Item.timestamp || new Date().toISOString(),
-      updatedAt: result.Item.updatedAt || result.Item.timestamp || new Date().toISOString(),
       isFinalized: result.Item.isFinalized,
       modificationCount: parseInt(result.Item.modificationCount) || 0,
       lastModifiedBy: result.Item.lastModifiedBy,
