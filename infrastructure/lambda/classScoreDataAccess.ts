@@ -361,6 +361,7 @@ export class ClassScoreDataAccess {
 
     return {
       id: result.Item.id,
+      eventId: result.Item.eventId,
       catId: result.Item.catId,
       judgeId: result.Item.judgeId,
       judgeName: result.Item.judgeName,
