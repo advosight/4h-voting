@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand, DeleteCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
+import { getActiveEventId } from './eventDataAccess';
 
 // Create default client - can be overridden for testing
 let docClient: DynamoDBDocumentClient;
@@ -20,6 +21,7 @@ export function setDocClient(client: DynamoDBDocumentClient): void {
 
 export interface FitShowScore {
   id: string;
+  eventId: string;
   catId: string;
   participantName: string;
   judgeId: string;
@@ -139,6 +141,7 @@ export interface UpdateFitShowScoreInput extends CreateFitShowScoreInput {
 
 export interface FitShowScoreAuditEntry {
   id: string;
+  eventId: string;
   fitShowScoreId: string;
   action: 'CREATE' | 'UPDATE' | 'FINALIZE' | 'DELETE';
   modifiedBy: string;
@@ -213,6 +216,7 @@ export class FitShowScoreDataAccess {
 
     const fitShowScore: FitShowScore = {
       id,
+      eventId: (input as any).eventId || '',
       ...input,
       ...scores,
       ribbonEligibility,
@@ -535,6 +539,7 @@ export class FitShowScoreDataAccess {
 
     // Create audit entry
     await this.createAuditEntry({
+      eventId: existing.eventId,
       fitShowScoreId: id,
       action: 'FINALIZE',
       modifiedBy: judgeId,
@@ -663,6 +668,7 @@ export class FitShowScoreDataAccess {
     const updated = await this.updateFitShowScore(input, allowFinalizedEdit);
 
     await this.createAuditEntry({
+      eventId: existing.eventId,
       fitShowScoreId: input.id,
       action: 'UPDATE',
       modifiedBy: input.judgeId,
@@ -683,6 +689,7 @@ export class FitShowScoreDataAccess {
 
     // Create audit entry after creation
     await this.createAuditEntry({
+      eventId: score.eventId,
       fitShowScoreId: score.id,
       action: 'CREATE',
       modifiedBy: input.judgeId,
@@ -706,6 +713,7 @@ export class FitShowScoreDataAccess {
     // Create audit entry before deletion
     const timestamp = new Date().toISOString();
     await this.createAuditEntry({
+      eventId: existing.eventId,
       fitShowScoreId: id,
       action: 'DELETE',
       modifiedBy: judgeId,

@@ -1,5 +1,6 @@
 type Cat {
   id: ID! @aws_api_key @aws_cognito_user_pools
+  eventId: ID! @aws_api_key @aws_cognito_user_pools
   name: String! @aws_api_key @aws_cognito_user_pools
   owner: String! @aws_api_key @aws_cognito_user_pools
   votes: Int! @aws_api_key @aws_cognito_user_pools
@@ -141,6 +142,7 @@ type Mutation {
 
 type Score {
   id: ID! @aws_cognito_user_pools
+  eventId: ID! @aws_cognito_user_pools
   catId: ID! @aws_cognito_user_pools
   judgeId: ID! @aws_cognito_user_pools
   judgeName: String! @aws_cognito_user_pools
@@ -170,6 +172,7 @@ type Score {
 
 type ScoreAuditEntry {
   id: ID! @aws_cognito_user_pools
+  eventId: ID! @aws_cognito_user_pools
   scoreId: ID! @aws_cognito_user_pools
   action: String! @aws_cognito_user_pools
   modifiedBy: String! @aws_cognito_user_pools
@@ -311,6 +314,7 @@ input InviteUserInput {
 # Class Scoring Types
 type ClassScore {
   id: ID! @aws_cognito_user_pools
+  eventId: ID! @aws_cognito_user_pools
   catId: ID! @aws_cognito_user_pools
   judgeId: ID! @aws_cognito_user_pools
   judgeName: String! @aws_cognito_user_pools
@@ -340,6 +344,7 @@ type ClassScore {
 
 type ClassScoreAuditEntry {
   id: ID! @aws_cognito_user_pools
+  eventId: ID! @aws_cognito_user_pools
   classScoreId: ID! @aws_cognito_user_pools
   action: String! @aws_cognito_user_pools
   modifiedBy: String! @aws_cognito_user_pools
@@ -397,6 +402,7 @@ input UpdateClassScoreInput {
 # Fit and Show Scoring Types
 type FitShowScore {
   id: ID! @aws_cognito_user_pools
+  eventId: ID! @aws_cognito_user_pools
   catId: ID! @aws_cognito_user_pools
   participantName: String! @aws_cognito_user_pools
   judgeId: ID! @aws_cognito_user_pools
@@ -469,6 +475,7 @@ type FitShowScore {
 
 type FitShowScoreAuditEntry {
   id: ID! @aws_cognito_user_pools
+  eventId: ID! @aws_cognito_user_pools
   fitShowScoreId: ID! @aws_cognito_user_pools
   action: String! @aws_cognito_user_pools
   modifiedBy: String! @aws_cognito_user_pools

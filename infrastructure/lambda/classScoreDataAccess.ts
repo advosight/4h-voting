@@ -1,8 +1,10 @@
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
+import { getActiveEventId } from './eventDataAccess';
 
 export interface ClassScore {
   id: string;
+  eventId: string;
   catId: string;
   judgeId: string;
   judgeName: string;
@@ -30,6 +32,7 @@ export interface ClassScore {
 
 export interface ClassScoreAuditEntry {
   id: string;
+  eventId: string;
   classScoreId: string;
   action: string;
   modifiedBy: string;
@@ -124,6 +127,7 @@ export class ClassScoreDataAccess {
    */
   private async createAuditEntry(
     classScoreId: string,
+    eventId: string,
     action: string,
     modifiedBy: string,
     previousValues?: any,
@@ -135,6 +139,7 @@ export class ClassScoreDataAccess {
 
     const auditEntry: ClassScoreAuditEntry = {
       id: auditId,
+      eventId,
       classScoreId,
       action,
       modifiedBy,
@@ -214,7 +219,7 @@ export class ClassScoreDataAccess {
   /**
    * Create a new class score record
    */
-  async createClassScore(input: CreateClassScoreInput): Promise<ClassScore> {
+  async createClassScore(input: CreateClassScoreInput & { eventId: string }): Promise<ClassScore> {
     const id = randomUUID();
     const timestamp = new Date().toISOString();
 
@@ -238,6 +243,7 @@ export class ClassScoreDataAccess {
 
     const classScore: ClassScore = {
       id,
+      eventId: (input as any).eventId,
       catId: input.catId,
       judgeId: input.judgeId,
       judgeName: input.judgeName,
@@ -279,6 +285,7 @@ export class ClassScoreDataAccess {
       Item: {
         PK: `CAT#${input.catId}`,
         SK: `CLASS_SCORE#${id}`,
+        eventId: input.eventId,
         classScoreId: id,
         judgeId: input.judgeId,
         judgeName: input.judgeName,
@@ -295,6 +302,7 @@ export class ClassScoreDataAccess {
       Item: {
         PK: `JUDGE#${input.judgeId}`,
         SK: `CLASS_SCORE#${id}`,
+        eventId: input.eventId,
         classScoreId: id,
         catId: input.catId,
         totalScore,
@@ -307,6 +315,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry for creation
     await this.createAuditEntry(
       id,
+      (input as any).eventId,
       'CREATE',
       input.judgeName,
       null,
@@ -352,6 +361,7 @@ export class ClassScoreDataAccess {
 
     return {
       id: result.Item.id,
+      eventId: result.Item.eventId,
       catId: result.Item.catId,
       judgeId: result.Item.judgeId,
       judgeName: result.Item.judgeName,
@@ -371,8 +381,6 @@ export class ClassScoreDataAccess {
       totalScore,
       ribbonEligibility,
       timestamp: result.Item.timestamp || new Date().toISOString(),
-      createdAt: result.Item.createdAt || result.Item.timestamp || new Date().toISOString(),
-      updatedAt: result.Item.updatedAt || result.Item.timestamp || new Date().toISOString(),
       isFinalized: result.Item.isFinalized,
       modificationCount: parseInt(result.Item.modificationCount) || 0,
       lastModifiedBy: result.Item.lastModifiedBy,
@@ -525,6 +533,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry only after the conditional write actually succeeds
     await this.createAuditEntry(
       id,
+      existingScore.eventId,
       'UPDATE',
       modifiedBy,
       existingScore,
@@ -617,13 +626,17 @@ export class ClassScoreDataAccess {
    * Get class scores for a specific cage number (requires looking up cat first)
    */
   async getClassScoresByCage(cageNumber: number): Promise<ClassScore[]> {
-    // First find the cat with this cage number
+    // Get the active event ID to filter cage lookups
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
+    // First find the cat with this cage number, filtered by active event
     const catsResult = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber',
+      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'CAT#',
         ':cageNumber': cageNumber,
+        ':eventId': eventId,
       },
     }));
 
@@ -631,22 +644,26 @@ export class ClassScoreDataAccess {
       return [];
     }
 
-    // Get the cat ID (should only be one cat per cage)
+    // Get the cat ID (should only be one cat per cage per event)
     const catId = catsResult.Items[0].PK.replace('CAT#', '');
-    
+
     return this.getClassScoresByCat(catId);
   }
 
   /**
-   * List all class scores in the system
+   * List all class scores in the system for the active event
    */
   async listAllClassScores(): Promise<ClassScore[]> {
+    // Get the active event ID to filter class scores
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
     const result = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
+      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'CLASS_SCORE#',
         ':sk': 'METADATA',
+        ':eventId': eventId,
       },
     }));
 
@@ -679,6 +696,7 @@ export class ClassScoreDataAccess {
 
       return {
         id: item.id,
+        eventId: item.eventId,
         catId: item.catId,
         judgeId: item.judgeId,
         judgeName: item.judgeName,
@@ -698,8 +716,6 @@ export class ClassScoreDataAccess {
         totalScore,
         ribbonEligibility,
         timestamp: item.timestamp || new Date().toISOString(),
-        createdAt: item.createdAt || item.timestamp || new Date().toISOString(),
-        updatedAt: item.updatedAt || item.timestamp || new Date().toISOString(),
         isFinalized: item.isFinalized,
         modificationCount: parseInt(item.modificationCount) || 0,
         lastModifiedBy: item.lastModifiedBy,
@@ -728,6 +744,7 @@ export class ClassScoreDataAccess {
 
     return result.Items.map(item => ({
       id: item.id,
+      eventId: item.eventId,
       classScoreId: item.classScoreId,
       action: item.action,
       modifiedBy: item.modifiedBy,
@@ -763,6 +780,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry for finalization
     await this.createAuditEntry(
       id,
+      existingScore.eventId,
       'FINALIZE',
       modifiedBy,
       existingScore,

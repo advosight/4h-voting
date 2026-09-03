@@ -1,8 +1,10 @@
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
+import { getActiveEventId } from './eventDataAccess';
 
 export interface Score {
   id: string;
+  eventId: string;
   catId: string;
   judgeId: string;
   judgeName: string;
@@ -30,6 +32,7 @@ export interface Score {
 
 export interface ScoreAuditEntry {
   id: string;
+  eventId: string;
   scoreId: string;
   action: string;
   modifiedBy: string;
@@ -103,6 +106,7 @@ export class ScoreDataAccess {
    */
   private async createAuditEntry(
     scoreId: string,
+    eventId: string,
     action: string,
     modifiedBy: string,
     previousValues?: any,
@@ -118,6 +122,7 @@ export class ScoreDataAccess {
         PK: `SCORE#${scoreId}`,
         SK: `AUDIT#${timestamp}#${auditId}`,
         id: auditId,
+        eventId,
         scoreId,
         action,
         modifiedBy,
@@ -132,7 +137,7 @@ export class ScoreDataAccess {
   /**
    * Create a new score record
    */
-  async createScore(input: CreateScoreInput, createdBy?: string): Promise<Score> {
+  async createScore(input: CreateScoreInput & { eventId: string }, createdBy?: string): Promise<Score> {
     const id = randomUUID();
     const timestamp = new Date().toISOString();
     const totalScore = this.calculateTotalScore(
@@ -147,6 +152,7 @@ export class ScoreDataAccess {
 
     const score: Score = {
       id,
+      eventId: input.eventId,
       catId: input.catId,
       judgeId: input.judgeId,
       judgeName: input.judgeName,
@@ -188,6 +194,7 @@ export class ScoreDataAccess {
       Item: {
         PK: `CAT#${input.catId}`,
         SK: `SCORE#${id}`,
+        eventId: input.eventId,
         scoreId: id,
         judgeId: input.judgeId,
         judgeName: input.judgeName,
@@ -203,6 +210,7 @@ export class ScoreDataAccess {
       Item: {
         PK: `JUDGE#${input.judgeId}`,
         SK: `SCORE#${id}`,
+        eventId: input.eventId,
         scoreId: id,
         catId: input.catId,
         totalScore,
@@ -214,6 +222,7 @@ export class ScoreDataAccess {
     // Create audit trail entry for score creation
     await this.createAuditEntry(
       id,
+      input.eventId,
       'CREATE',
       createdBy || input.judgeName,
       undefined,
@@ -237,6 +246,7 @@ export class ScoreDataAccess {
 
     return {
       id: result.Item.id,
+      eventId: result.Item.eventId,
       catId: result.Item.catId,
       judgeId: result.Item.judgeId,
       judgeName: result.Item.judgeName,
@@ -399,6 +409,7 @@ export class ScoreDataAccess {
     // Create audit trail entry for score modification
     await this.createAuditEntry(
       id,
+      existingScore.eventId,
       'UPDATE',
       modifiedBy || existingScore.judgeName,
       previousValues,
@@ -491,13 +502,17 @@ export class ScoreDataAccess {
    * Get scores for a specific cage number (requires looking up cat first)
    */
   async getScoresByCage(cageNumber: number): Promise<Score[]> {
-    // First find the cat with this cage number
+    // Get the active event ID to filter cage lookups
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
+    // First find the cat with this cage number, filtered by active event
     const catsResult = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber',
+      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'CAT#',
         ':cageNumber': cageNumber,
+        ':eventId': eventId,
       },
     }));
 
@@ -505,22 +520,26 @@ export class ScoreDataAccess {
       return [];
     }
 
-    // Get the cat ID (should only be one cat per cage)
+    // Get the cat ID (should only be one cat per cage per event)
     const catId = catsResult.Items[0].PK.replace('CAT#', '');
-    
+
     return this.getScoresByCat(catId);
   }
 
   /**
-   * List all scores in the system
+   * List all scores in the system for the active event
    */
   async listAllScores(): Promise<Score[]> {
+    // Get the active event ID to filter scores
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
     const result = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
+      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'SCORE#',
         ':sk': 'METADATA',
+        ':eventId': eventId,
       },
     }));
 
@@ -530,6 +549,7 @@ export class ScoreDataAccess {
 
     return result.Items.map(item => ({
       id: item.id,
+      eventId: item.eventId,
       catId: item.catId,
       judgeId: item.judgeId,
       judgeName: item.judgeName,
@@ -576,6 +596,7 @@ export class ScoreDataAccess {
 
     return result.Items.map(item => ({
       id: item.id,
+      eventId: item.eventId,
       scoreId: item.scoreId,
       action: item.action,
       modifiedBy: item.modifiedBy,

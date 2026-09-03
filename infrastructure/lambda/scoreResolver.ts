@@ -2,6 +2,7 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { ScoreDataAccess, CreateScoreInput, UpdateScoreInput } from './scoreDataAccess';
+import { getActiveEventId } from './eventDataAccess';
 import {
   getUserContext,
   requireAnyRole,
@@ -144,20 +145,24 @@ async function createScore(event: AppSyncResolverEvent<{ input: CreateScoreInput
     throw new ValidationError('Unable to determine judge ID from authentication context');
   }
 
+  // Resolve the active event ID server-side (never trust client)
+  const eventId = await getActiveEventId(docClient, process.env.TABLE_NAME!);
+
   // Add judge information from authenticated user
   // Try to get a human-readable name from various sources
-  const judgeName = userContext?.email || 
-                   userContext?.claims?.email || 
-                   userContext?.claims?.['cognito:username'] || 
+  const judgeName = userContext?.email ||
+                   userContext?.claims?.email ||
+                   userContext?.claims?.['cognito:username'] ||
                    userContext?.claims?.name ||
                    'Unknown Judge';
-  
-  console.log('Creating score with judge info:', { judgeId, judgeName, userContext: userContext });
-  
-  const createInput: CreateScoreInput = {
+
+  console.log('Creating score with judge info:', { judgeId, judgeName, eventId, userContext: userContext });
+
+  const createInput: CreateScoreInput & { eventId: string } = {
     ...input,
     judgeId,
     judgeName,
+    eventId,
   };
 
   const createdBy = userContext?.email || 'Unknown Judge';
