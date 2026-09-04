@@ -254,8 +254,18 @@ export const ArchiveEventDialog: React.FC<ArchiveEventDialogProps> = ({
                 value={newEventDate}
                 onChange={(e) => setNewEventDate(e.target.value)}
                 disabled={isSubmitting}
+                variant="outlined"
                 InputLabelProps={{
                   shrink: true,
+                }}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    paddingTop: '28px',
+                    paddingBottom: '12px',
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    paddingTop: '8px',
+                  },
                 }}
               />
             </Stack>
