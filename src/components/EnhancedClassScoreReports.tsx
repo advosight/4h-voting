@@ -250,21 +250,21 @@ const EnhancedClassScoreReports: React.FC = () => {
       width: '120px',
       render: (value) => {
         const score = value || 0;
-        const percentage = (score / 50) * 100;
+        const percentage = (score / 100) * 100;
         let color = '#dc3545'; // Red for low scores
         if (percentage >= 80) color = '#28a745'; // Green for high scores
         else if (percentage >= 60) color = '#ffc107'; // Yellow for medium scores
-        
+
         return (
-          <div style={{ 
-            fontWeight: 'bold', 
+          <div style={{
+            fontWeight: 'bold',
             fontSize: '1.1em',
             color,
             padding: '4px 8px',
             borderRadius: '4px',
             backgroundColor: `${color}15`
           }}>
-            {score}/50
+            {score}/100
           </div>
         );
       }
@@ -482,7 +482,7 @@ const EnhancedClassScoreReports: React.FC = () => {
               <div className="detail-section">
                 <h4>Scoring Information</h4>
                 <p><strong>Judge:</strong> {selectedScore.judgeName}</p>
-                <p><strong>Total Score:</strong> {selectedScore.totalScore}/50</p>
+                <p><strong>Total Score:</strong> {selectedScore.totalScore}/100</p>
                 <p><strong>Ribbon:</strong> 
                   <span style={{
                     marginLeft: '8px',

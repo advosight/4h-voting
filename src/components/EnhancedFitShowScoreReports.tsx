@@ -19,6 +19,7 @@ const listFitShowScores = `
         groomingCareTotal
         knowledgeTotal
         totalScore
+        ribbonEligibility
         createdAt
         updatedAt
         isFinalized
@@ -39,6 +40,7 @@ interface FitShowScore {
   groomingCareTotal: number;
   knowledgeTotal: number;
   totalScore: number;
+  ribbonEligibility: string;
   createdAt: string;
   updatedAt: string;
   isFinalized: boolean;

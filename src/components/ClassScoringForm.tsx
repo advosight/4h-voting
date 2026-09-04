@@ -45,11 +45,11 @@ interface ClassScore {
   personalityComments?: string;
   balanceProportionScore: number;
   balanceProportionComments?: string;
-  coatCleanGroomed: number; // 0-15 points
-  teethGumsHealthy: number; // 0-5 points
-  eyesNoseClear: number; // 0-5 points
-  earsCleanMiteFree: number; // 0-10 points
-  toenailsClipped: number; // 0-15 points
+  coatCleanGroomed: boolean;
+  teethGumsHealthy: boolean;
+  eyesNoseClear: boolean;
+  earsCleanMiteFree: boolean;
+  toenailsClipped: boolean;
   fleaIssues: boolean;
   healthGroomingComments?: string;
   totalScore: number;
@@ -74,11 +74,11 @@ interface ClassScoreFormData {
   personalityComments: string;
   balanceProportionScore: number;
   balanceProportionComments: string;
-  coatCleanGroomed: number; // 0-15 points
-  teethGumsHealthy: number; // 0-5 points
-  eyesNoseClear: number; // 0-5 points
-  earsCleanMiteFree: number; // 0-10 points
-  toenailsClipped: number; // 0-15 points
+  coatCleanGroomed: number;
+  teethGumsHealthy: number;
+  eyesNoseClear: number;
+  earsCleanMiteFree: number;
+  toenailsClipped: number;
   fleaIssues: boolean;
   healthGroomingComments: string;
 }
@@ -107,11 +107,11 @@ const calculateRibbonEligibility = (
     return 'Red';
   }
 
-  if (totalScore >= 90 && totalScore <= 100) {
+  if (totalScore >= 90) {
     return 'Blue';
-  } else if (totalScore >= 70 && totalScore <= 89) {
+  } else if (totalScore >= 80 && totalScore < 90) {
     return 'Red';
-  } else if (totalScore >= 50 && totalScore <= 69) {
+  } else if (totalScore >= 70 && totalScore < 80) {
     return 'White';
   } else {
     return 'Participation';
@@ -213,12 +213,10 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
     const classScoreData = {
       ...formData,
       catId: catData.id,
-      totalScore,
-      ribbonEligibility,
-      timestamp: new Date().toISOString(),
       isFinalized: false
     };
 
+    console.log('ClassScoringForm - Save data:', classScoreData);
     await onSave(classScoreData);
   };
 
@@ -228,12 +226,10 @@ export const ClassScoringForm: React.FC<ClassScoringFormProps> = ({
     const classScoreData = {
       ...formData,
       catId: catData.id,
-      totalScore,
-      ribbonEligibility,
-      timestamp: new Date().toISOString(),
       isFinalized: true
     };
 
+    console.log('ClassScoringForm - Submit data:', classScoreData);
     await onSubmit(classScoreData);
   };
 

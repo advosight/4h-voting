@@ -1,8 +1,10 @@
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
+import { getActiveEventId } from './eventDataAccess';
 
 export interface ClassScore {
   id: string;
+  eventId: string;
   catId: string;
   judgeId: string;
   judgeName: string;
@@ -12,11 +14,11 @@ export interface ClassScore {
   personalityComments?: string;
   balanceProportionScore: number;
   balanceProportionComments?: string;
-  coatCleanGroomed: boolean;
-  teethGumsHealthy: boolean;
-  eyesNoseClear: boolean;
-  earsCleanMiteFree: boolean;
-  toenailsClipped: boolean;
+  coatCleanGroomed: number;
+  teethGumsHealthy: number;
+  eyesNoseClear: number;
+  earsCleanMiteFree: number;
+  toenailsClipped: number;
   fleaIssues: boolean;
   healthGroomingComments?: string;
   totalScore: number;
@@ -30,6 +32,7 @@ export interface ClassScore {
 
 export interface ClassScoreAuditEntry {
   id: string;
+  eventId: string;
   classScoreId: string;
   action: string;
   modifiedBy: string;
@@ -49,11 +52,11 @@ export interface CreateClassScoreInput {
   personalityComments?: string;
   balanceProportionScore: number;
   balanceProportionComments?: string;
-  coatCleanGroomed: boolean;
-  teethGumsHealthy: boolean;
-  eyesNoseClear: boolean;
-  earsCleanMiteFree: boolean;
-  toenailsClipped: boolean;
+  coatCleanGroomed: number;
+  teethGumsHealthy: number;
+  eyesNoseClear: number;
+  earsCleanMiteFree: number;
+  toenailsClipped: number;
   fleaIssues: boolean;
   healthGroomingComments?: string;
   isFinalized?: boolean;
@@ -66,11 +69,11 @@ export interface UpdateClassScoreInput {
   personalityComments?: string;
   balanceProportionScore?: number;
   balanceProportionComments?: string;
-  coatCleanGroomed?: boolean;
-  teethGumsHealthy?: boolean;
-  eyesNoseClear?: boolean;
-  earsCleanMiteFree?: boolean;
-  toenailsClipped?: boolean;
+  coatCleanGroomed?: number;
+  teethGumsHealthy?: number;
+  eyesNoseClear?: number;
+  earsCleanMiteFree?: number;
+  toenailsClipped?: number;
   fleaIssues?: boolean;
   healthGroomingComments?: string;
   isFinalized?: boolean;
@@ -78,15 +81,43 @@ export interface UpdateClassScoreInput {
 }
 
 export interface HealthGroomingChecklist {
-  coatCleanGroomed: boolean;
-  teethGumsHealthy: boolean;
-  eyesNoseClear: boolean;
-  earsCleanMiteFree: boolean;
-  toenailsClipped: boolean;
+  coatCleanGroomed: number;
+  teethGumsHealthy: number;
+  eyesNoseClear: number;
+  earsCleanMiteFree: number;
+  toenailsClipped: number;
   fleaIssues: boolean;
 }
 
 export type RibbonType = 'Blue' | 'Red' | 'White' | 'Participation';
+
+/**
+ * Convert boolean health field values to numeric scores for backward compatibility.
+ * When the system transitioned from boolean checklist to numeric scoring,
+ * existing data stored booleans. This converts them to numeric scores.
+ */
+function convertHealthFieldToNumber(field: string, value: any): number {
+  // If already a number, return as-is
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  // Convert boolean to numeric score based on field
+  if (typeof value === 'boolean') {
+    const defaultScores: { [key: string]: number } = {
+      coatCleanGroomed: 15,
+      teethGumsHealthy: 5,
+      eyesNoseClear: 5,
+      earsCleanMiteFree: 10,
+      toenailsClipped: 15,
+    };
+
+    // true = full score, false = 0
+    return value ? (defaultScores[field] || 0) : 0;
+  }
+
+  return 0;
+}
 
 export class ClassScoreDataAccess {
   constructor(private docClient: DynamoDBDocumentClient, private tableName: string) {}
@@ -96,6 +127,7 @@ export class ClassScoreDataAccess {
    */
   private async createAuditEntry(
     classScoreId: string,
+    eventId: string,
     action: string,
     modifiedBy: string,
     previousValues?: any,
@@ -107,6 +139,7 @@ export class ClassScoreDataAccess {
 
     const auditEntry: ClassScoreAuditEntry = {
       id: auditId,
+      eventId,
       classScoreId,
       action,
       modifiedBy,
@@ -132,9 +165,19 @@ export class ClassScoreDataAccess {
   private calculateClassTotalScore(
     beautyScore: number,
     personalityScore: number,
-    balanceProportionScore: number
+    balanceProportionScore: number,
+    healthChecklist?: HealthGroomingChecklist
   ): number {
-    return beautyScore + personalityScore + balanceProportionScore;
+    const mainCategoriesScore = beautyScore + personalityScore + balanceProportionScore;
+    let healthScore = 0;
+    if (healthChecklist) {
+      healthScore = (healthChecklist.coatCleanGroomed || 0) +
+                    (healthChecklist.teethGumsHealthy || 0) +
+                    (healthChecklist.eyesNoseClear || 0) +
+                    (healthChecklist.earsCleanMiteFree || 0) +
+                    (healthChecklist.toenailsClipped || 0);
+    }
+    return mainCategoriesScore + healthScore;
   }
 
   /**
@@ -144,24 +187,29 @@ export class ClassScoreDataAccess {
     totalScore: number,
     healthChecklist: HealthGroomingChecklist
   ): RibbonType {
-    // Check if all health items pass (excluding flea issues which is a negative indicator)
-    const healthItemsPassed = healthChecklist.coatCleanGroomed &&
-                             healthChecklist.teethGumsHealthy &&
-                             healthChecklist.eyesNoseClear &&
-                             healthChecklist.earsCleanMiteFree &&
-                             healthChecklist.toenailsClipped;
-
-    // If any health item fails OR flea issues are present, Red Ribbon regardless of score
-    if (!healthItemsPassed || healthChecklist.fleaIssues) {
+    // If flea issues are present, Red Ribbon regardless of score
+    if (healthChecklist.fleaIssues) {
       return 'Red';
     }
 
-    // Determine ribbon based on score thresholds
-    if (totalScore >= 45 && totalScore <= 50) {
-      return 'Blue';
-    } else if (totalScore >= 35 && totalScore <= 44) {
+    // Check if all health items are passing (score > 0)
+    const healthItemsPassed = (healthChecklist.coatCleanGroomed || 0) > 0 &&
+                             (healthChecklist.teethGumsHealthy || 0) > 0 &&
+                             (healthChecklist.eyesNoseClear || 0) > 0 &&
+                             (healthChecklist.earsCleanMiteFree || 0) > 0 &&
+                             (healthChecklist.toenailsClipped || 0) > 0;
+
+    // If any health item fails, Red Ribbon regardless of score
+    if (!healthItemsPassed) {
       return 'Red';
-    } else if (totalScore >= 25 && totalScore <= 34) {
+    }
+
+    // Determine ribbon based on score thresholds (0-100)
+    if (totalScore >= 90) {
+      return 'Blue';
+    } else if (totalScore >= 80 && totalScore < 90) {
+      return 'Red';
+    } else if (totalScore >= 70 && totalScore < 80) {
       return 'White';
     } else {
       return 'Participation';
@@ -171,14 +219,9 @@ export class ClassScoreDataAccess {
   /**
    * Create a new class score record
    */
-  async createClassScore(input: CreateClassScoreInput): Promise<ClassScore> {
+  async createClassScore(input: CreateClassScoreInput & { eventId: string }): Promise<ClassScore> {
     const id = randomUUID();
     const timestamp = new Date().toISOString();
-    const totalScore = this.calculateClassTotalScore(
-      input.beautyScore,
-      input.personalityScore,
-      input.balanceProportionScore
-    );
 
     const healthChecklist: HealthGroomingChecklist = {
       coatCleanGroomed: input.coatCleanGroomed,
@@ -189,10 +232,18 @@ export class ClassScoreDataAccess {
       fleaIssues: input.fleaIssues
     };
 
+    const totalScore = this.calculateClassTotalScore(
+      input.beautyScore,
+      input.personalityScore,
+      input.balanceProportionScore,
+      healthChecklist
+    );
+
     const ribbonEligibility = this.calculateRibbonEligibility(totalScore, healthChecklist);
 
     const classScore: ClassScore = {
       id,
+      eventId: (input as any).eventId,
       catId: input.catId,
       judgeId: input.judgeId,
       judgeName: input.judgeName,
@@ -234,6 +285,7 @@ export class ClassScoreDataAccess {
       Item: {
         PK: `CAT#${input.catId}`,
         SK: `CLASS_SCORE#${id}`,
+        eventId: input.eventId,
         classScoreId: id,
         judgeId: input.judgeId,
         judgeName: input.judgeName,
@@ -250,6 +302,7 @@ export class ClassScoreDataAccess {
       Item: {
         PK: `JUDGE#${input.judgeId}`,
         SK: `CLASS_SCORE#${id}`,
+        eventId: input.eventId,
         classScoreId: id,
         catId: input.catId,
         totalScore,
@@ -262,6 +315,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry for creation
     await this.createAuditEntry(
       id,
+      (input as any).eventId,
       'CREATE',
       input.judgeName,
       null,
@@ -283,27 +337,50 @@ export class ClassScoreDataAccess {
 
     if (!result.Item) return null;
 
+    const beautyScore = parseInt(result.Item.beautyScore) || 0;
+    const personalityScore = parseInt(result.Item.personalityScore) || 0;
+    const balanceProportionScore = parseInt(result.Item.balanceProportionScore) || 0;
+    const coatCleanGroomed = convertHealthFieldToNumber('coatCleanGroomed', result.Item.coatCleanGroomed);
+    const teethGumsHealthy = convertHealthFieldToNumber('teethGumsHealthy', result.Item.teethGumsHealthy);
+    const eyesNoseClear = convertHealthFieldToNumber('eyesNoseClear', result.Item.eyesNoseClear);
+    const earsCleanMiteFree = convertHealthFieldToNumber('earsCleanMiteFree', result.Item.earsCleanMiteFree);
+    const toenailsClipped = convertHealthFieldToNumber('toenailsClipped', result.Item.toenailsClipped);
+    const fleaIssues = result.Item.fleaIssues;
+
+    const healthChecklist: HealthGroomingChecklist = {
+      coatCleanGroomed,
+      teethGumsHealthy,
+      eyesNoseClear,
+      earsCleanMiteFree,
+      toenailsClipped,
+      fleaIssues
+    };
+
+    const totalScore = this.calculateClassTotalScore(beautyScore, personalityScore, balanceProportionScore, healthChecklist);
+    const ribbonEligibility = this.calculateRibbonEligibility(totalScore, healthChecklist);
+
     return {
       id: result.Item.id,
+      eventId: result.Item.eventId,
       catId: result.Item.catId,
       judgeId: result.Item.judgeId,
       judgeName: result.Item.judgeName,
-      beautyScore: parseInt(result.Item.beautyScore) || 0,
+      beautyScore,
       beautyComments: result.Item.beautyComments,
-      personalityScore: parseInt(result.Item.personalityScore) || 0,
+      personalityScore,
       personalityComments: result.Item.personalityComments,
-      balanceProportionScore: parseInt(result.Item.balanceProportionScore) || 0,
+      balanceProportionScore,
       balanceProportionComments: result.Item.balanceProportionComments,
-      coatCleanGroomed: result.Item.coatCleanGroomed,
-      teethGumsHealthy: result.Item.teethGumsHealthy,
-      eyesNoseClear: result.Item.eyesNoseClear,
-      earsCleanMiteFree: result.Item.earsCleanMiteFree,
-      toenailsClipped: result.Item.toenailsClipped,
-      fleaIssues: result.Item.fleaIssues,
+      coatCleanGroomed,
+      teethGumsHealthy,
+      eyesNoseClear,
+      earsCleanMiteFree,
+      toenailsClipped,
+      fleaIssues,
       healthGroomingComments: result.Item.healthGroomingComments,
-      totalScore: parseInt(result.Item.totalScore) || 0,
-      ribbonEligibility: result.Item.ribbonEligibility,
-      timestamp: result.Item.timestamp,
+      totalScore,
+      ribbonEligibility,
+      timestamp: result.Item.timestamp || new Date().toISOString(),
       isFinalized: result.Item.isFinalized,
       modificationCount: parseInt(result.Item.modificationCount) || 0,
       lastModifiedBy: result.Item.lastModifiedBy,
@@ -326,11 +403,6 @@ export class ClassScoreDataAccess {
 
     // Calculate new total score and ribbon eligibility if any category scores are being updated
     const updatedScore = { ...existingScore, ...input };
-    const newTotalScore = this.calculateClassTotalScore(
-      updatedScore.beautyScore,
-      updatedScore.personalityScore,
-      updatedScore.balanceProportionScore
-    );
 
     const healthChecklist: HealthGroomingChecklist = {
       coatCleanGroomed: updatedScore.coatCleanGroomed,
@@ -340,6 +412,13 @@ export class ClassScoreDataAccess {
       toenailsClipped: updatedScore.toenailsClipped,
       fleaIssues: updatedScore.fleaIssues
     };
+
+    const newTotalScore = this.calculateClassTotalScore(
+      updatedScore.beautyScore,
+      updatedScore.personalityScore,
+      updatedScore.balanceProportionScore,
+      healthChecklist
+    );
 
     const newRibbonEligibility = this.calculateRibbonEligibility(newTotalScore, healthChecklist);
 
@@ -454,6 +533,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry only after the conditional write actually succeeds
     await this.createAuditEntry(
       id,
+      existingScore.eventId,
       'UPDATE',
       modifiedBy,
       existingScore,
@@ -546,13 +626,17 @@ export class ClassScoreDataAccess {
    * Get class scores for a specific cage number (requires looking up cat first)
    */
   async getClassScoresByCage(cageNumber: number): Promise<ClassScore[]> {
-    // First find the cat with this cage number
+    // Get the active event ID to filter cage lookups
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
+    // First find the cat with this cage number, filtered by active event
     const catsResult = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber',
+      FilterExpression: 'begins_with(PK, :pk) AND cageNumber = :cageNumber AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'CAT#',
         ':cageNumber': cageNumber,
+        ':eventId': eventId,
       },
     }));
 
@@ -560,22 +644,26 @@ export class ClassScoreDataAccess {
       return [];
     }
 
-    // Get the cat ID (should only be one cat per cage)
+    // Get the cat ID (should only be one cat per cage per event)
     const catId = catsResult.Items[0].PK.replace('CAT#', '');
-    
+
     return this.getClassScoresByCat(catId);
   }
 
   /**
-   * List all class scores in the system
+   * List all class scores in the system for the active event
    */
   async listAllClassScores(): Promise<ClassScore[]> {
+    // Get the active event ID to filter class scores
+    const eventId = await getActiveEventId(this.docClient, this.tableName);
+
     const result = await this.docClient.send(new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
+      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk AND eventId = :eventId',
       ExpressionAttributeValues: {
         ':pk': 'CLASS_SCORE#',
         ':sk': 'METADATA',
+        ':eventId': eventId,
       },
     }));
 
@@ -583,32 +671,57 @@ export class ClassScoreDataAccess {
       return [];
     }
 
-    return result.Items.map(item => ({
-      id: item.id,
-      catId: item.catId,
-      judgeId: item.judgeId,
-      judgeName: item.judgeName,
-      beautyScore: parseInt(item.beautyScore) || 0,
-      beautyComments: item.beautyComments,
-      personalityScore: parseInt(item.personalityScore) || 0,
-      personalityComments: item.personalityComments,
-      balanceProportionScore: parseInt(item.balanceProportionScore) || 0,
-      balanceProportionComments: item.balanceProportionComments,
-      coatCleanGroomed: item.coatCleanGroomed,
-      teethGumsHealthy: item.teethGumsHealthy,
-      eyesNoseClear: item.eyesNoseClear,
-      earsCleanMiteFree: item.earsCleanMiteFree,
-      toenailsClipped: item.toenailsClipped,
-      fleaIssues: item.fleaIssues,
-      healthGroomingComments: item.healthGroomingComments,
-      totalScore: parseInt(item.totalScore) || 0,
-      ribbonEligibility: item.ribbonEligibility,
-      timestamp: item.timestamp,
-      isFinalized: item.isFinalized,
-      modificationCount: parseInt(item.modificationCount) || 0,
-      lastModifiedBy: item.lastModifiedBy,
-      lastModifiedAt: item.lastModifiedAt,
-    }));
+    return result.Items.map(item => {
+      const beautyScore = parseInt(item.beautyScore) || 0;
+      const personalityScore = parseInt(item.personalityScore) || 0;
+      const balanceProportionScore = parseInt(item.balanceProportionScore) || 0;
+      const coatCleanGroomed = convertHealthFieldToNumber('coatCleanGroomed', item.coatCleanGroomed);
+      const teethGumsHealthy = convertHealthFieldToNumber('teethGumsHealthy', item.teethGumsHealthy);
+      const eyesNoseClear = convertHealthFieldToNumber('eyesNoseClear', item.eyesNoseClear);
+      const earsCleanMiteFree = convertHealthFieldToNumber('earsCleanMiteFree', item.earsCleanMiteFree);
+      const toenailsClipped = convertHealthFieldToNumber('toenailsClipped', item.toenailsClipped);
+      const fleaIssues = item.fleaIssues;
+
+      const healthChecklist: HealthGroomingChecklist = {
+        coatCleanGroomed,
+        teethGumsHealthy,
+        eyesNoseClear,
+        earsCleanMiteFree,
+        toenailsClipped,
+        fleaIssues
+      };
+
+      const totalScore = this.calculateClassTotalScore(beautyScore, personalityScore, balanceProportionScore, healthChecklist);
+      const ribbonEligibility = this.calculateRibbonEligibility(totalScore, healthChecklist);
+
+      return {
+        id: item.id,
+        eventId: item.eventId,
+        catId: item.catId,
+        judgeId: item.judgeId,
+        judgeName: item.judgeName,
+        beautyScore,
+        beautyComments: item.beautyComments,
+        personalityScore,
+        personalityComments: item.personalityComments,
+        balanceProportionScore,
+        balanceProportionComments: item.balanceProportionComments,
+        coatCleanGroomed,
+        teethGumsHealthy,
+        eyesNoseClear,
+        earsCleanMiteFree,
+        toenailsClipped,
+        fleaIssues,
+        healthGroomingComments: item.healthGroomingComments,
+        totalScore,
+        ribbonEligibility,
+        timestamp: item.timestamp || new Date().toISOString(),
+        isFinalized: item.isFinalized,
+        modificationCount: parseInt(item.modificationCount) || 0,
+        lastModifiedBy: item.lastModifiedBy,
+        lastModifiedAt: item.lastModifiedAt,
+      };
+    });
   }
 
   /**
@@ -631,6 +744,7 @@ export class ClassScoreDataAccess {
 
     return result.Items.map(item => ({
       id: item.id,
+      eventId: item.eventId,
       classScoreId: item.classScoreId,
       action: item.action,
       modifiedBy: item.modifiedBy,
@@ -666,6 +780,7 @@ export class ClassScoreDataAccess {
     // Create audit trail entry for finalization
     await this.createAuditEntry(
       id,
+      existingScore.eventId,
       'FINALIZE',
       modifiedBy,
       existingScore,

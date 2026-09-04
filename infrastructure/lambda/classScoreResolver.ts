@@ -2,6 +2,7 @@ import { AppSyncResolverEvent } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { ClassScoreDataAccess, CreateClassScoreInput, UpdateClassScoreInput } from './classScoreDataAccess';
+import { getActiveEventId } from './eventDataAccess';
 import {
   getUserContext,
   requireAnyRole,
@@ -228,19 +229,23 @@ async function createClassScore(event: AppSyncResolverEvent<{ input: CreateClass
       );
     }
 
+    // Resolve the active event ID server-side (never trust client)
+    const eventId = await getActiveEventId(docClient, process.env.TABLE_NAME!);
+
     // Add judge information from authenticated user
-    const judgeName = userContext?.email || 
-                     userContext?.claims?.email || 
-                     userContext?.claims?.['cognito:username'] || 
+    const judgeName = userContext?.email ||
+                     userContext?.claims?.email ||
+                     userContext?.claims?.['cognito:username'] ||
                      userContext?.claims?.name ||
                      'Unknown Judge';
-    
-    console.log('Creating class score with judge info:', { judgeId, judgeName, userContext: userContext });
-    
-    const createInput: CreateClassScoreInput = {
+
+    console.log('Creating class score with judge info:', { judgeId, judgeName, eventId, userContext: userContext });
+
+    const createInput: CreateClassScoreInput & { eventId: string } = {
       ...input,
       judgeId,
       judgeName,
+      eventId,
     };
 
     return await classScoreDataAccess.createClassScore(createInput);

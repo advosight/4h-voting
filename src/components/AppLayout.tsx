@@ -48,6 +48,7 @@ import { PerformanceMonitorButton } from './PerformanceDashboard';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 import { useAccessibleNavigation } from '../hooks/useAccessibleNavigation';
 import UserDebugInfo from './UserDebugInfo';
+import EventSelector from './EventSelector';
 
 interface AppLayoutProps {
   signOut?: ((data?: any) => void) | (() => void);
@@ -582,11 +583,11 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
             <MenuIcon />
           </IconButton>
           
-          <Typography 
-            variant={isMobile ? "subtitle1" : "h6"} 
-            noWrap 
-            component="div" 
-            sx={{ 
+          <Typography
+            variant={isMobile ? "subtitle1" : "h6"}
+            noWrap
+            component="div"
+            sx={{
               flexGrow: 1,
               fontSize: isMobile ? '1.1rem' : '1.25rem',
               fontWeight: isMobile ? 500 : 400,
@@ -594,7 +595,10 @@ function AppLayout({ signOut }: AppLayoutProps): JSX.Element {
           >
             {getCurrentPageTitle()}
           </Typography>
-          
+
+          {/* Event selector (visible to admins and judges) */}
+          <EventSelector />
+
           {/* Desktop sign out button */}
           {!isMobile && (
             <Button

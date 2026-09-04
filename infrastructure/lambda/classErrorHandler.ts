@@ -141,25 +141,36 @@ export const validateClassScoringInput = (input: any): void => {
     }
   }
 
-  // Validate boolean health fields
-  const booleanFields = [
-    'coatCleanGroomed',
-    'teethGumsHealthy',
-    'eyesNoseClear', 
-    'earsCleanMiteFree',
-    'toenailsClipped',
-    'fleaIssues'
+  // Validate health scoring fields (numeric scores)
+  const healthScoringFields = [
+    { field: 'coatCleanGroomed', min: 0, max: 15 },
+    { field: 'teethGumsHealthy', min: 0, max: 5 },
+    { field: 'eyesNoseClear', min: 0, max: 5 },
+    { field: 'earsCleanMiteFree', min: 0, max: 10 },
+    { field: 'toenailsClipped', min: 0, max: 15 }
   ];
 
-  booleanFields.forEach(field => {
-    if (input[field] !== undefined && typeof input[field] !== 'boolean') {
-      throw new ClassScoringValidationError(
-        `${field} must be a boolean value`,
-        field,
-        'health'
-      );
+  healthScoringFields.forEach(({ field, min, max }) => {
+    if (input[field] !== undefined) {
+      if (typeof input[field] !== 'number' || input[field] < min || input[field] > max) {
+        throw new ClassScoringValidationError(
+          `${field} must be a number between ${min} and ${max}`,
+          field,
+          'health',
+          { minValue: min, maxValue: max, currentValue: input[field] }
+        );
+      }
     }
   });
+
+  // Validate fleaIssues (boolean flag)
+  if (input.fleaIssues !== undefined && typeof input.fleaIssues !== 'boolean') {
+    throw new ClassScoringValidationError(
+      'fleaIssues must be a boolean value',
+      'fleaIssues',
+      'health'
+    );
+  }
 
   // Validate comment lengths
   const commentFields = [

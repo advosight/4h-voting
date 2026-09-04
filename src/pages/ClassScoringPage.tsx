@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Typography,
   Button,
@@ -92,6 +92,7 @@ const isHealthyClassScore = (classScore: any): boolean =>
 
 function ClassScoringPage(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const [cats, setCats] = useState<any[]>([]);
   const [classScores, setClassScores] = useState<any[]>([]);
   const [filteredCats, setFilteredCats] = useState<any[]>([]);
@@ -99,6 +100,7 @@ function ClassScoringPage(): JSX.Element {
   const [selectedBreedCategory, setSelectedBreedCategory] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(false);
   const [catsLoading, setCatsLoading] = useState<boolean>(true);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -107,11 +109,34 @@ function ClassScoringPage(): JSX.Element {
     fetchCats();
     // Fetch class scores but don't block the UI if it fails
     fetchClassScores().catch(console.error);
+
+    // Refresh scores when page becomes visible (e.g., after returning from submission)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page is now visible, refreshing class scores');
+        fetchClassScores().catch(console.error);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   useEffect(() => {
     filterCats();
   }, [cats, selectedAgeGroup, selectedBreedCategory]);
+
+  // Refresh scores when returning to this page (e.g., after submitting a score)
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear message after 5 seconds
+      const timer = setTimeout(() => setSuccessMessage(null), 5000);
+      // Refresh class scores when returning from submission
+      fetchClassScores().catch(console.error);
+      return () => clearTimeout(timer);
+    }
+  }, [location]);
 
   const fetchCats = async () => {
     try {
@@ -185,6 +210,9 @@ function ClassScoringPage(): JSX.Element {
     setSelectedBreedCategory('all');
   };
 
+  const unscoredCats = filteredCats.filter(cat => !getCatClassScore(cat.id));
+  const scoredCats = filteredCats.filter(cat => getCatClassScore(cat.id));
+
   return (
     <Box sx={{ pb: isMobile ? 10 : 2 }}>
 
@@ -248,11 +276,33 @@ function ClassScoringPage(): JSX.Element {
         </Box>
       </Paper>
 
+      {/* Success Message */}
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 3, borderRadius: '10px' }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
+
       {/* Filter Cats */}
       <Paper elevation={1} sx={{ p: 3, mb: 3, backgroundColor: '#f8f9ff', border: '1px solid #1976d2' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2' }}>
-          Filter Cats
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: '#1976d2' }}>
+            Filter Cats
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            color="primary"
+            onClick={() => {
+              setCatsLoading(true);
+              Promise.all([fetchCats(), fetchClassScores()]).catch(console.error);
+            }}
+            disabled={catsLoading || loading}
+            sx={{ textTransform: 'none' }}
+          >
+            🔄 Refresh
+          </Button>
+        </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <FormControl sx={{ minWidth: 200 }}>
             <InputLabel id="class-age-group-filter-label">Cat Age Group</InputLabel>
@@ -324,36 +374,37 @@ function ClassScoringPage(): JSX.Element {
         </Box>
       </Paper>
 
-      {/* Available Participants Grid */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h6" sx={{ color: '#1976d2' }}>
-          Available Participants
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {hasActiveFilter
-            ? `Showing ${filteredCats.length} filtered participant${filteredCats.length !== 1 ? 's' : ''}`
-            : `Showing all ${filteredCats.length} participants`
-          }
-        </Typography>
-      </Box>
-      <Grid container spacing={2} sx={{ mb: 4 }} data-testid="class-scoring-participant-cards">
-        {filteredCats.map((cat) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={`class-${cat.id}`}>
-            <Card
-              sx={{
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                border: '1px solid #1976d2',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4,
-                  borderColor: '#1565c0',
+      {/* Unscored Participants Grid */}
+      {unscoredCats.length > 0 && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Typography variant="h6" sx={{ color: '#ff9800' }}>
+              📝 Unscored Participants ({unscoredCats.length})
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Click a cat to begin class scoring
+            </Typography>
+          </Box>
+          <Grid container spacing={2} sx={{ mb: 4 }} data-testid="class-scoring-unscored-cards">
+            {unscoredCats.map((cat) => (
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={`class-${cat.id}`}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    border: '2px solid #ff9800',
+                    backgroundColor: '#fffbf0',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: 4,
+                  borderColor: '#ff9800',
+                  backgroundColor: '#fffbf0'
                 }
               }}
               onClick={() => navigate(`/class-score/${cat.id}`)}
             >
               <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" color="primary">
+                <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
                   {cat.name}
                 </Typography>
                 <Typography variant="body2" color="text.primary">
@@ -366,15 +417,87 @@ function ClassScoringPage(): JSX.Element {
                   <Chip
                     label={`${cat.ownerAgeGroup} • ${cat.catAgeGroup}`}
                     size="small"
-                    color="primary"
-                    variant="outlined"
+                    sx={{ backgroundColor: '#ff9800', color: 'white' }}
                   />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-        ))}
-      </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {/* Scored Participants Grid */}
+      {scoredCats.length > 0 && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Typography variant="h6" sx={{ color: '#4caf50' }}>
+              ✓ Scored Participants ({scoredCats.length})
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Click a cat to view or update their score
+            </Typography>
+          </Box>
+          <Grid container spacing={2} sx={{ mb: 4 }} data-testid="class-scoring-scored-cards">
+            {scoredCats.map((cat) => {
+              const classScore = getCatClassScore(cat.id);
+              return (
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={`class-scored-${cat.id}`}>
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      border: '2px solid #4caf50',
+                      backgroundColor: '#f0f7f0',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 4,
+                        borderColor: '#388e3c',
+                        backgroundColor: '#e8f5e9'
+                      }
+                    }}
+                    onClick={() => navigate(`/class-score/${cat.id}`)}
+                  >
+                    <CardContent sx={{ textAlign: 'center' }}>
+                      <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                        {cat.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.primary">
+                        Cage {cat.cageNumber}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Owner: {cat.owner}
+                      </Typography>
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        {classScore && (
+                          <>
+                            <Chip
+                              label={`Score: ${classScore.totalScore}`}
+                              size="small"
+                              sx={{ backgroundColor: '#4caf50', color: 'white', fontWeight: 'bold' }}
+                            />
+                            <Chip
+                              label={classScore.ribbonEligibility}
+                              size="small"
+                              color={
+                                classScore.ribbonEligibility === 'Blue' ? 'primary' :
+                                classScore.ribbonEligibility === 'Red' ? 'error' :
+                                classScore.ribbonEligibility === 'White' ? 'default' : 'secondary'
+                              }
+                              variant="outlined"
+                            />
+                          </>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </>
+      )}
 
       {filteredCats.length === 0 && !catsLoading && (
         <Box sx={{ textAlign: 'center', py: 4, mb: 4 }}>
@@ -421,13 +544,86 @@ function ClassScoringPage(): JSX.Element {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredCats.map((cat) => {
+                {/* Unscored participants first */}
+                {unscoredCats.map((cat) => {
                   const classScore = getCatClassScore(cat.id);
                   return (
                     <TableRow
                       key={cat.id}
                       sx={{
-                        '&:hover': { backgroundColor: '#f5f5f5' },
+                        '&:hover': { backgroundColor: '#fff3e0' },
+                        cursor: 'pointer',
+                        backgroundColor: '#fffbf0'
+                      }}
+                      onClick={() => navigate(`/class-score/${cat.id}`)}
+                    >
+                      <TableCell align="center">
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="warning"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/class-score/${cat.id}`);
+                          }}
+                          sx={{ minWidth: 'auto', px: 2 }}
+                        >
+                          Score Now
+                        </Button>
+                      </TableCell>
+                      <TableCell>{cat.cageNumber}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {cat.name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{cat.owner}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getCatAgeGroupLabel(cat.catAgeGroup)}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {cat.breedCategory ? (
+                          <Chip
+                            label={getBreedCategoryLabel(cat.breedCategory)}
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">-</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" color="text.secondary">-</Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip label="Pending" size="small" color="warning" />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {/* Scored participants second */}
+                {scoredCats.map((cat) => {
+                  const classScore = getCatClassScore(cat.id);
+                  return (
+                    <TableRow
+                      key={`scored-${cat.id}`}
+                      sx={{
+                        '&:hover': { backgroundColor: '#e8f5e9' },
                         cursor: 'pointer'
                       }}
                       onClick={() => navigate(`/class-score/${cat.id}`)}
@@ -436,14 +632,14 @@ function ClassScoringPage(): JSX.Element {
                         <Button
                           size="small"
                           variant="outlined"
-                          color="primary"
+                          color="success"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/class-score/${cat.id}`);
                           }}
                           sx={{ minWidth: 'auto', px: 2 }}
                         >
-                          Score
+                          View
                         </Button>
                       </TableCell>
                       <TableCell>{cat.cageNumber}</TableCell>
@@ -478,7 +674,7 @@ function ClassScoringPage(): JSX.Element {
                           <Chip
                             label={classScore.beautyScore}
                             size="small"
-                            color={classScore.beautyScore >= 80 ? "success" : classScore.beautyScore >= 60 ? "warning" : "default"}
+                            color={classScore.beautyScore >= 12 ? "success" : classScore.beautyScore >= 8 ? "warning" : "default"}
                           />
                         ) : (
                           <Typography variant="body2" color="text.secondary">-</Typography>
@@ -489,7 +685,7 @@ function ClassScoringPage(): JSX.Element {
                           <Chip
                             label={classScore.personalityScore}
                             size="small"
-                            color={classScore.personalityScore >= 80 ? "success" : classScore.personalityScore >= 60 ? "warning" : "default"}
+                            color={classScore.personalityScore >= 16 ? "success" : classScore.personalityScore >= 12 ? "warning" : "default"}
                           />
                         ) : (
                           <Typography variant="body2" color="text.secondary">-</Typography>
@@ -498,7 +694,7 @@ function ClassScoringPage(): JSX.Element {
                       <TableCell align="center">
                         {classScore ? (
                           <Chip
-                            label={isHealthyClassScore(classScore) ? 'Healthy' : 'Issues Found'}
+                            label={isHealthyClassScore(classScore) ? 'Healthy' : 'Issues'}
                             size="small"
                             color={isHealthyClassScore(classScore) ? 'success' : 'warning'}
                           />
@@ -531,7 +727,7 @@ function ClassScoringPage(): JSX.Element {
                             sx={{ fontWeight: 'bold' }}
                           />
                         ) : (
-                          <Typography variant="body2" color="text.secondary">Not Scored</Typography>
+                          <Typography variant="body2" color="text.secondary">-</Typography>
                         )}
                       </TableCell>
                     </TableRow>

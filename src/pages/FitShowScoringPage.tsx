@@ -26,10 +26,6 @@ import {
 import {
   School as FitShowIcon,
   Search as SearchIcon,
-  TrendingUp as TrendingUpIcon,
-  Psychology as KnowledgeIcon,
-  Pets as HandlingIcon,
-  Visibility as ShowmanshipIcon,
 } from '@mui/icons-material';
 import { generateClient } from 'aws-amplify/api';
 import FitShowScoreLeaderboard from '../components/FitShowScoreLeaderboard';
@@ -66,6 +62,7 @@ const listAllFitShowScores = `
         judgeId
         judgeName
         totalScore
+        ribbonEligibility
         isFinalized
         createdAt
         updatedAt
@@ -378,20 +375,33 @@ function FitShowScoringPage(): JSX.Element {
         </Box>
       </Paper>
 
-      {/* Available Participants Grid */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ color: '#e65100' }}>
-          Available Participants
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {selectedParticipantGroup === 'all' 
-            ? `Showing all ${filteredCats.length} participants`
-            : `Showing ${filteredCats.length} ${getOwnerAgeGroupLabel(selectedParticipantGroup)} participants`
-          }
-        </Typography>
-      </Box>
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        {filteredCats.map((cat) => {
+      {/* Split into unscored and scored participants */}
+      {(() => {
+        const unscoredCats = filteredCats.filter(cat => !getFitShowScoreForCat(cat.id));
+        const scoredCats = filteredCats.filter(cat => getFitShowScoreForCat(cat.id));
+
+        return (
+          <>
+            {/* Unscored Participants Section */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: '#e65100' }}>
+                📋 Available Participants ({unscoredCats.length})
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{
+                  borderColor: '#ff9800',
+                  color: '#e65100',
+                  '&:hover': { borderColor: '#f57c00', backgroundColor: '#fff3e0' }
+                }}
+                onClick={() => window.location.reload()}
+              >
+                🔄 Refresh
+              </Button>
+            </Box>
+            <Grid container spacing={2} sx={{ mb: 6 }}>
+              {unscoredCats.map((cat) => {
           const fitShowScore = getFitShowScoreForCat(cat.id);
           const hasScore = !!fitShowScore;
           const isFinalized = fitShowScore?.isFinalized || false;
@@ -512,92 +522,181 @@ function FitShowScoringPage(): JSX.Element {
                 </CardContent>
               </Card>
             </Grid>
-          );
-        })}
-        {filteredCats.length === 0 && (
-          <Grid item xs={12}>
-            <Paper 
-              elevation={1} 
-              sx={{ 
-                p: 4, 
-                textAlign: 'center', 
-                backgroundColor: '#fff8e1', 
-                border: '1px solid #ff9800' 
-              }}
-            >
-              <FitShowIcon sx={{ fontSize: 60, color: '#ff9800', mb: 2 }} />
-              <Typography variant="h6" sx={{ color: '#e65100', mb: 1 }}>
-                No Participants Found
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {selectedParticipantGroup === 'all' 
-                  ? 'No participants are currently available for fit & show scoring.'
-                  : `No participants found in the ${getOwnerAgeGroupLabel(selectedParticipantGroup)} group.`
-                }
-              </Typography>
-              {selectedParticipantGroup !== 'all' && (
-                <Button
-                  variant="outlined"
-                  onClick={() => setSelectedParticipantGroup('all')}
-                  sx={{ 
-                    borderColor: '#ff9800',
-                    color: '#e65100',
-                    '&:hover': { borderColor: '#f57c00', backgroundColor: '#fff3e0' }
-                  }}
-                >
-                  Show All Participants
-                </Button>
+              );
+            })}
+            {unscoredCats.length === 0 && scoredCats.length === 0 && (
+              <Grid item xs={12}>
+                  <Paper
+                    elevation={1}
+                    sx={{
+                      p: 4,
+                      textAlign: 'center',
+                      backgroundColor: '#fff8e1',
+                      border: '1px solid #ff9800'
+                    }}
+                  >
+                    <FitShowIcon sx={{ fontSize: 60, color: '#ff9800', mb: 2 }} />
+                    <Typography variant="h6" sx={{ color: '#e65100', mb: 1 }}>
+                      No Participants Found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {selectedParticipantGroup === 'all'
+                        ? 'No participants are currently available for fit & show scoring.'
+                        : `No participants found in the ${getOwnerAgeGroupLabel(selectedParticipantGroup)} group.`
+                      }
+                    </Typography>
+                    {selectedParticipantGroup !== 'all' && (
+                      <Button
+                        variant="outlined"
+                        onClick={() => setSelectedParticipantGroup('all')}
+                        sx={{
+                          borderColor: '#ff9800',
+                          color: '#e65100',
+                          '&:hover': { borderColor: '#f57c00', backgroundColor: '#fff3e0' }
+                        }}
+                      >
+                        Show All Participants
+                      </Button>
+                    )}
+                  </Paper>
+                </Grid>
               )}
-            </Paper>
-          </Grid>
-        )}
-      </Grid>
+            </Grid>
 
-      {/* Scoring Criteria Information */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4, backgroundColor: '#fff3e0', border: '1px solid #ff9800' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#e65100' }}>
-          Fit & Show Scoring Criteria
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <ShowmanshipIcon sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-              <Typography variant="h6" sx={{ color: '#e65100' }}>Showmanship</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Presentation skills and confidence in the ring
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <HandlingIcon sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-              <Typography variant="h6" sx={{ color: '#e65100' }}>Handling</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Proper cat handling techniques and safety
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <KnowledgeIcon sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-              <Typography variant="h6" sx={{ color: '#e65100' }}>Knowledge</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Understanding of cat care and breed characteristics
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2 }}>
-              <TrendingUpIcon sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-              <Typography variant="h6" sx={{ color: '#e65100' }}>Overall Care</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Grooming, health maintenance, and preparation
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
+            {/* Scored Participants Section */}
+            {scoredCats.length > 0 && (
+              <>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 4 }}>
+                  <Typography variant="h6" sx={{ color: '#4caf50' }}>
+                    ✅ Scored Participants ({scoredCats.length})
+                  </Typography>
+                </Box>
+                <Grid container spacing={2} sx={{ mb: 4 }}>
+                  {scoredCats.map((cat) => {
+                    const fitShowScore = getFitShowScoreForCat(cat.id);
+                    const isFinalized = fitShowScore?.isFinalized || false;
 
+                    return (
+                      <Grid item xs={12} sm={6} md={4} lg={3} key={`fit-show-scored-${cat.id}`}>
+                        <Card
+                          sx={{
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            border: '2px solid #4caf50',
+                            backgroundColor: '#f1f8e9',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: 4,
+                              borderColor: '#388e3c',
+                            }
+                          }}
+                          onClick={() => navigate(`/fit-show-score/${cat.id}`)}
+                        >
+                          <CardContent sx={{ textAlign: 'center' }}>
+                            <Typography variant="h6" sx={{ color: '#4caf50' }}>
+                              {cat.name}
+                            </Typography>
+                            <Typography variant="body2" color="text.primary">
+                              Cage {cat.cageNumber}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Participant: {cat.owner}
+                            </Typography>
+
+                            {/* Score Information */}
+                            <Box sx={{ mt: 2, p: 1, backgroundColor: 'rgba(76, 175, 80, 0.1)', borderRadius: 1 }}>
+                              <Typography variant="h6" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+                                {fitShowScore.totalScore}/100
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Fit & Show Score
+                              </Typography>
+                              <Box sx={{ mt: 1 }}>
+                                <Chip
+                                  label={fitShowScore.ribbonEligibility}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor:
+                                      fitShowScore.ribbonEligibility === 'Blue' ? '#0066cc' :
+                                      fitShowScore.ribbonEligibility === 'Red' ? '#cc0000' :
+                                      fitShowScore.ribbonEligibility === 'White' ? '#666666' :
+                                      '#ff9900',
+                                    color: 'white',
+                                    fontWeight: 'bold'
+                                  }}
+                                />
+                              </Box>
+                              <Chip
+                                label={isFinalized ? '✅ Finalized' : '📝 Draft'}
+                                size="small"
+                                sx={{
+                                  backgroundColor: isFinalized ? '#4caf50' : '#ff9800',
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  mt: 1
+                                }}
+                              />
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                Judge: {fitShowScore.judgeName}
+                              </Typography>
+
+                              {/* Admin-only controls */}
+                              {!roleLoading && userInfo?.role === 'admin' && isFinalized && (
+                                <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      color: '#ff9800',
+                                      borderColor: '#ff9800',
+                                      '&:hover': { borderColor: '#f57c00', backgroundColor: '#fff3e0' },
+                                      fontSize: '0.75rem'
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOverrideScore(cat.id);
+                                    }}
+                                  >
+                                    Override
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      color: '#4caf50',
+                                      borderColor: '#4caf50',
+                                      '&:hover': { borderColor: '#388e3c', backgroundColor: '#f1f8e9' },
+                                      fontSize: '0.75rem'
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenAuditHistory(fitShowScore.id);
+                                    }}
+                                  >
+                                    View History
+                                  </Button>
+                                </Box>
+                              )}
+                            </Box>
+
+                            <Box sx={{ mt: 1 }}>
+                              <Chip
+                                label={`${cat.ownerAgeGroup} • ${cat.catAgeGroup}`}
+                                size="small"
+                                sx={{ backgroundColor: '#4caf50', color: 'white' }}
+                              />
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              </>
+            )}
+          </>
+        );
+      })()}
       {/* Real-time Leaderboard */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, lg: 8 }}>
