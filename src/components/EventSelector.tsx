@@ -117,7 +117,12 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
           variant="outlined"
           size={isMobile ? 'small' : 'medium'}
           disabled
-          sx={{ maxWidth: isMobile ? 150 : 250 }}
+          sx={{
+            maxWidth: isMobile ? 150 : 250,
+            color: 'inherit',
+            borderColor: 'rgba(255, 255, 255, 0.23)',
+            '& .MuiChip-icon': { color: 'inherit' },
+          }}
         />
       </Box>
     );
@@ -132,7 +137,12 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
           label={activeEvent.name}
           variant="outlined"
           size={isMobile ? 'small' : 'medium'}
-          sx={{ maxWidth: isMobile ? 150 : 300 }}
+          sx={{
+            maxWidth: isMobile ? 150 : 300,
+            color: 'inherit',
+            borderColor: 'rgba(255, 255, 255, 0.23)',
+            '& .MuiChip-icon': { color: 'inherit' },
+          }}
         />
       </Box>
     );
@@ -147,7 +157,12 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
         label={activeEvent.name}
         variant="outlined"
         size={isMobile ? 'small' : 'medium'}
-        sx={{ maxWidth: isMobile ? 150 : 300 }}
+        sx={{
+          maxWidth: isMobile ? 150 : 300,
+          color: 'inherit',
+          borderColor: 'rgba(255, 255, 255, 0.23)',
+          '& .MuiChip-icon': { color: 'inherit' },
+        }}
       />
 
       {/* Desktop menu button */}
