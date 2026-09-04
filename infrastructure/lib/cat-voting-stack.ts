@@ -692,6 +692,16 @@ export class CatVotingStack extends cdk.Stack {
       fieldName: 'switchActiveEvent',
     });
 
+    eventDataSource.createResolver('createEventResolver', {
+      typeName: 'Mutation',
+      fieldName: 'createEvent',
+    });
+
+    eventDataSource.createResolver('archiveCurrentEventResolver', {
+      typeName: 'Mutation',
+      fieldName: 'archiveCurrentEvent',
+    });
+
     eventDataSource.createResolver('archiveAndCreateEventResolver', {
       typeName: 'Mutation',
       fieldName: 'archiveAndCreateEvent',
