@@ -20,11 +20,13 @@ import {
 import {
   EventNote as EventNoteIcon,
   SwapHoriz as SwitchIcon,
+  Add as AddIcon,
   Archive as ArchiveIcon,
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import { useEvent, ActiveEvent } from '../contexts/EventContext';
 import { useUserRole } from '../utils/roleUtils';
+import CreateEventDialog from './CreateEventDialog';
 import ArchiveEventDialog from './ArchiveEventDialog';
 
 interface EventSelectorProps {
@@ -46,6 +48,7 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedEventForSwitch, setSelectedEventForSwitch] = useState<ActiveEvent | null>(null);
   const [switchLoading, setSwitchLoading] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   const menuOpen = Boolean(anchorEl);
@@ -90,6 +93,11 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
     } finally {
       setSwitchLoading(false);
     }
+  };
+
+  const handleCreateClick = () => {
+    handleMenuClose();
+    setCreateDialogOpen(true);
   };
 
   const handleArchiveClick = () => {
@@ -223,11 +231,18 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
 
             <MenuItem divider />
 
+            <MenuItem onClick={handleCreateClick}>
+              <ListItemIcon>
+                <AddIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Create New Event" />
+            </MenuItem>
+
             <MenuItem onClick={handleArchiveClick}>
               <ListItemIcon>
                 <ArchiveIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText primary="Archive & Start New Event" />
+              <ListItemText primary="Archive Current Event" />
             </MenuItem>
           </Menu>
         </>
@@ -289,11 +304,18 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
 
             <MenuItem divider />
 
+            <MenuItem onClick={handleCreateClick}>
+              <ListItemIcon>
+                <AddIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Create New" />
+            </MenuItem>
+
             <MenuItem onClick={handleArchiveClick}>
               <ListItemIcon>
                 <ArchiveIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText primary="Archive & Start New" />
+              <ListItemText primary="Archive" />
             </MenuItem>
           </Menu>
         </>
@@ -330,6 +352,12 @@ export const EventSelector: React.FC<EventSelectorProps> = ({ onArchiveClick }) 
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Create event dialog */}
+      <CreateEventDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+      />
 
       {/* Archive event dialog */}
       <ArchiveEventDialog

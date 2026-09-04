@@ -66,6 +66,8 @@ export interface EventContextType {
   refetchActiveEvent: () => Promise<void>;
   listEvents: () => Promise<ActiveEvent[]>;
   switchActiveEvent: (eventId: string) => Promise<void>;
+  createEvent: (newEventName: string, newEventDate: string) => Promise<void>;
+  archiveCurrentEvent: () => Promise<void>;
   archiveAndCreateEvent: (newEventName: string, newEventDate: string) => Promise<void>;
 }
 
@@ -147,6 +149,59 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
     }
   };
 
+  // Create a new event and make it active (without archiving current)
+  const doCreateEvent = async (newEventName: string, newEventDate: string) => {
+    try {
+      const mutation = `
+        mutation CreateEvent($newEventName: String!, $newEventDate: String!) {
+          createEvent(newEventName: $newEventName, newEventDate: $newEventDate) {
+            id
+            name
+            date
+            status
+            archivedAt
+            archivedBy
+            createdAt
+          }
+        }
+      `;
+      await client.graphql({
+        query: mutation,
+        variables: { newEventName, newEventDate }
+      });
+      // Rely on onActiveEventChange subscription to update state
+    } catch (err) {
+      console.error('Error creating event:', err);
+      throw err;
+    }
+  };
+
+  // Archive the current active event
+  const doArchiveCurrentEvent = async () => {
+    try {
+      const mutation = `
+        mutation ArchiveCurrentEvent {
+          archiveCurrentEvent {
+            id
+            name
+            date
+            status
+            archivedAt
+            archivedBy
+            createdAt
+          }
+        }
+      `;
+      await client.graphql({
+        query: mutation
+      });
+      // Rely on onActiveEventChange subscription to update state (if switching after)
+    } catch (err) {
+      console.error('Error archiving current event:', err);
+      throw err;
+    }
+  };
+
   // Archive the current event and create a new one
   const doArchiveAndCreateEvent = async (newEventName: string, newEventDate: string) => {
     try {
@@ -217,6 +272,8 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
     refetchActiveEvent: fetchActiveEvent,
     listEvents: fetchListEvents,
     switchActiveEvent: doSwitchActiveEvent,
+    createEvent: doCreateEvent,
+    archiveCurrentEvent: doArchiveCurrentEvent,
     archiveAndCreateEvent: doArchiveAndCreateEvent,
   };
 

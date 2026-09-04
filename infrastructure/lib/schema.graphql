@@ -120,6 +120,8 @@ type Mutation {
   setVotingStatus(isActive: Boolean!): VotingStatus!
   setDeviceLimitStatus(enabled: Boolean!): DeviceLimitStatus!
   switchActiveEvent(eventId: ID!): Event! @aws_cognito_user_pools
+  createEvent(newEventName: String!, newEventDate: String!): Event! @aws_cognito_user_pools
+  archiveCurrentEvent: Event @aws_cognito_user_pools
   archiveAndCreateEvent(newEventName: String!, newEventDate: String!): Event! @aws_cognito_user_pools
   createScore(input: CreateScoreInput!): Score! @aws_cognito_user_pools
   updateScore(id: ID!, input: UpdateScoreInput!): Score! @aws_cognito_user_pools

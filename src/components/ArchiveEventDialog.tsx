@@ -71,13 +71,10 @@ export const ArchiveEventDialog: React.FC<ArchiveEventDialogProps> = ({
   open,
   onClose
 }) => {
-  const { activeEvent, archiveAndCreateEvent } = useEvent();
+  const { activeEvent, archiveCurrentEvent } = useEvent();
 
-  const [newEventName, setNewEventName] = useState('');
-  const [newEventDate, setNewEventDate] = useState('');
   const [catCount, setCatCount] = useState<number | null>(null);
   const [scoreCount, setScoreCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
   const [countLoading, setCountLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -145,24 +142,12 @@ export const ArchiveEventDialog: React.FC<ArchiveEventDialogProps> = ({
   }, [open]);
 
   const handleSubmit = async () => {
-    if (!newEventName.trim()) {
-      setError('Event name is required');
-      return;
-    }
-
-    if (!newEventDate.trim()) {
-      setError('Event date is required');
-      return;
-    }
-
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await archiveAndCreateEvent(newEventName, newEventDate);
-      // Close dialog and reset form on success
-      setNewEventName('');
-      setNewEventDate('');
+      await archiveCurrentEvent();
+      // Close dialog on success
       onClose();
     } catch (err) {
       console.error('Error archiving event:', err);
@@ -174,8 +159,6 @@ export const ArchiveEventDialog: React.FC<ArchiveEventDialogProps> = ({
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setNewEventName('');
-      setNewEventDate('');
       setError(null);
       onClose();
     }
@@ -193,7 +176,7 @@ export const ArchiveEventDialog: React.FC<ArchiveEventDialogProps> = ({
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <ArchiveIcon />
-        Archive Event & Start New One
+        Archive Current Event
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2 }}>
@@ -225,50 +208,18 @@ export const ArchiveEventDialog: React.FC<ArchiveEventDialogProps> = ({
 
           {/* Warning message */}
           <Alert severity="warning">
-            This action will archive all current participants and scores. You will not be able
-            to revert this from this dialog, but you can always switch back to this event later
-            using the Event Selector.
+            This action will mark the current event as archived. The event data will remain in
+            the system and you can switch back to it at any time using the Event Selector.
           </Alert>
 
           {/* Error message */}
           {error && <Alert severity="error">{error}</Alert>}
 
-          {/* New event form */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
-              Create New Event
+          <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+            <Typography variant="body2">
+              After archiving, you can create a new event or switch to a previous one using
+              the Event Selector in the toolbar.
             </Typography>
-            <Stack spacing={2}>
-              <TextField
-                label="Event Name"
-                fullWidth
-                value={newEventName}
-                onChange={(e) => setNewEventName(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="e.g., Regional Competition 2024"
-              />
-              <TextField
-                label="Event Date"
-                fullWidth
-                type="date"
-                value={newEventDate}
-                onChange={(e) => setNewEventDate(e.target.value)}
-                disabled={isSubmitting}
-                variant="outlined"
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    paddingTop: '28px',
-                    paddingBottom: '12px',
-                  },
-                  '& .MuiOutlinedInput-root': {
-                    paddingTop: '8px',
-                  },
-                }}
-              />
-            </Stack>
           </Box>
         </Stack>
       </DialogContent>
@@ -281,11 +232,11 @@ export const ArchiveEventDialog: React.FC<ArchiveEventDialogProps> = ({
           onClick={handleSubmit}
           variant="contained"
           color="error"
-          disabled={isSubmitting || !newEventName.trim() || !newEventDate.trim()}
+          disabled={isSubmitting}
           sx={{ gap: 1 }}
         >
           {isSubmitting ? <CircularProgress size={20} /> : <ArchiveIcon />}
-          Archive & Create
+          Archive Event
         </Button>
       </DialogActions>
     </Dialog>

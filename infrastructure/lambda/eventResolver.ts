@@ -20,6 +20,10 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
         return await listEvents(event);
       case 'switchActiveEvent':
         return await switchActiveEvent(event);
+      case 'createEvent':
+        return await createEvent(event);
+      case 'archiveCurrentEvent':
+        return await archiveCurrentEvent(event);
       case 'archiveAndCreateEvent':
         return await archiveAndCreateEvent(event);
       default:
@@ -76,6 +80,32 @@ async function switchActiveEvent(event: AppSyncResolverEvent<any>) {
   const eventId = event.arguments.eventId;
 
   return await eventDataAccess.switchActiveEvent(eventId, adminId);
+}
+
+/**
+ * Create a new event and make it active (without archiving current event)
+ */
+async function createEvent(event: AppSyncResolverEvent<any>) {
+  const userContext = await getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const adminId = userContext?.claims?.sub || userContext?.userId || 'unknown-admin';
+  const newEventName = event.arguments.newEventName;
+  const newEventDate = event.arguments.newEventDate;
+
+  return await eventDataAccess.createEventAndActivate(newEventName, newEventDate, adminId);
+}
+
+/**
+ * Archive the current active event
+ */
+async function archiveCurrentEvent(event: AppSyncResolverEvent<any>) {
+  const userContext = await getUserContext(event);
+  requireRole(userContext, 'admin');
+
+  const adminId = userContext?.claims?.sub || userContext?.userId || 'unknown-admin';
+
+  return await eventDataAccess.archiveCurrentEvent(adminId);
 }
 
 /**

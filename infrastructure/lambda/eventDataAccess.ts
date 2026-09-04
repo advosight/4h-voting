@@ -161,6 +161,67 @@ export class EventDataAccess {
   }
 
   /**
+   * Create a new event and make it active (without archiving the current one)
+   */
+  async createEventAndActivate(newEventName: string, newEventDate: string, createdBy: string): Promise<Event> {
+    try {
+      // Create the new event
+      const newEvent = await this.createEvent(newEventName, newEventDate);
+
+      // Set it as the active event
+      await this.setActiveEventPointer(newEvent.id, createdBy);
+
+      return {
+        ...newEvent,
+        status: 'active',
+      };
+    } catch (error) {
+      console.error('Error creating and activating event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Archive the current active event (stamps archivedAt and archivedBy)
+   */
+  async archiveCurrentEvent(archivedBy: string): Promise<Event | null> {
+    try {
+      const activeEventId = await this.getActiveEventPointer();
+      if (!activeEventId) {
+        return null;
+      }
+
+      const archivedAt = new Date().toISOString();
+
+      await this.docClient.send(new UpdateCommand({
+        TableName: this.tableName,
+        Key: { PK: `EVENT#${activeEventId}`, SK: 'METADATA' },
+        UpdateExpression: 'SET archivedAt = :archivedAt, archivedBy = :archivedBy',
+        ExpressionAttributeValues: {
+          ':archivedAt': archivedAt,
+          ':archivedBy': archivedBy,
+        },
+      }));
+
+      // Return the archived event
+      const event = await this.getEvent(activeEventId);
+      if (!event) {
+        return null;
+      }
+
+      return {
+        ...event,
+        archivedAt,
+        archivedBy,
+        status: 'archived',
+      };
+    } catch (error) {
+      console.error('Error archiving current event:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Archive the current active event and create a new active event
    */
   async archiveAndCreateEvent(newEventName: string, newEventDate: string, archivedBy: string): Promise<Event> {
