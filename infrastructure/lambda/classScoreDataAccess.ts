@@ -24,6 +24,8 @@ export interface ClassScore {
   totalScore: number;
   ribbonEligibility: string;
   timestamp: string;
+  createdAt: string;
+  updatedAt: string;
   isFinalized: boolean;
   modificationCount: number;
   lastModifiedBy?: string;
@@ -263,6 +265,8 @@ export class ClassScoreDataAccess {
       totalScore,
       ribbonEligibility,
       timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
       isFinalized: input.isFinalized || false,
       modificationCount: 0,
       lastModifiedBy: input.judgeName,
@@ -381,6 +385,8 @@ export class ClassScoreDataAccess {
       totalScore,
       ribbonEligibility,
       timestamp: result.Item.timestamp || new Date().toISOString(),
+      createdAt: result.Item.createdAt || result.Item.timestamp || new Date().toISOString(),
+      updatedAt: result.Item.updatedAt || result.Item.timestamp || new Date().toISOString(),
       isFinalized: result.Item.isFinalized,
       modificationCount: parseInt(result.Item.modificationCount) || 0,
       lastModifiedBy: result.Item.lastModifiedBy,
@@ -454,6 +460,7 @@ export class ClassScoreDataAccess {
       ':totalScore': finalScore.totalScore,
       ':ribbonEligibility': finalScore.ribbonEligibility,
       ':timestamp': timestamp,
+      ':updatedAt': timestamp,
       ':isFinalized': finalScore.isFinalized,
       ':modificationCount': finalScore.modificationCount,
       ':lastModifiedBy': finalScore.lastModifiedBy,
@@ -488,6 +495,7 @@ export class ClassScoreDataAccess {
         totalScore = :totalScore,
         ribbonEligibility = :ribbonEligibility,
         #timestamp = :timestamp,
+        updatedAt = :updatedAt,
         isFinalized = :isFinalized,
         modificationCount = :modificationCount,
         lastModifiedBy = :lastModifiedBy,
@@ -716,6 +724,8 @@ export class ClassScoreDataAccess {
         totalScore,
         ribbonEligibility,
         timestamp: item.timestamp || new Date().toISOString(),
+        createdAt: item.createdAt || item.timestamp || new Date().toISOString(),
+        updatedAt: item.updatedAt || item.timestamp || new Date().toISOString(),
         isFinalized: item.isFinalized,
         modificationCount: parseInt(item.modificationCount) || 0,
         lastModifiedBy: item.lastModifiedBy,
@@ -772,6 +782,7 @@ export class ClassScoreDataAccess {
     const finalizedScore: ClassScore = {
       ...existingScore,
       isFinalized: true,
+      updatedAt: timestamp,
       modificationCount: (existingScore.modificationCount || 0) + 1,
       lastModifiedBy: modifiedBy,
       lastModifiedAt: timestamp,
@@ -795,13 +806,15 @@ export class ClassScoreDataAccess {
         PK: `CLASS_SCORE#${id}`,
         SK: 'METADATA',
       },
-      UpdateExpression: `SET 
+      UpdateExpression: `SET
         isFinalized = :isFinalized,
+        updatedAt = :updatedAt,
         modificationCount = :modificationCount,
         lastModifiedBy = :lastModifiedBy,
         lastModifiedAt = :lastModifiedAt`,
       ExpressionAttributeValues: {
         ':isFinalized': true,
+        ':updatedAt': timestamp,
         ':modificationCount': finalizedScore.modificationCount,
         ':lastModifiedBy': modifiedBy,
         ':lastModifiedAt': timestamp,
